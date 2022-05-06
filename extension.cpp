@@ -3577,8 +3577,17 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     //CleanupDeleteList(0);
 
+    //Flush - data cache
     uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
     rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+
+    //Flush - mdl cache
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
+
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);

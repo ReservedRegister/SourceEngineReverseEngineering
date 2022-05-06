@@ -51,6 +51,20 @@ typedef struct _PlayerSave {
 
 typedef PlayerSave** PlayerSaveList;
 
+enum MDLCacheFlush_t
+{
+	MDLCACHE_FLUSH_STUDIOHDR		= 0x01,
+	MDLCACHE_FLUSH_STUDIOHWDATA		= 0x02,
+	MDLCACHE_FLUSH_VCOLLIDE			= 0x04,
+	MDLCACHE_FLUSH_ANIMBLOCK		= 0x08,
+	MDLCACHE_FLUSH_VIRTUALMODEL		= 0x10,
+	MDLCACHE_FLUSH_AUTOPLAY         = 0x20,
+	MDLCACHE_FLUSH_VERTEXES         = 0x40,
+
+	MDLCACHE_FLUSH_IGNORELOCK       = 0x80000000,
+	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
+};
+
 typedef uint32_t (*pZeroArgProt)();
 typedef uint32_t (*pOneArgProt)(uint32_t);
 typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
