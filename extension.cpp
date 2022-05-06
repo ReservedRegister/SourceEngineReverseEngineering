@@ -13,18 +13,6 @@ struct link_map *soundemittersystem_lm;
 struct link_map *soundemittersystem_srv_lm;
 struct link_map *studiorender_srv_lm;
 struct link_map *server_srv_lm;
-struct link_map *server_lm;
-struct link_map *libSDL2_lm;
-struct link_map *libsteam_api_lm;
-struct link_map *sdktools_lm;
-struct link_map *webternet_lm;
-struct link_map *sourcepawn_lm;
-struct link_map *sourcemod_logic_lm;
-struct link_map *sourcemod_two_lm;
-struct link_map *metamod_two_lm;
-struct link_map *sourcemod_mm_lm;
-struct link_map *bintools_lm;
-struct link_map *updater_lm;
 
 uint32_t engine_srv;
 uint32_t datacache_srv;

@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"SynergyUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension that aims to resolve errors and aim in reversing the synergy dedicated server"
-#define SMEXT_CONF_VERSION		"9.9.9.11"
+#define SMEXT_CONF_VERSION		"9.9.9.12"
 #define SMEXT_CONF_AUTHOR		"AlliedModders"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"SAMPLE"
