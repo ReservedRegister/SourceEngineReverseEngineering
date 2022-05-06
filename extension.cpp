@@ -14,7 +14,6 @@ struct link_map *soundemittersystem_srv_lm;
 struct link_map *studiorender_srv_lm;
 struct link_map *server_srv_lm;
 struct link_map *server_lm;
-struct link_map *shaderapiempty_srv_lm;
 struct link_map *libSDL2_lm;
 struct link_map *libsteam_api_lm;
 struct link_map *sdktools_lm;
@@ -37,19 +36,6 @@ uint32_t soundemittersystem;
 uint32_t soundemittersystem_srv;
 uint32_t studiorender_srv;
 uint32_t server_srv;
-uint32_t server;
-uint32_t shaderapiempty_srv;
-uint32_t libSDL2;
-uint32_t libsteam_api;
-uint32_t sdktools;
-uint32_t webternet;
-uint32_t sourcepawn;
-uint32_t sourcemod_logic;
-uint32_t sourcemod_two;
-uint32_t metamod_two;
-uint32_t sourcemod_mm;
-uint32_t bintools;
-uint32_t updater;
 
 uint32_t engine_srv_size;
 uint32_t datacache_srv_size;
@@ -61,19 +47,6 @@ uint32_t soundemittersystem_size;
 uint32_t soundemittersystem_srv_size;
 uint32_t studiorender_srv_size;
 uint32_t server_srv_size;
-uint32_t server_size;
-uint32_t shaderapiempty_srv_size;
-uint32_t libSDL2_size;
-uint32_t libsteam_api_size;
-uint32_t sdktools_size;
-uint32_t webternet_size;
-uint32_t sourcepawn_size;
-uint32_t sourcemod_logic_size;
-uint32_t sourcemod_two_size;
-uint32_t metamod_two_size;
-uint32_t sourcemod_mm_size;
-uint32_t bintools_size;
-uint32_t updater_size;
 
 uint32_t sv;
 uint32_t g_ModelLoader;
@@ -201,11 +174,7 @@ void* strcpy_chk_addr;
 bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
     AllowWriteToMappedMemory();
-    return true;
-}
 
-void SynergyUtils::SDK_OnAllLoaded()
-{
     int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
     int pthread_init_two = pthread_mutex_init(&malloc_ref_lock, NULL);
 
@@ -241,9 +210,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     char studiorender_srv_fullpath[max_path_length];
     char vphysics_srv_fullpath[max_path_length];
     char datacache_srv_fullpath[max_path_length];
-    char shaderapiempty_srv_fullpath[max_path_length];
-    char libSDL2_fullpath[max_path_length];
-    char libsteam_api_fullpath[max_path_length];
 
     snprintf(server_srv_fullpath, max_path_length, "%s/synergy/bin/server_srv.so", root_dir);
     snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
@@ -255,26 +221,20 @@ void SynergyUtils::SDK_OnAllLoaded()
     snprintf(studiorender_srv_fullpath, max_path_length, "%s/bin/studiorender_srv.so", root_dir);
     snprintf(vphysics_srv_fullpath, max_path_length, "%s/bin/vphysics_srv.so", root_dir);
     snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
-    snprintf(shaderapiempty_srv_fullpath, max_path_length, "%s/bin/shaderapiempty_srv.so", root_dir);
-    snprintf(libSDL2_fullpath, max_path_length, "%s/bin/libSDL2-2.0.so.0", root_dir);
-    snprintf(libsteam_api_fullpath, max_path_length, "%s/bin/libsteam_api.so", root_dir);
 
     snprintf(last_map, 1024, "d1_trainstation_06");
     snprintf(global_map, 1024, "d1_trainstation_06");
 
-    engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_LAZY));
-    datacache_lm = (struct link_map*)(dlopen(datacache_srv_fullpath, RTLD_LAZY));
-    dedicated_lm = (struct link_map*)(dlopen(dedicated_srv_fullpath, RTLD_LAZY));
-    materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_LAZY));
-    vphysics_srv_lm = (struct link_map*)(dlopen(vphysics_srv_fullpath, RTLD_LAZY));
-    scenefilecache_lm = (struct link_map*)(dlopen(scenefilecache_fullpath, RTLD_LAZY));
-    soundemittersystem_lm = (struct link_map*)(dlopen(soundemittersystem_fullpath, RTLD_LAZY));
-    soundemittersystem_srv_lm = (struct link_map*)(dlopen(soundemittersystem_srv_fullpath, RTLD_LAZY));
-    studiorender_srv_lm = (struct link_map*)(dlopen(studiorender_srv_fullpath, RTLD_LAZY));
-    server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_LAZY));
-    shaderapiempty_srv_lm = (struct link_map*)(dlopen(shaderapiempty_srv_fullpath, RTLD_LAZY));
-    libSDL2_lm = (struct link_map*)(dlopen(libSDL2_fullpath, RTLD_LAZY));
-    libsteam_api_lm = (struct link_map*)(dlopen(libsteam_api_fullpath, RTLD_LAZY));
+    engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_NOW));
+    datacache_lm = (struct link_map*)(dlopen(datacache_srv_fullpath, RTLD_NOW));
+    dedicated_lm = (struct link_map*)(dlopen(dedicated_srv_fullpath, RTLD_NOW));
+    materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_NOW));
+    vphysics_srv_lm = (struct link_map*)(dlopen(vphysics_srv_fullpath, RTLD_NOW));
+    scenefilecache_lm = (struct link_map*)(dlopen(scenefilecache_fullpath, RTLD_NOW));
+    soundemittersystem_lm = (struct link_map*)(dlopen(soundemittersystem_fullpath, RTLD_NOW));
+    soundemittersystem_srv_lm = (struct link_map*)(dlopen(soundemittersystem_srv_fullpath, RTLD_NOW));
+    studiorender_srv_lm = (struct link_map*)(dlopen(studiorender_srv_fullpath, RTLD_NOW));
+    server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_NOW));
 
     engine_srv_size = 0x2C0000;
     datacache_srv_size = 0x74000;
@@ -286,9 +246,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     soundemittersystem_srv_size = 0x33000;
     studiorender_srv_size = 0xD3000;
     server_srv_size = 0xFB1000;
-    shaderapiempty_srv_size = 0x1B000;
-    libSDL2_size = 0xFF000;
-    libsteam_api_size = 0x12000;
 
     engine_srv = engine_lm->l_addr;
     datacache_srv = datacache_lm->l_addr;
@@ -300,9 +257,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     soundemittersystem_srv = soundemittersystem_srv_lm->l_addr;
     studiorender_srv = studiorender_srv_lm->l_addr;
     server_srv = server_srv_lm->l_addr;
-    shaderapiempty_srv = shaderapiempty_srv_lm->l_addr;
-    libSDL2 = libSDL2_lm->l_addr;
-    libsteam_api = libsteam_api_lm->l_addr;
 
     RestoreLinkedLists();
     SaveProcessId();
@@ -398,7 +352,13 @@ void SynergyUtils::SDK_OnAllLoaded()
     new_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CA39 + 1) + (server_srv + 0x0041CA39) + 5 );
 
     strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
-    
+
+    HookFunctionsWithC();
+    return true;
+}
+
+void SynergyUtils::SDK_OnAllLoaded()
+{    
     PatchRestoring();
     HookSaveRestoreOne();
     HookSaveRestoreTwo();
@@ -416,7 +376,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     PatchDropships();
     PatchOthers();
 
-    HookFunctionsWithC();
     HookFunctionsWithCpp();
 
     RestoreMemoryProtections();
@@ -3583,7 +3542,7 @@ uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return pDynamicThreeArgFunc(arg0, 1, 1);
 }
 
-uint32_t PlayerSpawnDirectHook(uint32_t arg0)
+uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
 
@@ -3618,7 +3577,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     //CleanupDeleteList(0);
 
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
     rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
@@ -3754,7 +3713,7 @@ void AllowWriteToMappedMemory()
     {
         sscanf(file_line, "%[^\n]s", file_line);
 
-        if(strcasestr(file_line, ".so") == 0)
+        if(strcasestr(file_line, "/Synergy/bin/") == NULL && strcasestr(file_line, "/Synergy/synergy/bin/") == NULL)
             continue;
 
         char* file_line_cpy = (char*) malloc(strlen(file_line)+1);
@@ -4081,7 +4040,6 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), (void*)HookEntityDelete);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), (void*)SaveOverride);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), (void*)PlayerSpawnHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), (void*)PlayerSpawnDirectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), (void*)PlayerLoadHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)SavegameInternalFunction);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)ChkHandle);
@@ -4097,7 +4055,6 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)CallocHook);
@@ -4109,7 +4066,6 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
@@ -4121,7 +4077,6 @@ void HookFunctionsWithC()
     /*rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pReallocPtr, pReallocHookPtr);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, pReallocPtr, pReallocHookPtr);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pReallocPtr, pReallocHookPtr);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pReallocPtr, pReallocHookPtr);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pReallocPtr, pReallocHookPtr);
@@ -4133,7 +4088,6 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching free()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pFreePtr, pFreeHookPtr);
@@ -4169,7 +4123,6 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching operator delete");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
@@ -4181,7 +4134,6 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching operator delete[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(shaderapiempty_srv, shaderapiempty_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
@@ -4190,91 +4142,6 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-
-    /*HookFunctionInSharedObject(libSDL2, libSDL2_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(server, server_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, pMallocPtr, pMallocHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(server, server_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, new_operator_addr, pOperatorNewHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(server, server_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, new_operator_array_addr, pOperatorNewArrayHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(server, server_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(server, server_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(server, server_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, delete_operator_addr, pDeleteOperatorHookPtr);
-    HookFunctionInSharedObject(libSDL2, libSDL2_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(libsteam_api, libsteam_api_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(server, server_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(sdktools, sdktools_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(webternet, webternet_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(sourcepawn, sourcepawn_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_logic, sourcemod_logic_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_two, sourcemod_two_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(metamod_two, metamod_two_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(sourcemod_mm, sourcemod_mm_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(bintools, bintools_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);
-    HookFunctionInSharedObject(updater, updater_size, delete_operator_array_addr, pDeleteOperatorArrayHookPtr);*/
 
     /*rootconsole->ConsolePrint("patching memcpy()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pMemcpyPtr, pMemcpyHookPtr);
@@ -4342,8 +4209,6 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pStrcpyPtr, pStrcpyHookPtr);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pStrcpyPtr, pStrcpyHookPtr);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pStrcpyPtr, pStrcpyHookPtr);*/
-
-    //rootconsole->ConsolePrint("patching done!");
 }
 
 void HookFunctionsWithCpp()
@@ -4353,6 +4218,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
