@@ -193,6 +193,627 @@ uint32_t global_map_ents;
 void* delete_operator_array_addr;
 void* delete_operator_addr;
 
+void* new_operator_addr;
+void* new_operator_array_addr;
+
+void* strcpy_chk_addr;
+
+bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
+{
+    AllowWriteToMappedMemory();
+    return true;
+}
+
+void SynergyUtils::SDK_OnAllLoaded()
+{
+    int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
+    int pthread_init_two = pthread_mutex_init(&malloc_ref_lock, NULL);
+
+    if(pthread_init_one != 0 || pthread_init_two != 0)
+    {
+        rootconsole->ConsolePrint("\nMutex init for lists thread safeness has failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    global_map = (char*) malloc(1024);
+    last_map = (char*) malloc(1024);
+    allow_vpkhook = false;
+    transition = false;
+    savegame = false;
+    savegame_lock = false;
+    restoring = false;
+    protect_player = false;
+    frames = 0;
+    gamestart = false;
+    gamestart_lock = false;
+    global_map_ents = 0;
+
+    char* root_dir = getenv("PWD");
+    size_t max_path_length = 1024;
+
+    char server_srv_fullpath[max_path_length];
+    char engine_srv_fullpath[max_path_length];
+    char scenefilecache_fullpath[max_path_length];
+    char soundemittersystem_fullpath[max_path_length];
+    char dedicated_srv_fullpath[max_path_length];
+    char soundemittersystem_srv_fullpath[max_path_length];
+    char materialsystem_srv_fullpath[max_path_length];
+    char studiorender_srv_fullpath[max_path_length];
+    char vphysics_srv_fullpath[max_path_length];
+    char datacache_srv_fullpath[max_path_length];
+    char shaderapiempty_srv_fullpath[max_path_length];
+    char libSDL2_fullpath[max_path_length];
+    char libsteam_api_fullpath[max_path_length];
+
+    snprintf(server_srv_fullpath, max_path_length, "%s/synergy/bin/server_srv.so", root_dir);
+    snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
+    snprintf(scenefilecache_fullpath, max_path_length, "%s/bin/scenefilecache.so", root_dir);
+    snprintf(soundemittersystem_fullpath, max_path_length, "%s/bin/soundemittersystem.so", root_dir);
+    snprintf(dedicated_srv_fullpath, max_path_length, "%s/bin/dedicated_srv.so", root_dir);
+    snprintf(soundemittersystem_srv_fullpath, max_path_length, "%s/bin/soundemittersystem_srv.so", root_dir);
+    snprintf(materialsystem_srv_fullpath, max_path_length, "%s/bin/materialsystem_srv.so", root_dir);
+    snprintf(studiorender_srv_fullpath, max_path_length, "%s/bin/studiorender_srv.so", root_dir);
+    snprintf(vphysics_srv_fullpath, max_path_length, "%s/bin/vphysics_srv.so", root_dir);
+    snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
+    snprintf(shaderapiempty_srv_fullpath, max_path_length, "%s/bin/shaderapiempty_srv.so", root_dir);
+    snprintf(libSDL2_fullpath, max_path_length, "%s/bin/libSDL2-2.0.so.0", root_dir);
+    snprintf(libsteam_api_fullpath, max_path_length, "%s/bin/libsteam_api.so", root_dir);
+
+    snprintf(last_map, 1024, "d1_trainstation_06");
+    snprintf(global_map, 1024, "d1_trainstation_06");
+
+    engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_LAZY));
+    datacache_lm = (struct link_map*)(dlopen(datacache_srv_fullpath, RTLD_LAZY));
+    dedicated_lm = (struct link_map*)(dlopen(dedicated_srv_fullpath, RTLD_LAZY));
+    materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_LAZY));
+    vphysics_srv_lm = (struct link_map*)(dlopen(vphysics_srv_fullpath, RTLD_LAZY));
+    scenefilecache_lm = (struct link_map*)(dlopen(scenefilecache_fullpath, RTLD_LAZY));
+    soundemittersystem_lm = (struct link_map*)(dlopen(soundemittersystem_fullpath, RTLD_LAZY));
+    soundemittersystem_srv_lm = (struct link_map*)(dlopen(soundemittersystem_srv_fullpath, RTLD_LAZY));
+    studiorender_srv_lm = (struct link_map*)(dlopen(studiorender_srv_fullpath, RTLD_LAZY));
+    server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_LAZY));
+    shaderapiempty_srv_lm = (struct link_map*)(dlopen(shaderapiempty_srv_fullpath, RTLD_LAZY));
+    libSDL2_lm = (struct link_map*)(dlopen(libSDL2_fullpath, RTLD_LAZY));
+    libsteam_api_lm = (struct link_map*)(dlopen(libsteam_api_fullpath, RTLD_LAZY));
+
+    engine_srv_size = 0x2C0000;
+    datacache_srv_size = 0x74000;
+    dedicated_srv_size = 0x26D000;
+    materialsystem_srv_size = 0x135000;
+    vphysics_srv_size = 0x1A5000;
+    scenefilecache_size = 0x14000;
+    soundemittersystem_size = 0x33000;
+    soundemittersystem_srv_size = 0x33000;
+    studiorender_srv_size = 0xD3000;
+    server_srv_size = 0xFB1000;
+    shaderapiempty_srv_size = 0x1B000;
+    libSDL2_size = 0xFF000;
+    libsteam_api_size = 0x12000;
+
+    engine_srv = engine_lm->l_addr;
+    datacache_srv = datacache_lm->l_addr;
+    dedicated_srv = dedicated_lm->l_addr;
+    materialsystem_srv = materialsystem_srv_lm->l_addr;
+    vphysics_srv = vphysics_srv_lm->l_addr;
+    scenefilecache = scenefilecache_lm->l_addr;
+    soundemittersystem = soundemittersystem_lm->l_addr;
+    soundemittersystem_srv = soundemittersystem_srv_lm->l_addr;
+    studiorender_srv = studiorender_srv_lm->l_addr;
+    server_srv = server_srv_lm->l_addr;
+    shaderapiempty_srv = shaderapiempty_srv_lm->l_addr;
+    libSDL2 = libSDL2_lm->l_addr;
+    libsteam_api = libsteam_api_lm->l_addr;
+
+    RestoreLinkedLists();
+    SaveProcessId();
+    
+    antiCycleListDoors = AllocateValuesList();
+    mallocAllocations = AllocateMallocRefList();
+    playerSaveList = AllocatePlayerSaveList();
+
+    sv = engine_srv + 0x00324580;
+    g_ModelLoader = engine_srv + 0x00317380;
+    g_DataCache = datacache_srv + 0x00074EC0;
+    g_MDLCache = datacache_srv + 0x00075140;
+    s_ServerPlugin = engine_srv + 0x0034EF20;
+    SaveRestoreGlobal = server_srv + 0x010121E0;
+    CGlobalEntityList = server_srv + 0x00FF8740;
+
+    VpkReloadAddr = server_srv + 0x004CC6D0;
+    Flush = datacache_srv + 0x0002BCD0;
+    HostChangelevel = engine_srv + 0x0012A960;
+    SpawnServer = engine_srv + 0x001AFC90;
+    EdtLoadFuncAddr = server_srv + 0x00AEF9E0;
+    PopulatePoseParametersAddr = server_srv + 0x00628220;
+    EndFunctionAddr = server_srv + 0x00B66D60;
+    OldFunctionAddr = server_srv + 0x0085F0E0;
+    sub_654260_addr = server_srv + 0x00654260;
+    sub_628F00_addr = server_srv + 0x00628F00;
+    MainTransitionCallAddr = server_srv + 0x004AED50;
+    CreateEntityByNameAddr = server_srv + 0x009AFCA0;
+    SaveGameStateAddr = server_srv + 0x00AF3990;
+    TransitionRestoreMainCallOrigAddr = server_srv + 0x00AF46C0;
+    KillEntityDirectCallAddr = server_srv + 0x00B64500;
+    VehicleRollermineFunctionAddr = server_srv + 0x00654970;
+    OrigSaveCallAddr = server_srv + 0x00AF33F0;
+    OriginalTriggerMovedAddr = engine_srv + 0x001D8FD0;
+    DoorFinalFunctionAddr = server_srv + 0x00A94600;
+    GetNumClientsAddr = engine_srv + 0x000D3030;
+    GetNumProxiesAddr = engine_srv + 0x000D3080;
+    FindEntityByClassnameAddr = server_srv + 0x006B2740;
+    origAutosaveCall = server_srv + 0x00AF3990;
+    origRestoreCall = server_srv + 0x00AF2A60;
+    UnloadUnreferencedModelsFuncAddr = engine_srv + 0x0014D6E0;
+    EnqueueCommandAddr = engine_srv + 0x000DE9C0;
+    CreateEntityCallAddr = server_srv + 0x00B62220;
+    OrigManhackFuncAddr = server_srv + 0x0047E5D0;
+    DispatchSpawnAddr = server_srv + 0x00B68190;
+    ActivateEntityAddr = server_srv + 0x65DB30;
+    AutosaveLoadOrigAddr = server_srv + 0x00AF4530;
+    InactivateClientsAddr = engine_srv + 0x000D5DA0;
+    ReconnectClientsAddr = engine_srv + 0x000D5E50;
+    PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
+    CleanupDeleteListAddr = server_srv + 0x006B2510;
+
+    pCallFirstFunc = (pOneArgProt)VpkReloadAddr;
+    pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
+    pHostChangelevelFunc = (pThreeArgProt)HostChangelevel;
+    pFlushFunc = (pThreeArgProt)Flush;
+    pSpawnServerFunc = (pThreeArgProt)SpawnServer;
+    PopulatePoseParameters = (pThreeArgProt)PopulatePoseParametersAddr;
+    EndFunction = (pThreeArgProt)EndFunctionAddr;
+    OldFunction = (pOneArgProt)OldFunctionAddr;
+    sub_654260 = (pOneArgProt)sub_654260_addr;
+    sub_628F00 = (pOneArgProt)sub_628F00_addr;
+    MainTransitionCall = (pTwoArgProt)MainTransitionCallAddr;
+    CreateEntityByName = (pTwoArgProt)CreateEntityByNameAddr;
+    SaveGameState = (pThreeArgProt)SaveGameStateAddr;
+    pTransitionRestoreMainCall = (pFourArgProt)TransitionRestoreMainCallOrigAddr;
+    pKillEntityDirectFunc = (pOneArgProt)KillEntityDirectCallAddr;
+    pCallVehicleRollermineFunction = (pOneArgProt)VehicleRollermineFunctionAddr;
+    pCallOrigSaveFunction = (pOneArgProt)OrigSaveCallAddr;
+    pCallOriginalTriggerMoved = (pTwoArgProt)OriginalTriggerMovedAddr;
+    pDoorFinalFunction = (pFiveArgProt)DoorFinalFunctionAddr;
+    GetNumClients = (pOneArgProt)GetNumClientsAddr;
+    GetNumProxies = (pOneArgProt)GetNumProxiesAddr;
+    FindEntityByClassname = (pThreeArgProt)FindEntityByClassnameAddr;
+    pOrigAutosaveCallFunc = (pThreeArgProt)origAutosaveCall;
+    UnloadUnreferencedModels = (pOneArgProt)UnloadUnreferencedModelsFuncAddr;
+    EnqueueCommandFunc = (pOneArgProt)EnqueueCommandAddr;
+    CreateEntityCallFunc = (pTwoArgProt)CreateEntityCallAddr;
+    OrigManhackFunc = (pOneArgProt)OrigManhackFuncAddr;
+    pDispatchSpawnFunc = (pOneArgProt)DispatchSpawnAddr;
+    pActivateEntityFunc = (pOneArgProt)ActivateEntityAddr;
+    pRestoreFileCallFunc = (pTwoArgProt)origRestoreCall;
+    AutosaveLoadOrig = (pThreeArgProt)AutosaveLoadOrigAddr;
+    InactivateClients = (pOneArgProt)InactivateClientsAddr;
+    ReconnectClients = (pOneArgProt)ReconnectClientsAddr;
+    PlayerLoadOrig = (pOneArgProt)PlayerLoadOrigAddr;
+    CleanupDeleteList = (pOneArgProt)CleanupDeleteListAddr;
+
+    delete_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8CD + 1) + (server_srv + 0x0041C8CD) + 5 );
+    delete_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8FD + 1) + (server_srv + 0x0041C8FD) + 5 );
+
+    new_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CAB9 + 1) + (server_srv + 0x0041CAB9) + 5 );
+    new_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CA39 + 1) + (server_srv + 0x0041CA39) + 5 );
+
+    strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
+    
+    PatchRestoring();
+    HookSaveRestoreOne();
+    HookSaveRestoreTwo();
+    HookSaveRestoreThree();
+    HookSavingOne();
+    HookSavingTwo();
+    PatchAutosave();
+    PatchRestore();
+    HookVpkSystem();
+    PatchVpkSystem();
+    HookEdtSystem();
+    //PatchEdtSystem();
+    HookSpawnServer();
+    HookHostChangelevel();
+    PatchDropships();
+    PatchOthers();
+
+    HookFunctionsWithC();
+    HookFunctionsWithCpp();
+
+    RestoreMemoryProtections();
+    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+}
+
+void PatchRestoring()
+{
+    uint32_t nop_patch_list[128] = 
+    {
+        0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
+        0x009924F3,0x3B,0x009927E1,0xF,0x00992640,5,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA
+    };
+
+    for(int i = 0; i < 128 && i+1 < 128; i = i+2)
+    {
+        uint32_t patch_location = nop_patch_list[i];
+        uint32_t patch_location_length = nop_patch_list[i+1];
+
+        if(patch_location == 0 || patch_location_length == 0)
+            continue;
+
+        patch_location = server_srv + patch_location;
+
+        memset((void*)patch_location, 0x90, patch_location_length);
+        //*(uint16_t*)(patch_location) = 0xC031;
+    }
+
+    uint32_t offset = 0;
+
+    /*uint32_t spawn_patch_one = server_srv + 0x0098FFF9;
+    memset((void*)spawn_patch_one, 0x90, 0x15);
+
+    *(uint8_t*)(spawn_patch_one) = 0x89;
+    *(uint8_t*)(spawn_patch_one+1) = 0x1C;
+    *(uint8_t*)(spawn_patch_one+2) = 0x24;
+
+    spawn_patch_one = server_srv + (0x0098FFF9+3);
+    offset = (uint32_t)pPlayerSpawnDirectHookPtr - spawn_patch_one - 5;
+    *(uint8_t*)(spawn_patch_one) = 0xE8;
+    *(uint32_t*)(spawn_patch_one+1) = offset;
+
+    spawn_patch_one = server_srv + (0x0098FFF9+8);
+    *(uint8_t*)(spawn_patch_one) = 0xE9;
+    *(uint32_t*)(spawn_patch_one+1) = 0x17F;*/
+
+    uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
+    *(uint8_t*)(exploit_patch_one) = 0xE9;
+    *(uint32_t*)(exploit_patch_one+1) = -0x258;
+
+    uint32_t physics_patch = server_srv + 0x00A316FD;
+    *(uint8_t*)(physics_patch) = 0xE9;
+    *(uint32_t*)(physics_patch+1) = 0x48;
+
+    uint32_t clean_del_phys_replace_one = server_srv + 0x00A317C5;
+    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_one - 5;
+    *(uint32_t*)(clean_del_phys_replace_one+1) = offset;
+
+    uint32_t clean_del_phys_replace_two = server_srv + 0x00A31830;
+    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_two - 5;
+    *(uint32_t*)(clean_del_phys_replace_two+1) = offset;
+
+    *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
+    *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
+
+    memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
+    memset((void*)(engine_srv + 0x0012AA14), 0x90, 0xD);
+
+    memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
+    memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
+
+    /*uint32_t fix_null_ent_crash_cfire = server_srv + 0x007159A4;
+    *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
+    *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
+
+    memset((void*)(dedicated_srv + 0x000BE6F6), 0x90, 5);
+    *(uint16_t*)((dedicated_srv + 0x000BE6F6)) = 0xC031;
+
+    memset((void*)(engine_srv + 0x001AF920), 0x90, 0xD);
+
+    uint32_t jmp_new_lvl = server_srv + 0x0073C760;
+    *(uint8_t*)(jmp_new_lvl) = 0xE9;
+    *(uint32_t*)(jmp_new_lvl+1) = 0x4B;
+
+    uint32_t jmp_to_fix_heli = server_srv + 0x00960275;
+    *(uint8_t*)(jmp_to_fix_heli) = 0xE9;
+    *(uint32_t*)(jmp_to_fix_heli+1) = 0x44E;
+
+    uint32_t jmp_fix_heli_two = server_srv + 0x00815EF7;
+    *(uint8_t*)(jmp_fix_heli_two) = 0xEB;
+
+    //get rid of message spam on sound pointer
+    uint32_t it_said_it_causes_corruption = server_srv + 0x00A5436D;
+    *(uint8_t*)(it_said_it_causes_corruption) = 0xC3;
+
+    uint32_t begin_map_load_patch = datacache_srv + 0x0005A4CC;
+    *(uint32_t*)(begin_map_load_patch) = (uint32_t)FrameLockHook;
+
+    uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
+    *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;
+
+    uint32_t null_manhack_patch = server_srv + 0x008C1DC8;
+    *(uint8_t*)(null_manhack_patch) = 0xE9;
+    *(uint32_t*)(null_manhack_patch+1) = 0xAC;
+
+    /*uint32_t skip_end_clear_global_list = server_srv + 0x006B3FE5;
+    *(uint8_t*)(skip_end_clear_global_list) = 0xE9;
+    *(uint32_t*)(skip_end_clear_global_list+1) = 0x47;*/
+
+    /*uint32_t save_system_skip = server_srv + 0x00AF3414;
+    *(uint8_t*)(save_system_skip) = 0xE9;
+    *(uint32_t*)(save_system_skip+1) = 0x165;
+
+    uint32_t lvl_shutdown_skip = server_srv + 0x00737DB9;
+    *(uint8_t*)(lvl_shutdown_skip) = 0xE9;
+    *(uint32_t*)(lvl_shutdown_skip+1) = 0xA7;*/
+
+    /*uint32_t transition_system_patch_one = server_srv + 0x00AF470F;
+    *(uint8_t*)(transition_system_patch_one) = 0xE9;
+    *(uint32_t*)(transition_system_patch_one+1) = 0x6C;*/
+
+    uint32_t transition_system_patch_two = server_srv + 0x00AF4B11;
+    *(uint8_t*)(transition_system_patch_two) = 0xE9;
+    *(uint32_t*)(transition_system_patch_two+1) = -0x208;
+
+    uint32_t transition_system_patch_three = server_srv + 0x00AF47B2;
+    *(uint8_t*)(transition_system_patch_three) = 0xE9;
+    *(uint32_t*)(transition_system_patch_three+1) = 0x179;
+
+    uint32_t transition_system_patch_four = server_srv + 0x00AF4856;
+    *(uint8_t*)(transition_system_patch_four) = 0xE9;
+    *(uint32_t*)(transition_system_patch_four+1) = 0xB3;
+
+    /*uint32_t save_system_patch_one = server_srv + 0x00AF3410;
+    *(uint8_t*)(save_system_patch_one) = 0xE9;
+    *(uint32_t*)(save_system_patch_one+1) = 0x169;*/
+
+    uint32_t transition_savefile_load_patch = server_srv + 0x00AF493D;
+    offset = (uint32_t)SavegameInitialLoad - transition_savefile_load_patch - 5;
+    *(uint32_t*)(transition_savefile_load_patch+1) = offset;
+
+    uint32_t transition_call_patch_one = server_srv + 0x00AF4A42;
+    offset = (uint32_t)TransitionArgUpdateHook - transition_call_patch_one - 5;
+    *(uint32_t*)(transition_call_patch_one+1) = offset;
+
+    uint32_t transition_call_patch_two = server_srv + 0x00AF4994;
+    offset = (uint32_t)TransitionArgUpdateHookTwo - transition_call_patch_two - 5;
+    *(uint32_t*)(transition_call_patch_two+1) = offset;
+
+    uint32_t transition_call_patch_three = server_srv + 0x00AF47A5;
+    offset = (uint32_t)TransitionArgUpdateHookThree - transition_call_patch_three - 5;
+    *(uint32_t*)(transition_call_patch_three+1) = offset;
+
+    uint32_t remove_evidence_of_call = server_srv + 0x00CACE94;
+    *(uint32_t*)(remove_evidence_of_call) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v2 = server_srv + 0x00CACE60;
+    *(uint32_t*)(remove_evidence_of_call_v2) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v3 = server_srv + 0x00CACE74;
+    *(uint32_t*)(remove_evidence_of_call_v3) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v4 = server_srv + 0x00CACE78;
+    *(uint32_t*)(remove_evidence_of_call_v4) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v5 = server_srv + 0x00CACE6C;
+    *(uint32_t*)(remove_evidence_of_call_v5) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v6 = server_srv + 0x00CACE80;
+    *(uint32_t*)(remove_evidence_of_call_v6) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v7 = server_srv + 0x00CACE84;
+    *(uint32_t*)(remove_evidence_of_call_v7) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v8 = server_srv + 0x00CACE88;
+    *(uint32_t*)(remove_evidence_of_call_v8) = (uint32_t)EmptyCall;
+
+    uint32_t remove_evidence_of_call_v9 = server_srv + 0x00CACE70;
+    *(uint32_t*)(remove_evidence_of_call_v9) = (uint32_t)EmptyCall;
+
+    uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
+    *(uint8_t*)(player_restore_full_remove) = 0xE9;
+    *(uint32_t*)(player_restore_full_remove+1) = 0x89;
+
+    uint32_t remove_player_file_restoring = server_srv + 0x00AF4E79;
+    memset((void*)remove_player_file_restoring, 0x90, 5);
+    *(uint16_t*)(remove_player_file_restoring) = 0xC031;
+
+    uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
+    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
+
+    uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
+    *(uint8_t*)(patch_player_restore_asm) = 0xE9;
+    *(uint32_t*)(patch_player_restore_asm+1) = -0x1F7;
+
+    uint32_t clientPutInServerRestoreCancel = server_srv + 0x00B030A1;
+    *(uint8_t*)(clientPutInServerRestoreCancel) = 0xEB;
+
+    uint32_t clientActiveRestoreCancel = server_srv + 0x00B031F7;
+    *(uint8_t*)(clientActiveRestoreCancel) = 0xEB;
+
+    /*uint32_t orig_dll_discovery_v1 = server_srv + 0x004AE30E;
+    *(uint8_t*)(orig_dll_discovery_v1) = 0xE9;
+    *(uint32_t*)(orig_dll_discovery_v1+1) = 0x4C;*/
+
+    /*uint32_t orig_dll_discovery_v2 = server_srv + 0x004AE78D;
+    ChangeMemoryProtections(orig_dll_discovery_v2, 6);
+    memset((void*)orig_dll_discovery_v2, 0x90, 6);
+    RestoreMemoryProtections(orig_dll_discovery_v2, 6);*/
+
+    uint32_t patch_restore_stack = server_srv + 0x004AE5B0;
+    *(uint8_t*)(patch_restore_stack) = 0x89;
+    *(uint8_t*)(patch_restore_stack+1) = 0x1C;
+    *(uint8_t*)(patch_restore_stack+2) = 0x24;
+
+    uint32_t patch_restore_base = server_srv + 0x004AE5B3;
+    offset = (uint32_t)RestoreSystemPatchStart - patch_restore_base - 5;
+    *(uint8_t*)(patch_restore_base) = 0xE8;
+    *(uint32_t*)(patch_restore_base+1) = offset;
+
+
+
+    /*uint32_t main_spawn_call_jmp_one = server_srv + 0x0099265B;
+    ChangeMemoryProtections(main_spawn_call_jmp_one, 5);
+    *(uint8_t*)(main_spawn_call_jmp_one) = 0xE9;
+    *(uint32_t*)(main_spawn_call_jmp_one+1) = 0x80;
+    RestoreMemoryProtections(main_spawn_call_jmp_one, 5);
+
+    uint32_t main_spawn_call_jmp_two = server_srv + 0x00992834;
+    ChangeMemoryProtections(main_spawn_call_jmp_two, 5);
+    *(uint8_t*)(main_spawn_call_jmp_two) = 0xE9;
+    *(uint32_t*)(main_spawn_call_jmp_two+1) = 0x127;
+    RestoreMemoryProtections(main_spawn_call_jmp_two, 5);
+
+    uint32_t main_spawn_call_jmp_three = server_srv + 0x0099279A;
+    ChangeMemoryProtections(main_spawn_call_jmp_three, 5);
+    *(uint8_t*)(main_spawn_call_jmp_three) = 0xE9;
+    *(uint32_t*)(main_spawn_call_jmp_three+1) = 0x20;
+    RestoreMemoryProtections(main_spawn_call_jmp_three, 5);
+
+    uint32_t main_spawn_call_jmp_four = server_srv + 0x009925B6;
+    ChangeMemoryProtections(main_spawn_call_jmp_four, 5);
+    *(uint8_t*)(main_spawn_call_jmp_four) = 0xE9;
+    *(uint32_t*)(main_spawn_call_jmp_four+1) = 0x20;
+    RestoreMemoryProtections(main_spawn_call_jmp_four, 5);*/
+
+
+    uint32_t JMP_DIRECT = server_srv + 0x004AE682;
+    *(uint8_t*)(JMP_DIRECT) = 0xE9;
+    *(uint32_t*)(JMP_DIRECT+1) = -0xD7;
+
+    uint32_t JMP_TOEND_RESTORE = server_srv + 0x00AF4B6A;
+    *(uint8_t*)(JMP_TOEND_RESTORE) = 0xE9;
+    *(uint32_t*)(JMP_TOEND_RESTORE+1) = 0x143;
+
+    uint32_t JMP_TOEND_RESTORE_THREE = server_srv + 0x00AF4D2A;
+    *(uint8_t*)(JMP_TOEND_RESTORE_THREE) = 0xE9;
+    *(uint32_t*)(JMP_TOEND_RESTORE_THREE+1) = 0x232;
+
+    uint32_t JMP_PATCH_GLOBALRESTORE_ONE = server_srv + 0x00AF45D0;
+    *(uint8_t*)(JMP_PATCH_GLOBALRESTORE_ONE) = 0xE9;
+    *(uint32_t*)(JMP_PATCH_GLOBALRESTORE_ONE+1) = 0x45;
+
+    uint32_t hook_game_frame_delete_list = server_srv + 0x00739B48;
+    offset = (uint32_t)GameFrameHook - hook_game_frame_delete_list - 5;
+    *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
+
+    uint32_t remove_end_of_ent_restore = server_srv + 0x004AE434;
+    memset((void*)remove_end_of_ent_restore, 0x90, 5);
+
+    *(uint8_t*)(remove_end_of_ent_restore) = 0xBE;
+    *(uint8_t*)(remove_end_of_ent_restore+1) = 0x00;
+    *(uint8_t*)(remove_end_of_ent_restore+2) = 0x00;
+    *(uint8_t*)(remove_end_of_ent_restore+3) = 0x00;
+    *(uint8_t*)(remove_end_of_ent_restore+4) = 0x00;
+
+    uint32_t jmp_to_end_restore_func = server_srv + (0x004AE434+5);
+    *(uint8_t*)(jmp_to_end_restore_func) = 0xE9;
+    *(uint32_t*)(jmp_to_end_restore_func+1) = 0x62;
+
+
+    //Disable ResponseSystem saving
+    uint32_t disable_response_saving = server_srv + 0x00C70710;
+    *(uint32_t*)(disable_response_saving) = (uint32_t)EmptyCall;
+
+    //Disable EventQueue saving
+    /*uint32_t disable_event_queue_saving = server_srv + 0x00C817B0;
+    ChangeMemoryProtections(disable_event_queue_saving, 4);
+    *(uint32_t*)(disable_event_queue_saving) = (uint32_t)pEmptyCallOneArgPtr;
+    RestoreMemoryProtections(disable_event_queue_saving, 4);*/
+
+    //Disable Achievement saving
+    uint32_t disable_achievement_saving = server_srv + 0x00C17570;
+    *(uint32_t*)(disable_achievement_saving) = (uint32_t)EmptyCall;
+
+    //Disable SOMETHING saving
+    uint32_t disable_something_saving = server_srv + 0x00D7DE90;
+    *(uint32_t*)(disable_something_saving) = (uint32_t)EmptyCall;
+
+    //Disable SOMETHING saving
+    uint32_t disable_something_saving_two = server_srv + 0x00C84630;
+    *(uint32_t*)(disable_something_saving_two) = (uint32_t)EmptyCall;
+
+    //Disable SOMETHING saving
+    uint32_t disable_something_saving_three = server_srv + 0x00C709F0;
+    *(uint32_t*)(disable_something_saving_three) = (uint32_t)EmptyCall;
+
+
+
+    //Disable AI restoring
+    uint32_t disable_ai_restoring = server_srv + 0x00C70A04;
+    *(uint32_t*)(disable_ai_restoring) = (uint32_t)EmptyCall;
+
+    //Disable Template restoring
+    uint32_t disable_template_restoring = server_srv + 0x00D7DEA4;
+    *(uint32_t*)(disable_template_restoring) = (uint32_t)EmptyCall;
+
+    //Disable ResponseSystem restoring
+    uint32_t disable_response_restoring = server_srv + 0x00C70724;
+    *(uint32_t*)(disable_response_restoring) = (uint32_t)EmptyCall;
+
+    //Disable Commentary restoring
+    uint32_t disable_commentary_restoring = server_srv + 0x00C84644;
+    *(uint32_t*)(disable_commentary_restoring) = (uint32_t)EmptyCall;
+
+    //Disable EventQueue restoring
+    /*uint32_t disable_event_queue_restoring = server_srv + 0x00C817C4;
+    ChangeMemoryProtections(disable_event_queue_restoring, 4);
+    *(uint32_t*)(disable_event_queue_restoring) = (uint32_t)pEmptyCallOneArgPtr;
+    RestoreMemoryProtections(disable_event_queue_restoring, 4);*/
+
+    //Disable Achievement restoring
+    uint32_t disable_achievement_restoring = server_srv + 0x00C17584;
+    *(uint32_t*)(disable_achievement_restoring) = (uint32_t)EmptyCall;
+
+
+
+
+    /*uint32_t restore_location_patches[128] = 
+    {
+        0x004ABE3F+1,0x004AE201+1,0x004AE66D+1,0x004AE6E6+1,0x004AEE98+1,0x00AF225C+1,0x00AF2279+2,0x00AF22F7+1,
+        0x00AF319D+1,0x00AF41D8+1,0x00AF4284+1,0x004AA44B+1,0x004AA49B+2,0x004AA559+2,0x004ADE61+1,0x004AF0A5+1,
+        0x004AF238+1,0x004AF28B+2,0x004AF423+3,0x004AF556+1,0x00AF2477+1,0x004AD1EB+2,0x004A98E3+2,0x004A9E23+2,
+        0x004AA043+2,0x004AA2A3+2,0x004ABAD3+2,0x004ABD33+2,0x004A9537+2,0x004AE96B+2
+    };
+
+    for(int i = 0; i < 128; i++)
+    {
+        if(restore_location_patches[i] == 0)
+            continue;
+
+        uint32_t address = server_srv + restore_location_patches[i];
+
+        ChangeMemoryProtections(address, 1);
+        *(uint8_t*)(address) = 0x38;
+        RestoreMemoryProtections(address, 1);
+        rootconsole->ConsolePrint("Patching restore address: [%X]", restore_location_patches[i]);
+    }
+
+    //0x004AA4F8
+    //0x004ADEEA
+    //0x004AF2E8
+
+    uint32_t other_patch_location_one = server_srv + 0x004AF2E8;
+    ChangeMemoryProtections(other_patch_location_one, 10);
+    memset((void*)other_patch_location_one, 0x90, 7);
+    RestoreMemoryProtections(other_patch_location_one, 10);
+
+    uint32_t other_patch_location_two = server_srv + 0x004ADEEA;
+    ChangeMemoryProtections(other_patch_location_two, 10);
+    memset((void*)other_patch_location_two, 0x90, 7);
+    RestoreMemoryProtections(other_patch_location_two, 10);
+
+    uint32_t other_patch_location_three = server_srv + 0x004AA4F8;
+    ChangeMemoryProtections(other_patch_location_three, 10);
+    memset((void*)other_patch_location_three, 0x90, 7);
+    RestoreMemoryProtections(other_patch_location_three, 10);*/
+
+    /*uint32_t patch_0x38_offset[128] = 
+    {
+        0x004AE3DE,0x004AE325
+    };
+
+    for(int i = 0; i < 128; i++)
+    {
+        if(patch_0x38_offset[i] == 0)
+            continue;
+
+        uint32_t address = server_srv + patch_0x38_offset[i];
+
+        ChangeMemoryProtections(address, 3);
+        memset((void*)address, 0x90, 3);
+        RestoreMemoryProtections(address, 3);
+        rootconsole->ConsolePrint("Patching restore address: [%X]", patch_0x38_offset[i]);
+    }*/
+}
 
 uint32_t GetFileSize(char* file_name)
 {
@@ -361,6 +982,37 @@ Field* CreateNewField(void* labelInput, void* keyInput, void* typeInput, void* f
     return field;
 }
 
+PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input)
+{
+    PlayerSave* player_save = (PlayerSave*) malloc(sizeof(PlayerSave));
+
+    player_save->saved_player = player_save_input;
+    player_save->nextPlayer = NULL;
+    return player_save;
+}
+
+MallocRef* CreateNewMallocRef(void* ref_input, void* size_input, void* alloc_location_input, void* alloc_type_input)
+{
+    MallocRef* new_ref = (MallocRef*) malloc(sizeof(MallocRef));
+
+    new_ref->ref = ref_input;
+    new_ref->ref_size = size_input;
+    new_ref->alloc_location = alloc_location_input;
+    new_ref->alloc_type = alloc_type_input;
+    new_ref->nextRef = NULL;
+
+    return new_ref;
+}
+
+Value* CreateNewValue(void* valueInput)
+{
+    Value* val = (Value*) malloc(sizeof(Value));
+
+    val->value = valueInput;
+    val->nextVal = NULL;
+    return val;
+}
+
 void InsertFieldToFieldList(FieldList list, Field* head)
 {
     head->nextField = *list;
@@ -421,28 +1073,6 @@ void* copy_val(void* val, size_t copy_size) {
     void* copy_ptr = malloc(copy_size);
     memcpy(copy_ptr, val, copy_size);
     return copy_ptr;
-}
-
-PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input)
-{
-    PlayerSave* player_save = (PlayerSave*) malloc(sizeof(PlayerSave));
-
-    player_save->saved_player = player_save_input;
-    player_save->nextPlayer = NULL;
-    return player_save;
-}
-
-MallocRef* CreateNewMallocRef(void* ref_input, void* size_input, void* alloc_location_input, void* alloc_type_input)
-{
-    MallocRef* new_ref = (MallocRef*) malloc(sizeof(MallocRef));
-
-    new_ref->ref = ref_input;
-    new_ref->ref_size = size_input;
-    new_ref->alloc_location = alloc_location_input;
-    new_ref->alloc_type = alloc_type_input;
-    new_ref->nextRef = NULL;
-
-    return new_ref;
 }
 
 bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
@@ -705,15 +1335,6 @@ void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
     *list = head;
 
     if(lock_mutex)  pthread_mutex_unlock(&malloc_ref_lock);
-}
-
-Value* CreateNewValue(void* valueInput)
-{
-    Value* val = (Value*) malloc(sizeof(Value));
-
-    val->value = valueInput;
-    val->nextVal = NULL;
-    return val;
 }
 
 uint32_t EmptyCall()
@@ -1390,7 +2011,7 @@ uint32_t FrameLockHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t GameFrameHook(uint32_t arg0, uint32_t arg1)
+uint32_t GameFrameHook(uint32_t arg0)
 {
     CleanupDeleteList(0);
 
@@ -1421,11 +2042,8 @@ uint32_t GameFrameHook(uint32_t arg0, uint32_t arg1)
         frames = 0;
 
     CleanupDeleteList(0);
-
     frames++;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00739A20);
-    return pDynamicTwoArgFunc(arg0, arg1);
+    return 0;
 }
 
 void SaveLinkedList(ValueList leakList)
@@ -1724,6 +2342,442 @@ void EnablePlayerViewControl()
             SendEntityInput(m_refHandle, (uint32_t)"Enable", 0, 0, 0, (uint32_t)-1);
         }
     }
+}
+
+void PatchAutosave()
+{
+    uint32_t autosave_call_one = server_srv + 0x00F81BFC;
+    uint32_t autosave_call_two = server_srv + 0x00AF3D30;
+    uint32_t autosave_call_three = server_srv + 0x00D86E58;
+    uint32_t autosave_call_four = server_srv + 0x00D87198;
+    uint32_t autosave_call_five = server_srv + 0x00737F76;
+
+    //*(uint32_t*)(autosave_call_one) = (uint32_t)pCLogicAutosaveMainFuncPtr;
+
+    //memset((void*)autosave_call_two, 0x90, 5);
+    //*(uint16_t*)(autosave_call_two) = 0xC031;
+
+    //*(uint32_t*)(autosave_call_three) = (uint32_t)pCTriggerToggleSaveMainFuncPtr;
+    //*(uint32_t*)(autosave_call_four) = (uint32_t)pCTriggerSaveMainFuncPtr;
+
+
+    uint32_t offset = (uint32_t)EmptyCall - autosave_call_five - 5;
+    *(uint32_t*)(autosave_call_five+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- Save system patched ---------------------");
+}
+
+void PatchRestore()
+{
+    int length = 5;
+
+    uint32_t restore_call_one = server_srv + 0x0073C780;
+    uint32_t restore_call_two = server_srv + 0x00AF46AB;
+    uint32_t restore_call_three = server_srv + 0x004D9A40;
+
+    uint32_t offset_three = (uint32_t)RestoreOverride - restore_call_three - 5;
+
+    memset((void*)restore_call_one, 0x90, length);
+    *(uint16_t*)(restore_call_one) = 0xC031;
+
+    //memset((void*)restore_call_two, 0x90, length);
+    //*(uint16_t*)(restore_call_two) = 0xC031;
+
+    *(uint8_t*)(restore_call_three) = 0xE8;
+    *(uint32_t*)(restore_call_three+1) = offset_three;
+
+    rootconsole->ConsolePrint("--------------------- Restore system patched ---------------------");
+}
+
+void HookSaveRestoreOne()
+{
+    int length_one = 5;
+    int length_two = 1;
+
+    uint32_t patch_location_one = server_srv + 0x004AA3E2;
+    uint32_t patch_location_two = server_srv + 0x004AA3EB;
+
+    uint32_t offset = (uint32_t)SaveHookDirectMalloc - patch_location_one - 5;
+
+    *(uint8_t*)(patch_location_one) = 0xE8;
+    *(uint32_t*)(patch_location_one + 1) = offset;
+
+    *(uint8_t*)(patch_location_two) = 0xEB;
+
+    rootconsole->ConsolePrint("--------------------- Save/Restore part 1 hooked ---------------------");
+}
+
+void HookSaveRestoreTwo()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004B04B7;
+    uint32_t offset = (uint32_t)SaveHookDirectMalloc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- Save/Restore part 2 hooked ---------------------");
+}
+
+void HookSaveRestoreThree()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004B0442;
+    uint32_t offset = (uint32_t)SaveHookDirectRealloc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- Save/Restore part 3 hooked ---------------------");
+}
+
+void HookSavingOne()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004B0262;
+    uint32_t offset = (uint32_t)SaveHookDirectRealloc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- Save part 1 hooked ---------------------");
+}
+
+void HookSavingTwo()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004B02A3;
+    uint32_t offset = (uint32_t)SaveHookDirectMalloc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- Save part 2 hooked ---------------------");
+}
+
+void HookVpkSystem()
+{
+    int length = 5;
+
+    uint32_t start = dedicated_srv + 0x000BE4F4;
+    uint32_t offset = (uint32_t)DirectMallocHookDedicatedSrv - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- VPK system hooked ---------------------");
+}
+
+void PatchVpkSystem()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004CCB27;
+    uint32_t offset = (uint32_t)VpkReloadHook - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- VPK system patched ---------------------");
+}
+
+void HookEdtSystem()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x00AEFC34;
+    uint32_t offset = (uint32_t)EdtSystemHookFunc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- EDT system hooked ---------------------");   
+}
+
+void PatchEdtSystem()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x0073C6CC;
+    uint32_t offset = (uint32_t)PreEdtLoad - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- EDT system patched ---------------------");   
+}
+
+void PatchDropships()
+{
+    int length = 5;
+    int length_two = 4;
+
+    uint32_t patch_location_one = server_srv + 0x0085F22C;
+    uint32_t patch_location_two = server_srv + 0x0085F266;
+
+    uint32_t patch_location_three = server_srv + 0x00CF1D58;
+    uint32_t patch_location_four = server_srv + 0x0086B1B7;
+
+    *(uint32_t*)(patch_location_three) = (uint32_t)EmptyCall;
+
+    uint32_t offset_one = (uint32_t)DropshipsHook - patch_location_one - 5;
+    uint32_t offset_two = (uint32_t)DropshipsHook - patch_location_two - 5;
+    uint32_t offset_three = (uint32_t)CallLater - patch_location_four - 5;
+
+    *(uint8_t*)((uint32_t)patch_location_one) = 0xE8;
+    *(uint32_t*)((uint32_t)patch_location_one + 1) = offset_one;
+
+    *(uint8_t*)((uint32_t)patch_location_two) = 0xE8;
+    *(uint32_t*)((uint32_t)patch_location_two + 1) = offset_two;
+
+    *(uint8_t*)((uint32_t)patch_location_four) = 0xE8;
+    *(uint32_t*)((uint32_t)patch_location_four + 1) = offset_three;
+
+    rootconsole->ConsolePrint("--------------------- Dropships patched ---------------------");
+}
+
+void HookSpawnServer()
+{
+    int length = 5;
+
+    uint32_t start = engine_srv + 0x0012AA56;
+    uint32_t offset = (uint32_t)SpawnServerHookFunc - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+
+    rootconsole->ConsolePrint("--------------------- SpawnServer hooked ---------------------");   
+}
+
+void HookHostChangelevel()
+{
+    int length = 5;
+
+    uint32_t start = engine_srv + 0x00136865;
+    uint32_t offset = (uint32_t)HostChangelevelHook - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+
+    rootconsole->ConsolePrint("--------------------- Changelevel hooked ---------------------");   
+}
+
+void PatchOthers()
+{
+    int length_one = 5;
+    int length_two = 145;
+    int length_three = 5;
+    int length_four = 4;
+    int length_five = 2;
+    int length_six = 2;
+    int length_seven = 0x6;
+    int length_eight = 5;
+    int length_nine = 3;
+    int length_ten = 5;
+    int length_eleven = 5;
+    int length_twelve = 5;
+    int length_thirteen = 5;
+    int length_fourteen = 5;
+    int length_fifthteen = 4;
+    int length_sixteen = 5;
+    int length_seventeen = 4;
+    int length_eighteen = 6;
+    int length_nineteen = 0x11;
+    int length_twenty = 0xE;
+    int length_twentyone = 2;
+    int length_enlarge = 5;
+
+    uint32_t patch_location_one = server_srv + 0x004AF470;
+    uint32_t patch_location_two = server_srv + 0x00AF24F8;
+    uint32_t patch_location_three = engine_srv + 0x00148ACD;
+    uint32_t patch_location_four = server_srv + 0x00D8AABC;
+    uint32_t patch_location_five = server_srv + 0x008B6787;
+    uint32_t patch_location_six = server_srv +  0x009AFD30;
+    uint32_t patch_location_seven = server_srv + 0x00AF4918;
+    uint32_t patch_location_eight = server_srv + 0x008B675F;
+    uint32_t patch_location_nine = server_srv + 0x008B6796;
+    uint32_t patch_location_ten = server_srv + 0x0073C7CB;
+    uint32_t patch_location_eleven = server_srv + 0x00B02FDC;
+    uint32_t patch_location_twelve = server_srv + 0x004AE993;
+    uint32_t patch_location_thirteen = server_srv + 0x0073BC3F;
+    uint32_t patch_location_fourteen = server_srv + 0x00AF4D91;
+    uint32_t patch_location_fifthteen = server_srv + 0x00D65010;
+    uint32_t patch_location_sixteen = engine_srv + 0x001CB601;
+    uint32_t patch_location_seventeen = server_srv + 0x00D65550;
+    uint32_t patch_location_eighteen = server_srv + 0x008B2A8C;
+    uint32_t patch_location_nineteen = server_srv + 0x008E7D32;
+    uint32_t patch_location_twenty = server_srv + 0x008E7D35;
+    uint32_t patch_location_twentyone = server_srv + 0x008B2A7B;
+
+
+
+
+    *(uint8_t*)(patch_location_one + 1) = 0xA7;
+
+
+    
+    uint32_t offset = (uint32_t)SaveRestoreMemManage - patch_location_two - 5;
+    *(uint8_t*)(patch_location_two) = 0xE8;
+    *(uint32_t*)(patch_location_two+1) = offset;
+    memset((void*)(patch_location_two+5), 0x90, length_two - 5);
+
+
+    //*(uint8_t*)(patch_location_three) = 0xE9;
+    //*(uint32_t*)(patch_location_three + 1) = -0x148;
+
+    //memset((void*)patch_location_four, 0x90, length_four);
+    //*(uint16_t*)(patch_location_four) = 0xC031;
+    
+    *(uint32_t*)(patch_location_four) = (uint32_t)CreateEntityByNameHook;
+
+    //*(uint32_t*)(patch_location_four) = (uint32_t)phook_53D20FPtr;
+
+    //offset = ((uint32_t)pMapInitEndPtr) - patch_location_five - 5;
+    //*(uint32_t*)(patch_location_five + 1) = offset;
+
+    memset((void*)patch_location_five, 0x90, length_five);
+    //*(uint16_t*)(patch_location_five) = 0xC031;
+
+    memset((void*)patch_location_six, 0x90, length_six);
+
+    memset((void*)patch_location_seven, 0x90, length_seven);
+
+
+    offset = (uint32_t)FixManhackCrash - patch_location_eight - 5;
+    *(uint32_t*)(patch_location_eight + 1) = offset;
+    //*(uint8_t*)(patch_location_eight) = 0xE9;
+    //*(uint32_t*)(patch_location_eight + 1) = 0x364;
+    //memset((void*)patch_location_eight, 0x90, length_eight);
+    //*(uint8_t*)(patch_location_eight) = 0xEB;
+    //*(uint8_t*)(patch_location_eight+1) = -0x47;
+
+    memset((void*)patch_location_nine, 0x90, length_nine);
+    *(uint16_t*)(patch_location_nine) = 0xC031;
+
+    memset((void*)patch_location_eleven, 0x90, length_eleven);
+    *(uint16_t*)(patch_location_eleven) = 0xC031;
+
+    offset = (uint32_t)SV_TriggerMovedFix - patch_location_sixteen - 5;
+    *(uint32_t*)(patch_location_sixteen + 1) = offset;
+
+
+    *(uint8_t*)(patch_location_fourteen) = 0xE9;
+    *(uint32_t*)(patch_location_fourteen + 1) = 0x1F0;
+
+    uint32_t offset_two = (uint32_t)MainTransitionRestore - patch_location_thirteen - 5;
+    *(uint8_t*)(patch_location_thirteen) = 0xE8;
+    *(uint32_t*)(patch_location_thirteen + 1) = offset_two;
+
+    uint32_t offset_three = (uint32_t)TransitionEntityCreateCall - patch_location_twelve - 5;
+    *(uint8_t*)(patch_location_twelve) = 0xE8;
+    *(uint32_t*)(patch_location_twelve + 1) = offset_three;
+
+    uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
+    *(uint8_t*)(patch_location_ten) = 0xE8;
+    *(uint32_t*)(patch_location_ten + 1) = offset_four;
+
+    *(uint32_t*)(patch_location_fifthteen) = (uint32_t)DoorCycleResolve;
+    *(uint32_t*)(patch_location_seventeen) = (uint32_t)DoorCycleResolve;
+
+    memset((void*)patch_location_eighteen, 0x90, length_eighteen);
+    offset = (uint32_t)FixTransitionCrash - patch_location_eighteen - 5;
+    *(uint32_t*)(patch_location_eighteen) = 0xE8;
+    *(uint32_t*)(patch_location_eighteen + 1) = offset;
+
+    memset((void*)patch_location_nineteen, 0x90, length_nineteen);
+    *(uint8_t*)(patch_location_nineteen) = 0x89;
+    *(uint8_t*)(patch_location_nineteen + 1) = 0x34;
+    *(uint8_t*)(patch_location_nineteen + 2) = 0x24;
+
+
+    uint32_t offset_five = (uint32_t)VehicleRollermineCheck - patch_location_twenty - 5;
+    *(uint8_t*)(patch_location_twenty) = 0xE8;
+    *(uint32_t*)(patch_location_twenty + 1) = offset_five;
+    *(uint16_t*)(patch_location_twenty + 5) = 0xC085;
+    *(uint16_t*)(patch_location_twenty + 7) = 0x840F;
+    *(uint32_t*)(patch_location_twenty + 9) = 0x2CD;
+
+    memset((void*)patch_location_twentyone, 0x90, length_twentyone);
+
+    /*uint32_t patch_save_system_one = server_srv + 0x004AED69;
+    offset = (uint32_t)pTransitionEntsHookPtr - patch_save_system_one - 5;
+    *(uint32_t*)(patch_save_system_one+1) = offset;*/
+
+    uint32_t restore_patch_address_two = server_srv + 0x004AE788;
+    memset((void*)restore_patch_address_two, 0x90, 0x28);
+    *(uint8_t*)(restore_patch_address_two) = 0x89;
+    *(uint8_t*)(restore_patch_address_two+1) = 0x1C;
+    *(uint8_t*)(restore_patch_address_two+2) = 0x24;
+
+    uint32_t restore_patch_address_three = server_srv + 0x4AE78B;
+    offset = (uint32_t)RestoreSystemPatch - restore_patch_address_three - 5;
+    *(uint8_t*)(restore_patch_address_three) = 0xE8;
+    *(uint32_t*)(restore_patch_address_three+1) = offset;
+
+    /*uint32_t restore_patch_address_four = server_srv + 0x00AF41EF;
+    ChangeMemoryProtections(restore_patch_address_four, 2);
+    memset((void*)restore_patch_address_four, 0x90, 2);
+    RestoreMemoryProtections(restore_patch_address_four, 2);*/
+
+    /*uint32_t restore_patch_address_five = server_srv + 0x00AF429B;
+    ChangeMemoryProtections(restore_patch_address_five, 2);
+    memset((void*)restore_patch_address_five, 0x90, 2);
+    RestoreMemoryProtections(restore_patch_address_five, 2);*/
+
+    uint32_t patch_another_cycle = server_srv + 0x00A95A9E;
+    *(uint8_t*)(patch_another_cycle) = 0xEB;
+
+    uint32_t yet_another_cycle = server_srv + 0x00A8653B;
+    *(uint8_t*)(yet_another_cycle) = 0xEB;
+
+    uint32_t fix_null_crash_patch = server_srv + 0x0075B9B8;
+    offset = (uint32_t)FixNullCrash - fix_null_crash_patch - 5;
+    *(uint32_t*)(fix_null_crash_patch+1) = offset;
+
+    uint32_t scripted_sequence_patch_crash = server_srv + 0x00AC3F09;
+    *(uint8_t*)(scripted_sequence_patch_crash) = 0xE9;
+    *(uint32_t*)(scripted_sequence_patch_crash+1) = 0x70;
+
+    //avoid causes high mem usage
+    //0x00489F53
+    //0x00489F17
+
+    //0x003AEAB3
+    //0x003AEA72
+
+    //0x00A8441B
+    //0x00A843C7
+
+    //0x00486E83
+    //0x00486E42
+
+    //0x0039C673
+    //0x0039C632
+
+    //0x0060F783
+    //0x0060F742
+
+    //weird memory leak
+    //0x004BBD43
+    //0x004BBD02
+
+    //0x005BEE23
+    //0x005BEDEE
+
+    //0x0083297B
+    //0x00832904
+
+    //Potential memory leak
+    //0x00472723
+    //0x004726E1
+
+    rootconsole->ConsolePrint("--------------------- Other save system parts patched ---------------------");
 }
 
 uint32_t RestoreSystemPatch(uint32_t arg0)
@@ -2551,7 +3605,7 @@ uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
     return pRestoreFileCallFunc(arg0, savegame_name);
 }
 
-uint32_t LevelChangeSafeHook(uint32_t arg0)
+uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     //CleanupDeleteList(0);
 
@@ -2571,7 +3625,7 @@ uint32_t LevelChangeSafeHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t Hooks::LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     //SAVE REFERENCE BECAUSE ITS NEEDED FOR EDTREBUILD arg2
     global_map_ents = arg2;
@@ -2622,7 +3676,7 @@ uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32
     return 0;
 }
 
-uint32_t TransitionFixTheSecond(uint32_t arg0)
+uint32_t Hooks::TransitionFixTheSecond(uint32_t arg0)
 {
     if(arg0)
     {
@@ -2649,7 +3703,7 @@ uint32_t TransitionFixTheSecond(uint32_t arg0)
     return 0;
 }
 
-uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0)
+uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
 {
     uint32_t npc_combine_s = *(uint32_t*)(arg0+0x4);
 
@@ -2670,404 +3724,13 @@ uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0)
     return 0;
 }
 
-uint32_t PlayerloadSavedHook(uint32_t arg0)
+uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
 {
     if(savegame) return 0;
     restoring = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     return returnVal;
-}
-
-void PatchRestoring()
-{
-    uint32_t nop_patch_list[128] = 
-    {
-        0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x00992640,5,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA
-    };
-
-    for(int i = 0; i < 128 && i+1 < 128; i = i+2)
-    {
-        uint32_t patch_location = nop_patch_list[i];
-        uint32_t patch_location_length = nop_patch_list[i+1];
-
-        if(patch_location == 0 || patch_location_length == 0)
-            continue;
-
-        patch_location = server_srv + patch_location;
-
-        memset((void*)patch_location, 0x90, patch_location_length);
-        //*(uint16_t*)(patch_location) = 0xC031;
-    }
-
-    uint32_t offset = 0;
-
-    /*uint32_t spawn_patch_one = server_srv + 0x0098FFF9;
-    memset((void*)spawn_patch_one, 0x90, 0x15);
-
-    *(uint8_t*)(spawn_patch_one) = 0x89;
-    *(uint8_t*)(spawn_patch_one+1) = 0x1C;
-    *(uint8_t*)(spawn_patch_one+2) = 0x24;
-
-    spawn_patch_one = server_srv + (0x0098FFF9+3);
-    offset = (uint32_t)pPlayerSpawnDirectHookPtr - spawn_patch_one - 5;
-    *(uint8_t*)(spawn_patch_one) = 0xE8;
-    *(uint32_t*)(spawn_patch_one+1) = offset;
-
-    spawn_patch_one = server_srv + (0x0098FFF9+8);
-    *(uint8_t*)(spawn_patch_one) = 0xE9;
-    *(uint32_t*)(spawn_patch_one+1) = 0x17F;*/
-
-    uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
-    *(uint8_t*)(exploit_patch_one) = 0xE9;
-    *(uint32_t*)(exploit_patch_one+1) = -0x258;
-
-    uint32_t physics_patch = server_srv + 0x00A316FD;
-    *(uint8_t*)(physics_patch) = 0xE9;
-    *(uint32_t*)(physics_patch+1) = 0x48;
-
-    uint32_t clean_del_phys_replace_one = server_srv + 0x00A317C5;
-    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_one - 5;
-    *(uint32_t*)(clean_del_phys_replace_one+1) = offset;
-
-    uint32_t clean_del_phys_replace_two = server_srv + 0x00A31830;
-    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_two - 5;
-    *(uint32_t*)(clean_del_phys_replace_two+1) = offset;
-
-    *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
-    *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
-
-    memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
-    memset((void*)(engine_srv + 0x0012AA14), 0x90, 0xD);
-
-    memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
-    memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
-
-    /*uint32_t fix_null_ent_crash_cfire = server_srv + 0x007159A4;
-    *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
-    *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
-
-    memset((void*)(dedicated_srv + 0x000BE6F6), 0x90, 5);
-    *(uint16_t*)((dedicated_srv + 0x000BE6F6)) = 0xC031;
-
-    memset((void*)(engine_srv + 0x001AF920), 0x90, 0xD);
-
-    uint32_t jmp_new_lvl = server_srv + 0x0073C760;
-    *(uint8_t*)(jmp_new_lvl) = 0xE9;
-    *(uint32_t*)(jmp_new_lvl+1) = 0x4B;
-
-    uint32_t jmp_to_fix_heli = server_srv + 0x00960275;
-    *(uint8_t*)(jmp_to_fix_heli) = 0xE9;
-    *(uint32_t*)(jmp_to_fix_heli+1) = 0x44E;
-
-    uint32_t jmp_fix_heli_two = server_srv + 0x00815EF7;
-    *(uint8_t*)(jmp_fix_heli_two) = 0xEB;
-
-    //get rid of message spam on sound pointer
-    uint32_t it_said_it_causes_corruption = server_srv + 0x00A5436D;
-    *(uint8_t*)(it_said_it_causes_corruption) = 0xC3;
-
-    uint32_t begin_map_load_patch = datacache_srv + 0x0005A4CC;
-    *(uint32_t*)(begin_map_load_patch) = (uint32_t)FrameLockHook;
-
-    uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
-    *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;
-
-    uint32_t null_manhack_patch = server_srv + 0x008C1DC8;
-    *(uint8_t*)(null_manhack_patch) = 0xE9;
-    *(uint32_t*)(null_manhack_patch+1) = 0xAC;
-
-    /*uint32_t skip_end_clear_global_list = server_srv + 0x006B3FE5;
-    *(uint8_t*)(skip_end_clear_global_list) = 0xE9;
-    *(uint32_t*)(skip_end_clear_global_list+1) = 0x47;*/
-
-    /*uint32_t save_system_skip = server_srv + 0x00AF3414;
-    *(uint8_t*)(save_system_skip) = 0xE9;
-    *(uint32_t*)(save_system_skip+1) = 0x165;
-
-    uint32_t lvl_shutdown_skip = server_srv + 0x00737DB9;
-    *(uint8_t*)(lvl_shutdown_skip) = 0xE9;
-    *(uint32_t*)(lvl_shutdown_skip+1) = 0xA7;*/
-
-    /*uint32_t transition_system_patch_one = server_srv + 0x00AF470F;
-    *(uint8_t*)(transition_system_patch_one) = 0xE9;
-    *(uint32_t*)(transition_system_patch_one+1) = 0x6C;*/
-
-    uint32_t transition_system_patch_two = server_srv + 0x00AF4B11;
-    *(uint8_t*)(transition_system_patch_two) = 0xE9;
-    *(uint32_t*)(transition_system_patch_two+1) = -0x208;
-
-    uint32_t transition_system_patch_three = server_srv + 0x00AF47B2;
-    *(uint8_t*)(transition_system_patch_three) = 0xE9;
-    *(uint32_t*)(transition_system_patch_three+1) = 0x179;
-
-    uint32_t transition_system_patch_four = server_srv + 0x00AF4856;
-    *(uint8_t*)(transition_system_patch_four) = 0xE9;
-    *(uint32_t*)(transition_system_patch_four+1) = 0xB3;
-
-    /*uint32_t save_system_patch_one = server_srv + 0x00AF3410;
-    *(uint8_t*)(save_system_patch_one) = 0xE9;
-    *(uint32_t*)(save_system_patch_one+1) = 0x169;*/
-
-    uint32_t transition_savefile_load_patch = server_srv + 0x00AF493D;
-    offset = (uint32_t)SavegameInitialLoad - transition_savefile_load_patch - 5;
-    *(uint32_t*)(transition_savefile_load_patch+1) = offset;
-
-    uint32_t transition_call_patch_one = server_srv + 0x00AF4A42;
-    offset = (uint32_t)TransitionArgUpdateHook - transition_call_patch_one - 5;
-    *(uint32_t*)(transition_call_patch_one+1) = offset;
-
-    uint32_t transition_call_patch_two = server_srv + 0x00AF4994;
-    offset = (uint32_t)TransitionArgUpdateHookTwo - transition_call_patch_two - 5;
-    *(uint32_t*)(transition_call_patch_two+1) = offset;
-
-    uint32_t transition_call_patch_three = server_srv + 0x00AF47A5;
-    offset = (uint32_t)TransitionArgUpdateHookThree - transition_call_patch_three - 5;
-    *(uint32_t*)(transition_call_patch_three+1) = offset;
-
-    uint32_t remove_evidence_of_call = server_srv + 0x00CACE94;
-    *(uint32_t*)(remove_evidence_of_call) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v2 = server_srv + 0x00CACE60;
-    *(uint32_t*)(remove_evidence_of_call_v2) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v3 = server_srv + 0x00CACE74;
-    *(uint32_t*)(remove_evidence_of_call_v3) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v4 = server_srv + 0x00CACE78;
-    *(uint32_t*)(remove_evidence_of_call_v4) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v5 = server_srv + 0x00CACE6C;
-    *(uint32_t*)(remove_evidence_of_call_v5) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v6 = server_srv + 0x00CACE80;
-    *(uint32_t*)(remove_evidence_of_call_v6) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v7 = server_srv + 0x00CACE84;
-    *(uint32_t*)(remove_evidence_of_call_v7) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v8 = server_srv + 0x00CACE88;
-    *(uint32_t*)(remove_evidence_of_call_v8) = (uint32_t)EmptyCall;
-
-    uint32_t remove_evidence_of_call_v9 = server_srv + 0x00CACE70;
-    *(uint32_t*)(remove_evidence_of_call_v9) = (uint32_t)EmptyCall;
-
-    uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
-    *(uint8_t*)(player_restore_full_remove) = 0xE9;
-    *(uint32_t*)(player_restore_full_remove+1) = 0x89;
-
-    uint32_t remove_player_file_restoring = server_srv + 0x00AF4E79;
-    memset((void*)remove_player_file_restoring, 0x90, 5);
-    *(uint16_t*)(remove_player_file_restoring) = 0xC031;
-
-    uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
-    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
-
-    uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
-    *(uint8_t*)(patch_player_restore_asm) = 0xE9;
-    *(uint32_t*)(patch_player_restore_asm+1) = -0x1F7;
-
-    uint32_t clientPutInServerRestoreCancel = server_srv + 0x00B030A1;
-    *(uint8_t*)(clientPutInServerRestoreCancel) = 0xEB;
-
-    uint32_t clientActiveRestoreCancel = server_srv + 0x00B031F7;
-    *(uint8_t*)(clientActiveRestoreCancel) = 0xEB;
-
-    /*uint32_t orig_dll_discovery_v1 = server_srv + 0x004AE30E;
-    *(uint8_t*)(orig_dll_discovery_v1) = 0xE9;
-    *(uint32_t*)(orig_dll_discovery_v1+1) = 0x4C;*/
-
-    /*uint32_t orig_dll_discovery_v2 = server_srv + 0x004AE78D;
-    ChangeMemoryProtections(orig_dll_discovery_v2, 6);
-    memset((void*)orig_dll_discovery_v2, 0x90, 6);
-    RestoreMemoryProtections(orig_dll_discovery_v2, 6);*/
-
-    uint32_t patch_restore_stack = server_srv + 0x004AE5B0;
-    *(uint8_t*)(patch_restore_stack) = 0x89;
-    *(uint8_t*)(patch_restore_stack+1) = 0x1C;
-    *(uint8_t*)(patch_restore_stack+2) = 0x24;
-
-    uint32_t patch_restore_base = server_srv + 0x004AE5B3;
-    offset = (uint32_t)RestoreSystemPatchStart - patch_restore_base - 5;
-    *(uint8_t*)(patch_restore_base) = 0xE8;
-    *(uint32_t*)(patch_restore_base+1) = offset;
-
-
-
-    /*uint32_t main_spawn_call_jmp_one = server_srv + 0x0099265B;
-    ChangeMemoryProtections(main_spawn_call_jmp_one, 5);
-    *(uint8_t*)(main_spawn_call_jmp_one) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_one+1) = 0x80;
-    RestoreMemoryProtections(main_spawn_call_jmp_one, 5);
-
-    uint32_t main_spawn_call_jmp_two = server_srv + 0x00992834;
-    ChangeMemoryProtections(main_spawn_call_jmp_two, 5);
-    *(uint8_t*)(main_spawn_call_jmp_two) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_two+1) = 0x127;
-    RestoreMemoryProtections(main_spawn_call_jmp_two, 5);
-
-    uint32_t main_spawn_call_jmp_three = server_srv + 0x0099279A;
-    ChangeMemoryProtections(main_spawn_call_jmp_three, 5);
-    *(uint8_t*)(main_spawn_call_jmp_three) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_three+1) = 0x20;
-    RestoreMemoryProtections(main_spawn_call_jmp_three, 5);
-
-    uint32_t main_spawn_call_jmp_four = server_srv + 0x009925B6;
-    ChangeMemoryProtections(main_spawn_call_jmp_four, 5);
-    *(uint8_t*)(main_spawn_call_jmp_four) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_four+1) = 0x20;
-    RestoreMemoryProtections(main_spawn_call_jmp_four, 5);*/
-
-
-    uint32_t JMP_DIRECT = server_srv + 0x004AE682;
-    *(uint8_t*)(JMP_DIRECT) = 0xE9;
-    *(uint32_t*)(JMP_DIRECT+1) = -0xD7;
-
-    uint32_t JMP_TOEND_RESTORE = server_srv + 0x00AF4B6A;
-    *(uint8_t*)(JMP_TOEND_RESTORE) = 0xE9;
-    *(uint32_t*)(JMP_TOEND_RESTORE+1) = 0x143;
-
-    uint32_t JMP_TOEND_RESTORE_THREE = server_srv + 0x00AF4D2A;
-    *(uint8_t*)(JMP_TOEND_RESTORE_THREE) = 0xE9;
-    *(uint32_t*)(JMP_TOEND_RESTORE_THREE+1) = 0x232;
-
-    uint32_t JMP_PATCH_GLOBALRESTORE_ONE = server_srv + 0x00AF45D0;
-    *(uint8_t*)(JMP_PATCH_GLOBALRESTORE_ONE) = 0xE9;
-    *(uint32_t*)(JMP_PATCH_GLOBALRESTORE_ONE+1) = 0x45;
-
-    uint32_t hook_game_frame = server_srv + 0x00CACE3C;
-    *(uint32_t*)(hook_game_frame) = (uint32_t)GameFrameHook;
-
-    uint32_t remove_end_of_ent_restore = server_srv + 0x004AE434;
-    memset((void*)remove_end_of_ent_restore, 0x90, 5);
-
-    *(uint8_t*)(remove_end_of_ent_restore) = 0xBE;
-    *(uint8_t*)(remove_end_of_ent_restore+1) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+2) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+3) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+4) = 0x00;
-
-    uint32_t jmp_to_end_restore_func = server_srv + (0x004AE434+5);
-    *(uint8_t*)(jmp_to_end_restore_func) = 0xE9;
-    *(uint32_t*)(jmp_to_end_restore_func+1) = 0x62;
-
-
-    //Disable ResponseSystem saving
-    uint32_t disable_response_saving = server_srv + 0x00C70710;
-    *(uint32_t*)(disable_response_saving) = (uint32_t)EmptyCall;
-
-    //Disable EventQueue saving
-    /*uint32_t disable_event_queue_saving = server_srv + 0x00C817B0;
-    ChangeMemoryProtections(disable_event_queue_saving, 4);
-    *(uint32_t*)(disable_event_queue_saving) = (uint32_t)pEmptyCallOneArgPtr;
-    RestoreMemoryProtections(disable_event_queue_saving, 4);*/
-
-    //Disable Achievement saving
-    uint32_t disable_achievement_saving = server_srv + 0x00C17570;
-    *(uint32_t*)(disable_achievement_saving) = (uint32_t)EmptyCall;
-
-    //Disable SOMETHING saving
-    uint32_t disable_something_saving = server_srv + 0x00D7DE90;
-    *(uint32_t*)(disable_something_saving) = (uint32_t)EmptyCall;
-
-    //Disable SOMETHING saving
-    uint32_t disable_something_saving_two = server_srv + 0x00C84630;
-    *(uint32_t*)(disable_something_saving_two) = (uint32_t)EmptyCall;
-
-    //Disable SOMETHING saving
-    uint32_t disable_something_saving_three = server_srv + 0x00C709F0;
-    *(uint32_t*)(disable_something_saving_three) = (uint32_t)EmptyCall;
-
-
-
-    //Disable AI restoring
-    uint32_t disable_ai_restoring = server_srv + 0x00C70A04;
-    *(uint32_t*)(disable_ai_restoring) = (uint32_t)EmptyCall;
-
-    //Disable Template restoring
-    uint32_t disable_template_restoring = server_srv + 0x00D7DEA4;
-    *(uint32_t*)(disable_template_restoring) = (uint32_t)EmptyCall;
-
-    //Disable ResponseSystem restoring
-    uint32_t disable_response_restoring = server_srv + 0x00C70724;
-    *(uint32_t*)(disable_response_restoring) = (uint32_t)EmptyCall;
-
-    //Disable Commentary restoring
-    uint32_t disable_commentary_restoring = server_srv + 0x00C84644;
-    *(uint32_t*)(disable_commentary_restoring) = (uint32_t)EmptyCall;
-
-    //Disable EventQueue restoring
-    /*uint32_t disable_event_queue_restoring = server_srv + 0x00C817C4;
-    ChangeMemoryProtections(disable_event_queue_restoring, 4);
-    *(uint32_t*)(disable_event_queue_restoring) = (uint32_t)pEmptyCallOneArgPtr;
-    RestoreMemoryProtections(disable_event_queue_restoring, 4);*/
-
-    //Disable Achievement restoring
-    uint32_t disable_achievement_restoring = server_srv + 0x00C17584;
-    *(uint32_t*)(disable_achievement_restoring) = (uint32_t)EmptyCall;
-
-
-
-
-    /*uint32_t restore_location_patches[128] = 
-    {
-        0x004ABE3F+1,0x004AE201+1,0x004AE66D+1,0x004AE6E6+1,0x004AEE98+1,0x00AF225C+1,0x00AF2279+2,0x00AF22F7+1,
-        0x00AF319D+1,0x00AF41D8+1,0x00AF4284+1,0x004AA44B+1,0x004AA49B+2,0x004AA559+2,0x004ADE61+1,0x004AF0A5+1,
-        0x004AF238+1,0x004AF28B+2,0x004AF423+3,0x004AF556+1,0x00AF2477+1,0x004AD1EB+2,0x004A98E3+2,0x004A9E23+2,
-        0x004AA043+2,0x004AA2A3+2,0x004ABAD3+2,0x004ABD33+2,0x004A9537+2,0x004AE96B+2
-    };
-
-    for(int i = 0; i < 128; i++)
-    {
-        if(restore_location_patches[i] == 0)
-            continue;
-
-        uint32_t address = server_srv + restore_location_patches[i];
-
-        ChangeMemoryProtections(address, 1);
-        *(uint8_t*)(address) = 0x38;
-        RestoreMemoryProtections(address, 1);
-        rootconsole->ConsolePrint("Patching restore address: [%X]", restore_location_patches[i]);
-    }
-
-    //0x004AA4F8
-    //0x004ADEEA
-    //0x004AF2E8
-
-    uint32_t other_patch_location_one = server_srv + 0x004AF2E8;
-    ChangeMemoryProtections(other_patch_location_one, 10);
-    memset((void*)other_patch_location_one, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_one, 10);
-
-    uint32_t other_patch_location_two = server_srv + 0x004ADEEA;
-    ChangeMemoryProtections(other_patch_location_two, 10);
-    memset((void*)other_patch_location_two, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_two, 10);
-
-    uint32_t other_patch_location_three = server_srv + 0x004AA4F8;
-    ChangeMemoryProtections(other_patch_location_three, 10);
-    memset((void*)other_patch_location_three, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_three, 10);*/
-
-    /*uint32_t patch_0x38_offset[128] = 
-    {
-        0x004AE3DE,0x004AE325
-    };
-
-    for(int i = 0; i < 128; i++)
-    {
-        if(patch_0x38_offset[i] == 0)
-            continue;
-
-        uint32_t address = server_srv + patch_0x38_offset[i];
-
-        ChangeMemoryProtections(address, 3);
-        memset((void*)address, 0x90, 3);
-        RestoreMemoryProtections(address, 3);
-        rootconsole->ConsolePrint("Patching restore address: [%X]", patch_0x38_offset[i]);
-    }*/
 }
 
 void AllowWriteToMappedMemory()
@@ -3413,664 +4076,8 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     return EndFunction(arg1, arg2, arg3);
 }
 
-void PatchAutosave()
+void HookFunctionsWithC()
 {
-    uint32_t autosave_call_one = server_srv + 0x00F81BFC;
-    uint32_t autosave_call_two = server_srv + 0x00AF3D30;
-    uint32_t autosave_call_three = server_srv + 0x00D86E58;
-    uint32_t autosave_call_four = server_srv + 0x00D87198;
-    uint32_t autosave_call_five = server_srv + 0x00737F76;
-
-    //*(uint32_t*)(autosave_call_one) = (uint32_t)pCLogicAutosaveMainFuncPtr;
-
-    //memset((void*)autosave_call_two, 0x90, 5);
-    //*(uint16_t*)(autosave_call_two) = 0xC031;
-
-    //*(uint32_t*)(autosave_call_three) = (uint32_t)pCTriggerToggleSaveMainFuncPtr;
-    //*(uint32_t*)(autosave_call_four) = (uint32_t)pCTriggerSaveMainFuncPtr;
-
-
-    uint32_t offset = (uint32_t)EmptyCall - autosave_call_five - 5;
-    *(uint32_t*)(autosave_call_five+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- Save system patched ---------------------");
-}
-
-void PatchRestore()
-{
-    int length = 5;
-
-    uint32_t restore_call_one = server_srv + 0x0073C780;
-    uint32_t restore_call_two = server_srv + 0x00AF46AB;
-    uint32_t restore_call_three = server_srv + 0x004D9A40;
-
-    uint32_t offset_three = (uint32_t)RestoreOverride - restore_call_three - 5;
-
-    memset((void*)restore_call_one, 0x90, length);
-    *(uint16_t*)(restore_call_one) = 0xC031;
-
-    //memset((void*)restore_call_two, 0x90, length);
-    //*(uint16_t*)(restore_call_two) = 0xC031;
-
-    *(uint8_t*)(restore_call_three) = 0xE8;
-    *(uint32_t*)(restore_call_three+1) = offset_three;
-
-    rootconsole->ConsolePrint("--------------------- Restore system patched ---------------------");
-}
-
-void HookSaveRestoreOne()
-{
-    int length_one = 5;
-    int length_two = 1;
-
-    uint32_t patch_location_one = server_srv + 0x004AA3E2;
-    uint32_t patch_location_two = server_srv + 0x004AA3EB;
-
-    uint32_t offset = (uint32_t)SaveHookDirectMalloc - patch_location_one - 5;
-
-    *(uint8_t*)(patch_location_one) = 0xE8;
-    *(uint32_t*)(patch_location_one + 1) = offset;
-
-    *(uint8_t*)(patch_location_two) = 0xEB;
-
-    rootconsole->ConsolePrint("--------------------- Save/Restore part 1 hooked ---------------------");
-}
-
-void HookSaveRestoreTwo()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004B04B7;
-    uint32_t offset = (uint32_t)SaveHookDirectMalloc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- Save/Restore part 2 hooked ---------------------");
-}
-
-void HookSaveRestoreThree()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004B0442;
-    uint32_t offset = (uint32_t)SaveHookDirectRealloc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- Save/Restore part 3 hooked ---------------------");
-}
-
-void HookSavingOne()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004B0262;
-    uint32_t offset = (uint32_t)SaveHookDirectRealloc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- Save part 1 hooked ---------------------");
-}
-
-void HookSavingTwo()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004B02A3;
-    uint32_t offset = (uint32_t)SaveHookDirectMalloc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- Save part 2 hooked ---------------------");
-}
-
-void HookVpkSystem()
-{
-    int length = 5;
-
-    uint32_t start = dedicated_srv + 0x000BE4F4;
-    uint32_t offset = (uint32_t)DirectMallocHookDedicatedSrv - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- VPK system hooked ---------------------");
-}
-
-void PatchVpkSystem()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004CCB27;
-    uint32_t offset = (uint32_t)VpkReloadHook - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- VPK system patched ---------------------");
-}
-
-void HookEdtSystem()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x00AEFC34;
-    uint32_t offset = (uint32_t)EdtSystemHookFunc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- EDT system hooked ---------------------");   
-}
-
-void PatchEdtSystem()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x0073C6CC;
-    uint32_t offset = (uint32_t)PreEdtLoad - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- EDT system patched ---------------------");   
-}
-
-void PatchDropships()
-{
-    int length = 5;
-    int length_two = 4;
-
-    uint32_t patch_location_one = server_srv + 0x0085F22C;
-    uint32_t patch_location_two = server_srv + 0x0085F266;
-
-    uint32_t patch_location_three = server_srv + 0x00CF1D58;
-    uint32_t patch_location_four = server_srv + 0x0086B1B7;
-
-    *(uint32_t*)(patch_location_three) = (uint32_t)EmptyCall;
-
-    uint32_t offset_one = (uint32_t)DropshipsHook - patch_location_one - 5;
-    uint32_t offset_two = (uint32_t)DropshipsHook - patch_location_two - 5;
-    uint32_t offset_three = (uint32_t)CallLater - patch_location_four - 5;
-
-    *(uint8_t*)((uint32_t)patch_location_one) = 0xE8;
-    *(uint32_t*)((uint32_t)patch_location_one + 1) = offset_one;
-
-    *(uint8_t*)((uint32_t)patch_location_two) = 0xE8;
-    *(uint32_t*)((uint32_t)patch_location_two + 1) = offset_two;
-
-    *(uint8_t*)((uint32_t)patch_location_four) = 0xE8;
-    *(uint32_t*)((uint32_t)patch_location_four + 1) = offset_three;
-
-    rootconsole->ConsolePrint("--------------------- Dropships patched ---------------------");
-}
-
-void HookSpawnServer()
-{
-    int length = 5;
-
-    uint32_t start = engine_srv + 0x0012AA56;
-    uint32_t offset = (uint32_t)SpawnServerHookFunc - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-
-    rootconsole->ConsolePrint("--------------------- SpawnServer hooked ---------------------");   
-}
-
-void HookHostChangelevel()
-{
-    int length = 5;
-
-    uint32_t start = engine_srv + 0x00136865;
-    uint32_t offset = (uint32_t)HostChangelevelHook - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-
-    rootconsole->ConsolePrint("--------------------- Changelevel hooked ---------------------");   
-}
-
-void PatchOthers()
-{
-    int length_one = 5;
-    int length_two = 145;
-    int length_three = 5;
-    int length_four = 4;
-    int length_five = 2;
-    int length_six = 2;
-    int length_seven = 0x6;
-    int length_eight = 5;
-    int length_nine = 3;
-    int length_ten = 5;
-    int length_eleven = 5;
-    int length_twelve = 5;
-    int length_thirteen = 5;
-    int length_fourteen = 5;
-    int length_fifthteen = 4;
-    int length_sixteen = 5;
-    int length_seventeen = 4;
-    int length_eighteen = 6;
-    int length_nineteen = 0x11;
-    int length_twenty = 0xE;
-    int length_twentyone = 2;
-    int length_enlarge = 5;
-
-    uint32_t patch_location_one = server_srv + 0x004AF470;
-    uint32_t patch_location_two = server_srv + 0x00AF24F8;
-    uint32_t patch_location_three = engine_srv + 0x00148ACD;
-    uint32_t patch_location_four = server_srv + 0x00D8AABC;
-    uint32_t patch_location_five = server_srv + 0x008B6787;
-    uint32_t patch_location_six = server_srv +  0x009AFD30;
-    uint32_t patch_location_seven = server_srv + 0x00AF4918;
-    uint32_t patch_location_eight = server_srv + 0x008B675F;
-    uint32_t patch_location_nine = server_srv + 0x008B6796;
-    uint32_t patch_location_ten = server_srv + 0x0073C7CB;
-    uint32_t patch_location_eleven = server_srv + 0x00B02FDC;
-    uint32_t patch_location_twelve = server_srv + 0x004AE993;
-    uint32_t patch_location_thirteen = server_srv + 0x0073BC3F;
-    uint32_t patch_location_fourteen = server_srv + 0x00AF4D91;
-    uint32_t patch_location_fifthteen = server_srv + 0x00D65010;
-    uint32_t patch_location_sixteen = engine_srv + 0x001CB601;
-    uint32_t patch_location_seventeen = server_srv + 0x00D65550;
-    uint32_t patch_location_eighteen = server_srv + 0x008B2A8C;
-    uint32_t patch_location_nineteen = server_srv + 0x008E7D32;
-    uint32_t patch_location_twenty = server_srv + 0x008E7D35;
-    uint32_t patch_location_twentyone = server_srv + 0x008B2A7B;
-
-
-
-
-    *(uint8_t*)(patch_location_one + 1) = 0xA7;
-
-
-    
-    uint32_t offset = (uint32_t)SaveRestoreMemManage - patch_location_two - 5;
-    *(uint8_t*)(patch_location_two) = 0xE8;
-    *(uint32_t*)(patch_location_two+1) = offset;
-    memset((void*)(patch_location_two+5), 0x90, length_two - 5);
-
-
-    //*(uint8_t*)(patch_location_three) = 0xE9;
-    //*(uint32_t*)(patch_location_three + 1) = -0x148;
-
-    //memset((void*)patch_location_four, 0x90, length_four);
-    //*(uint16_t*)(patch_location_four) = 0xC031;
-    
-    *(uint32_t*)(patch_location_four) = (uint32_t)CreateEntityByNameHook;
-
-    //*(uint32_t*)(patch_location_four) = (uint32_t)phook_53D20FPtr;
-
-    //offset = ((uint32_t)pMapInitEndPtr) - patch_location_five - 5;
-    //*(uint32_t*)(patch_location_five + 1) = offset;
-
-    memset((void*)patch_location_five, 0x90, length_five);
-    //*(uint16_t*)(patch_location_five) = 0xC031;
-
-    memset((void*)patch_location_six, 0x90, length_six);
-
-    memset((void*)patch_location_seven, 0x90, length_seven);
-
-
-    offset = (uint32_t)FixManhackCrash - patch_location_eight - 5;
-    *(uint32_t*)(patch_location_eight + 1) = offset;
-    //*(uint8_t*)(patch_location_eight) = 0xE9;
-    //*(uint32_t*)(patch_location_eight + 1) = 0x364;
-    //memset((void*)patch_location_eight, 0x90, length_eight);
-    //*(uint8_t*)(patch_location_eight) = 0xEB;
-    //*(uint8_t*)(patch_location_eight+1) = -0x47;
-
-    memset((void*)patch_location_nine, 0x90, length_nine);
-    *(uint16_t*)(patch_location_nine) = 0xC031;
-
-    memset((void*)patch_location_eleven, 0x90, length_eleven);
-    *(uint16_t*)(patch_location_eleven) = 0xC031;
-
-    offset = (uint32_t)SV_TriggerMovedFix - patch_location_sixteen - 5;
-    *(uint32_t*)(patch_location_sixteen + 1) = offset;
-
-
-    *(uint8_t*)(patch_location_fourteen) = 0xE9;
-    *(uint32_t*)(patch_location_fourteen + 1) = 0x1F0;
-
-    uint32_t offset_two = (uint32_t)MainTransitionRestore - patch_location_thirteen - 5;
-    *(uint8_t*)(patch_location_thirteen) = 0xE8;
-    *(uint32_t*)(patch_location_thirteen + 1) = offset_two;
-
-    uint32_t offset_three = (uint32_t)TransitionEntityCreateCall - patch_location_twelve - 5;
-    *(uint8_t*)(patch_location_twelve) = 0xE8;
-    *(uint32_t*)(patch_location_twelve + 1) = offset_three;
-
-    uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
-    *(uint8_t*)(patch_location_ten) = 0xE8;
-    *(uint32_t*)(patch_location_ten + 1) = offset_four;
-
-    *(uint32_t*)(patch_location_fifthteen) = (uint32_t)DoorCycleResolve;
-    *(uint32_t*)(patch_location_seventeen) = (uint32_t)DoorCycleResolve;
-
-    memset((void*)patch_location_eighteen, 0x90, length_eighteen);
-    offset = (uint32_t)FixTransitionCrash - patch_location_eighteen - 5;
-    *(uint32_t*)(patch_location_eighteen) = 0xE8;
-    *(uint32_t*)(patch_location_eighteen + 1) = offset;
-
-    memset((void*)patch_location_nineteen, 0x90, length_nineteen);
-    *(uint8_t*)(patch_location_nineteen) = 0x89;
-    *(uint8_t*)(patch_location_nineteen + 1) = 0x34;
-    *(uint8_t*)(patch_location_nineteen + 2) = 0x24;
-
-
-    uint32_t offset_five = (uint32_t)VehicleRollermineCheck - patch_location_twenty - 5;
-    *(uint8_t*)(patch_location_twenty) = 0xE8;
-    *(uint32_t*)(patch_location_twenty + 1) = offset_five;
-    *(uint16_t*)(patch_location_twenty + 5) = 0xC085;
-    *(uint16_t*)(patch_location_twenty + 7) = 0x840F;
-    *(uint32_t*)(patch_location_twenty + 9) = 0x2CD;
-
-    memset((void*)patch_location_twentyone, 0x90, length_twentyone);
-
-    /*uint32_t patch_save_system_one = server_srv + 0x004AED69;
-    offset = (uint32_t)pTransitionEntsHookPtr - patch_save_system_one - 5;
-    *(uint32_t*)(patch_save_system_one+1) = offset;*/
-
-    uint32_t restore_patch_address_two = server_srv + 0x004AE788;
-    memset((void*)restore_patch_address_two, 0x90, 0x28);
-    *(uint8_t*)(restore_patch_address_two) = 0x89;
-    *(uint8_t*)(restore_patch_address_two+1) = 0x1C;
-    *(uint8_t*)(restore_patch_address_two+2) = 0x24;
-
-    uint32_t restore_patch_address_three = server_srv + 0x4AE78B;
-    offset = (uint32_t)RestoreSystemPatch - restore_patch_address_three - 5;
-    *(uint8_t*)(restore_patch_address_three) = 0xE8;
-    *(uint32_t*)(restore_patch_address_three+1) = offset;
-
-    /*uint32_t restore_patch_address_four = server_srv + 0x00AF41EF;
-    ChangeMemoryProtections(restore_patch_address_four, 2);
-    memset((void*)restore_patch_address_four, 0x90, 2);
-    RestoreMemoryProtections(restore_patch_address_four, 2);*/
-
-    /*uint32_t restore_patch_address_five = server_srv + 0x00AF429B;
-    ChangeMemoryProtections(restore_patch_address_five, 2);
-    memset((void*)restore_patch_address_five, 0x90, 2);
-    RestoreMemoryProtections(restore_patch_address_five, 2);*/
-
-    uint32_t patch_another_cycle = server_srv + 0x00A95A9E;
-    *(uint8_t*)(patch_another_cycle) = 0xEB;
-
-    uint32_t yet_another_cycle = server_srv + 0x00A8653B;
-    *(uint8_t*)(yet_another_cycle) = 0xEB;
-
-    uint32_t fix_null_crash_patch = server_srv + 0x0075B9B8;
-    offset = (uint32_t)FixNullCrash - fix_null_crash_patch - 5;
-    *(uint32_t*)(fix_null_crash_patch+1) = offset;
-
-    uint32_t scripted_sequence_patch_crash = server_srv + 0x00AC3F09;
-    *(uint8_t*)(scripted_sequence_patch_crash) = 0xE9;
-    *(uint32_t*)(scripted_sequence_patch_crash+1) = 0x70;
-
-    //avoid causes high mem usage
-    //0x00489F53
-    //0x00489F17
-
-    //0x003AEAB3
-    //0x003AEA72
-
-    //0x00A8441B
-    //0x00A843C7
-
-    //0x00486E83
-    //0x00486E42
-
-    //0x0039C673
-    //0x0039C632
-
-    //0x0060F783
-    //0x0060F742
-
-    //weird memory leak
-    //0x004BBD43
-    //0x004BBD02
-
-    //0x005BEE23
-    //0x005BEDEE
-
-    //0x0083297B
-    //0x00832904
-
-    //Potential memory leak
-    //0x00472723
-    //0x004726E1
-
-    rootconsole->ConsolePrint("--------------------- Other save system parts patched ---------------------");
-}
-
-void SynergyUtils::SDK_OnAllLoaded()
-{
-    int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
-    int pthread_init_two = pthread_mutex_init(&malloc_ref_lock, NULL);
-
-    if(pthread_init_one != 0 || pthread_init_two != 0)
-    {
-        rootconsole->ConsolePrint("\nMutex init for lists thread safeness has failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    global_map = (char*) malloc(1024);
-    last_map = (char*) malloc(1024);
-    allow_vpkhook = false;
-    transition = false;
-    savegame = false;
-    savegame_lock = false;
-    restoring = false;
-    protect_player = false;
-    frames = 0;
-    gamestart = false;
-    gamestart_lock = false;
-    global_map_ents = 0;
-
-    char* root_dir = getenv("PWD");
-    size_t max_path_length = 1024;
-
-    char server_srv_fullpath[max_path_length];
-    char engine_srv_fullpath[max_path_length];
-    char scenefilecache_fullpath[max_path_length];
-    char soundemittersystem_fullpath[max_path_length];
-    char dedicated_srv_fullpath[max_path_length];
-    char soundemittersystem_srv_fullpath[max_path_length];
-    char materialsystem_srv_fullpath[max_path_length];
-    char studiorender_srv_fullpath[max_path_length];
-    char vphysics_srv_fullpath[max_path_length];
-    char datacache_srv_fullpath[max_path_length];
-    char shaderapiempty_srv_fullpath[max_path_length];
-    char libSDL2_fullpath[max_path_length];
-    char libsteam_api_fullpath[max_path_length];
-
-    snprintf(server_srv_fullpath, max_path_length, "%s/synergy/bin/server_srv.so", root_dir);
-    snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
-    snprintf(scenefilecache_fullpath, max_path_length, "%s/bin/scenefilecache.so", root_dir);
-    snprintf(soundemittersystem_fullpath, max_path_length, "%s/bin/soundemittersystem.so", root_dir);
-    snprintf(dedicated_srv_fullpath, max_path_length, "%s/bin/dedicated_srv.so", root_dir);
-    snprintf(soundemittersystem_srv_fullpath, max_path_length, "%s/bin/soundemittersystem_srv.so", root_dir);
-    snprintf(materialsystem_srv_fullpath, max_path_length, "%s/bin/materialsystem_srv.so", root_dir);
-    snprintf(studiorender_srv_fullpath, max_path_length, "%s/bin/studiorender_srv.so", root_dir);
-    snprintf(vphysics_srv_fullpath, max_path_length, "%s/bin/vphysics_srv.so", root_dir);
-    snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
-    snprintf(shaderapiempty_srv_fullpath, max_path_length, "%s/bin/shaderapiempty_srv.so", root_dir);
-    snprintf(libSDL2_fullpath, max_path_length, "%s/bin/libSDL2-2.0.so.0", root_dir);
-    snprintf(libsteam_api_fullpath, max_path_length, "%s/bin/libsteam_api.so", root_dir);
-
-    snprintf(last_map, 1024, "d1_trainstation_06");
-    snprintf(global_map, 1024, "d1_trainstation_06");
-
-    engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_LAZY));
-    datacache_lm = (struct link_map*)(dlopen(datacache_srv_fullpath, RTLD_LAZY));
-    dedicated_lm = (struct link_map*)(dlopen(dedicated_srv_fullpath, RTLD_LAZY));
-    materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_LAZY));
-    vphysics_srv_lm = (struct link_map*)(dlopen(vphysics_srv_fullpath, RTLD_LAZY));
-    scenefilecache_lm = (struct link_map*)(dlopen(scenefilecache_fullpath, RTLD_LAZY));
-    soundemittersystem_lm = (struct link_map*)(dlopen(soundemittersystem_fullpath, RTLD_LAZY));
-    soundemittersystem_srv_lm = (struct link_map*)(dlopen(soundemittersystem_srv_fullpath, RTLD_LAZY));
-    studiorender_srv_lm = (struct link_map*)(dlopen(studiorender_srv_fullpath, RTLD_LAZY));
-    server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_LAZY));
-    shaderapiempty_srv_lm = (struct link_map*)(dlopen(shaderapiempty_srv_fullpath, RTLD_LAZY));
-    libSDL2_lm = (struct link_map*)(dlopen(libSDL2_fullpath, RTLD_LAZY));
-    libsteam_api_lm = (struct link_map*)(dlopen(libsteam_api_fullpath, RTLD_LAZY));
-
-    engine_srv_size = 0x2C0000;
-    datacache_srv_size = 0x74000;
-    dedicated_srv_size = 0x26D000;
-    materialsystem_srv_size = 0x135000;
-    vphysics_srv_size = 0x1A5000;
-    scenefilecache_size = 0x14000;
-    soundemittersystem_size = 0x33000;
-    soundemittersystem_srv_size = 0x33000;
-    studiorender_srv_size = 0xD3000;
-    server_srv_size = 0xFB1000;
-    shaderapiempty_srv_size = 0x1B000;
-    libSDL2_size = 0xFF000;
-    libsteam_api_size = 0x12000;
-
-    engine_srv = engine_lm->l_addr;
-    datacache_srv = datacache_lm->l_addr;
-    dedicated_srv = dedicated_lm->l_addr;
-    materialsystem_srv = materialsystem_srv_lm->l_addr;
-    vphysics_srv = vphysics_srv_lm->l_addr;
-    scenefilecache = scenefilecache_lm->l_addr;
-    soundemittersystem = soundemittersystem_lm->l_addr;
-    soundemittersystem_srv = soundemittersystem_srv_lm->l_addr;
-    studiorender_srv = studiorender_srv_lm->l_addr;
-    server_srv = server_srv_lm->l_addr;
-    shaderapiempty_srv = shaderapiempty_srv_lm->l_addr;
-    libSDL2 = libSDL2_lm->l_addr;
-    libsteam_api = libsteam_api_lm->l_addr;
-
-    RestoreLinkedLists();
-    SaveProcessId();
-    
-    antiCycleListDoors = AllocateValuesList();
-    mallocAllocations = AllocateMallocRefList();
-    playerSaveList = AllocatePlayerSaveList();
-
-    sv = engine_srv + 0x00324580;
-    g_ModelLoader = engine_srv + 0x00317380;
-    g_DataCache = datacache_srv + 0x00074EC0;
-    g_MDLCache = datacache_srv + 0x00075140;
-    s_ServerPlugin = engine_srv + 0x0034EF20;
-    SaveRestoreGlobal = server_srv + 0x010121E0;
-    CGlobalEntityList = server_srv + 0x00FF8740;
-
-    VpkReloadAddr = server_srv + 0x004CC6D0;
-    Flush = datacache_srv + 0x0002BCD0;
-    HostChangelevel = engine_srv + 0x0012A960;
-    SpawnServer = engine_srv + 0x001AFC90;
-    EdtLoadFuncAddr = server_srv + 0x00AEF9E0;
-    PopulatePoseParametersAddr = server_srv + 0x00628220;
-    EndFunctionAddr = server_srv + 0x00B66D60;
-    OldFunctionAddr = server_srv + 0x0085F0E0;
-    sub_654260_addr = server_srv + 0x00654260;
-    sub_628F00_addr = server_srv + 0x00628F00;
-    MainTransitionCallAddr = server_srv + 0x004AED50;
-    CreateEntityByNameAddr = server_srv + 0x009AFCA0;
-    SaveGameStateAddr = server_srv + 0x00AF3990;
-    TransitionRestoreMainCallOrigAddr = server_srv + 0x00AF46C0;
-    KillEntityDirectCallAddr = server_srv + 0x00B64500;
-    VehicleRollermineFunctionAddr = server_srv + 0x00654970;
-    OrigSaveCallAddr = server_srv + 0x00AF33F0;
-    OriginalTriggerMovedAddr = engine_srv + 0x001D8FD0;
-    DoorFinalFunctionAddr = server_srv + 0x00A94600;
-    GetNumClientsAddr = engine_srv + 0x000D3030;
-    GetNumProxiesAddr = engine_srv + 0x000D3080;
-    FindEntityByClassnameAddr = server_srv + 0x006B2740;
-    origAutosaveCall = server_srv + 0x00AF3990;
-    origRestoreCall = server_srv + 0x00AF2A60;
-    UnloadUnreferencedModelsFuncAddr = engine_srv + 0x0014D6E0;
-    EnqueueCommandAddr = engine_srv + 0x000DE9C0;
-    CreateEntityCallAddr = server_srv + 0x00B62220;
-    OrigManhackFuncAddr = server_srv + 0x0047E5D0;
-    DispatchSpawnAddr = server_srv + 0x00B68190;
-    ActivateEntityAddr = server_srv + 0x65DB30;
-    AutosaveLoadOrigAddr = server_srv + 0x00AF4530;
-    InactivateClientsAddr = engine_srv + 0x000D5DA0;
-    ReconnectClientsAddr = engine_srv + 0x000D5E50;
-    PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
-    CleanupDeleteListAddr = server_srv + 0x006B2510;
-
-    pCallFirstFunc = (pOneArgProt)VpkReloadAddr;
-    pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
-    pHostChangelevelFunc = (pThreeArgProt)HostChangelevel;
-    pFlushFunc = (pThreeArgProt)Flush;
-    pSpawnServerFunc = (pThreeArgProt)SpawnServer;
-    PopulatePoseParameters = (pThreeArgProt)PopulatePoseParametersAddr;
-    EndFunction = (pThreeArgProt)EndFunctionAddr;
-    OldFunction = (pOneArgProt)OldFunctionAddr;
-    sub_654260 = (pOneArgProt)sub_654260_addr;
-    sub_628F00 = (pOneArgProt)sub_628F00_addr;
-    MainTransitionCall = (pTwoArgProt)MainTransitionCallAddr;
-    CreateEntityByName = (pTwoArgProt)CreateEntityByNameAddr;
-    SaveGameState = (pThreeArgProt)SaveGameStateAddr;
-    pTransitionRestoreMainCall = (pFourArgProt)TransitionRestoreMainCallOrigAddr;
-    pKillEntityDirectFunc = (pOneArgProt)KillEntityDirectCallAddr;
-    pCallVehicleRollermineFunction = (pOneArgProt)VehicleRollermineFunctionAddr;
-    pCallOrigSaveFunction = (pOneArgProt)OrigSaveCallAddr;
-    pCallOriginalTriggerMoved = (pTwoArgProt)OriginalTriggerMovedAddr;
-    pDoorFinalFunction = (pFiveArgProt)DoorFinalFunctionAddr;
-    GetNumClients = (pOneArgProt)GetNumClientsAddr;
-    GetNumProxies = (pOneArgProt)GetNumProxiesAddr;
-    FindEntityByClassname = (pThreeArgProt)FindEntityByClassnameAddr;
-    pOrigAutosaveCallFunc = (pThreeArgProt)origAutosaveCall;
-    UnloadUnreferencedModels = (pOneArgProt)UnloadUnreferencedModelsFuncAddr;
-    EnqueueCommandFunc = (pOneArgProt)EnqueueCommandAddr;
-    CreateEntityCallFunc = (pTwoArgProt)CreateEntityCallAddr;
-    OrigManhackFunc = (pOneArgProt)OrigManhackFuncAddr;
-    pDispatchSpawnFunc = (pOneArgProt)DispatchSpawnAddr;
-    pActivateEntityFunc = (pOneArgProt)ActivateEntityAddr;
-    pRestoreFileCallFunc = (pTwoArgProt)origRestoreCall;
-    AutosaveLoadOrig = (pThreeArgProt)AutosaveLoadOrigAddr;
-    InactivateClients = (pOneArgProt)InactivateClientsAddr;
-    ReconnectClients = (pOneArgProt)ReconnectClientsAddr;
-    PlayerLoadOrig = (pOneArgProt)PlayerLoadOrigAddr;
-    CleanupDeleteList = (pOneArgProt)CleanupDeleteListAddr;
-
-    delete_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8CD + 1) + (server_srv + 0x0041C8CD) + 5 );
-    delete_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8FD + 1) + (server_srv + 0x0041C8FD) + 5 );
-
-    void* new_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CAB9 + 1) + (server_srv + 0x0041CAB9) + 5 );
-    void* new_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CA39 + 1) + (server_srv + 0x0041CA39) + 5 );
-
-    void* strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
-
-    AllowWriteToMappedMemory();
-    
-    PatchRestoring();
-
-    HookSaveRestoreOne();
-
-    HookSaveRestoreTwo();
-    HookSaveRestoreThree();
-    HookSavingOne();
-    HookSavingTwo();
-
-    PatchAutosave();
-    PatchRestore();
-
-    HookVpkSystem();
-    PatchVpkSystem();
-
-    HookEdtSystem();
-    //PatchEdtSystem();
-
-    HookSpawnServer();
-    HookHostChangelevel();
-
-    PatchDropships();
-
-    PatchOthers();
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), (void*)HookEntityDelete);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), (void*)SaveOverride);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), (void*)PlayerSpawnHook);
@@ -4078,15 +4085,9 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), (void*)PlayerLoadHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)SavegameInternalFunction);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)ChkHandle);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), (void*)LevelChangeSafeHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), (void*)PlayerloadSavedHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), (void*)LevelInitHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), (void*)BarneyThinkHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), (void*)HunterCrashFix);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000EBE10), (void*)NET_BufferToBufferDecompress_Patch);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), (void*)TransitionFixTheSecond);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), (void*)PatchAnotherPlayerAccessCrash);
-
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471210), pEmptyCallOneArgPtr);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), (void*)EmptyCall);
@@ -4343,7 +4344,18 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pStrcpyPtr, pStrcpyHookPtr);*/
 
     //rootconsole->ConsolePrint("patching done!");
+}
 
-    RestoreMemoryProtections();
-    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+void HookFunctionsWithCpp()
+{
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), g_SynUtils.getCppAddr(Hooks::PlayerloadSavedHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
+}
+
+void* SynergyUtils::getCppAddr(auto classAddr)
+{
+    return (void*&)classAddr;
 }

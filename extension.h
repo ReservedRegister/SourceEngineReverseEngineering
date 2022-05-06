@@ -60,6 +60,129 @@ typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_
 typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
+uint32_t GetFileSize(char* file_name);
+uint32_t GetCBaseEntity(uint32_t EHandle);
+uint32_t GetEntityField(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, uint32_t searchField);
+FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, FieldList fieldList);
+void GivePlayerWeapons(uint32_t player_object);
+void SendEntityInput(uint32_t ref_handle, uint32_t inputName, uint32_t activator, uint32_t caller, uint32_t val, uint32_t outputId);
+uint32_t SaveGameSafe(bool use_internal_savename);
+void SaveLinkedList(ValueList leakList);
+void RestoreLinkedLists();
+void DestroyLinkedLists();
+void SaveProcessId();
+void ReleaseLeakedMemory(ValueList leakList, bool destroy);
+void ReleasePlayerSavedList();
+SavedEntity* SaveEntity(uint32_t firstEnt);
+void SavePlayers();
+void DisablePlayerViewControl();
+void EnablePlayerViewControl();
+void CleanPlayerEnts(bool no_parent);
+void RestorePlayers();
+void PatchRestoring();
+void AllowWriteToMappedMemory();
+void RestoreMemoryProtections();
+void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
+void PatchAutosave();
+void PatchRestore();
+void HookSaveRestoreOne();
+void HookSaveRestoreTwo();
+void HookSaveRestoreThree();
+void HookSavingOne();
+void HookSavingTwo();
+void HookVpkSystem();
+void PatchVpkSystem();
+void HookEdtSystem();
+void PatchEdtSystem();
+void PatchDropships();
+void HookSpawnServer();
+void HookHostChangelevel();
+void PatchOthers();
+void HookFunctionsWithC();
+void HookFunctionsWithCpp();
+
+ValueList AllocateValuesList();
+FieldList AllocateFieldList();
+MallocRefList AllocateMallocRefList();
+PlayerSaveList AllocatePlayerSaveList();
+
+SavedEntity* CreateNewSavedEntity(void* entRefHandleInput, void* classnameInput, FieldList fieldListInput);
+Field* CreateNewField(void* labelInput, void* keyInput, void* typeInput, void* flagsInput, void* offsetInput, ValueList valuesInput);
+Value* CreateNewValue(void* valueInput);
+PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input);
+MallocRef* CreateNewMallocRef(void* ref_input, void* size_input, void* alloc_location_input, void* alloc_type_input);
+
+void InsertFieldToFieldList(FieldList list, Field* head);
+void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex);
+void DeleteAllValuesInMallocRefList(MallocRefList list, bool lock_mutex);
+bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex);
+bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex);
+void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
+void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head);
+bool IsInMallocRefList(MallocRefList list, void* searchVal, bool lock_mutex);
+uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool lock_mutex);
+MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, bool lock_mutex);
+MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool lock_mutex);
+int MallocRefListSize(MallocRefList list, bool lock_mutex);
+void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex);
+
+uint32_t EmptyCall();
+uint32_t HookEntityDelete(uint32_t arg0);
+uint32_t CallocHook(uint32_t nitems, uint32_t size);
+uint32_t MallocHook(uint32_t size);
+uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
+uint32_t FreeHook(uint32_t ref_tofree);
+uint32_t OperatorNewHook(uint32_t size);
+uint32_t OperatorNewArrayHook(uint32_t size);
+uint32_t DeleteOperatorHook(uint32_t ref_tofree);
+uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree);
+uint32_t MemcpyHook(uint32_t dest, uint32_t src, uint32_t size);
+uint32_t MemsetHook(uint32_t dest, uint32_t byte, uint32_t size);
+uint32_t MemmoveHook(uint32_t dest, uint32_t src, uint32_t size);
+uint32_t StrncpyHook(uint32_t dest, uint32_t src, uint32_t size);
+uint32_t StrcpyHook(uint32_t dest, uint32_t src);
+uint32_t FrameLockHook(uint32_t arg0);
+uint32_t GameFrameHook(uint32_t arg0);
+uint32_t RestoreSystemPatch(uint32_t arg0);
+uint32_t RestoreSystemPatchStart(uint32_t arg0);
+uint32_t SaveHookDirectMalloc(uint32_t size);
+uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size);
+uint32_t DirectMallocHookDedicatedSrv(uint32_t arg1);
+uint32_t VpkReloadHook(uint32_t arg1);
+uint32_t EdtSystemHookFunc(uint32_t arg1);
+uint32_t PreEdtLoad(uint32_t arg1, uint32_t arg2);
+uint32_t SaveRestoreMemManage();
+uint32_t RestoreOverride();
+uint32_t TransitionArgUpdateHook(uint32_t arg0, uint32_t arg1);
+uint32_t TransitionArgUpdateHookTwo(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+uint32_t TransitionArgUpdateHookThree();
+uint32_t SavegameInternalFunction(uint32_t arg0);
+uint32_t ChkHandle(uint32_t arg0, uint32_t arg1);
+uint32_t FixNullCrash(uint32_t arg0);
+uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1);
+uint32_t MainTransitionRestore(uint32_t arg1, uint32_t arg2);
+uint32_t TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2);
+uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
+uint32_t VehicleRollermineCheck(uint32_t arg1);
+uint32_t SaveOverride(uint32_t arg1);
+uint32_t SV_TriggerMovedFix(uint32_t arg1, uint32_t arg2);
+uint32_t DoorCycleResolve(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
+uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
+uint32_t FixManhackCrash(uint32_t arg0);
+uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+uint32_t PlayerLoadHook(uint32_t arg0);
+uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+uint32_t PlayerSpawnDirectHook(uint32_t arg0);
+uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1);
+uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+uint32_t HunterCrashFix(uint32_t arg0);
+uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
+uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+uint32_t DropshipsHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+
+
 /**
  * vim: set ts=4 :
  * =============================================================================
@@ -101,6 +224,15 @@ typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32
 
 #include "smsdk_ext.h"
 
+class Hooks
+{
+	public:
+		static uint32_t LevelChangeSafeHook(uint32_t arg0);
+		static uint32_t PlayerloadSavedHook(uint32_t arg0, uint32_t arg1);
+		static uint32_t LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+		static uint32_t TransitionFixTheSecond(uint32_t arg0);
+		static uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0);
+};
 
 /**
  * @brief Sample implementation of the SDK Extension.
@@ -109,6 +241,8 @@ typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32
 class SynergyUtils : public SDKExtension
 {
 public:
+	void* getCppAddr(auto classAddr);
+
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.
 	 *
@@ -117,7 +251,7 @@ public:
 	 * @param late		Whether or not the module was loaded after map load.
 	 * @return			True to succeed loading, false to fail.
 	 */
-	//virtual bool SDK_OnLoad(char *error, size_t maxlen, bool late);
+	virtual bool SDK_OnLoad(char *error, size_t maxlen, bool late);
 	
 	/**
 	 * @brief This is called right before the extension is unloaded.
