@@ -1561,18 +1561,14 @@ uint32_t FreeHook(uint32_t ref_tofree)
 
 uint32_t OperatorNewHook(uint32_t size)
 {
-    if(size <= 0) return (uint32_t)malloc(size);
-    return (uint32_t)malloc(size*1.5);
-
-
     void* returnAddr = __builtin_return_address(0);
 
     uint32_t newRef = (uint32_t)operator new(size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);
+    /*MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new");
+    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return newRef;
 }
@@ -1600,7 +1596,7 @@ uint32_t DeleteOperatorHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
         
-    free((void*)ref_tofree);
+    operator delete ((void*)ref_tofree);
     return 0;
 
     void* returnAddr = __builtin_return_address(0);
