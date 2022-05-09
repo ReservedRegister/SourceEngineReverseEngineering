@@ -144,6 +144,8 @@ bool restoring;
 bool protect_player;
 bool gamestart;
 bool gamestart_lock;
+bool restore_delay;
+bool restore_delay_lock;
 int frames;
 uint32_t global_map_ents;
 
@@ -178,6 +180,8 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     frames = 0;
     gamestart = false;
     gamestart_lock = false;
+    restore_delay = false;
+    restore_delay_lock = false;
     global_map_ents = 0;
 
     char* root_dir = getenv("PWD");
@@ -1950,6 +1954,17 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         gamestart = false;
         gamestart_lock = false;
     }
+    else if(restore_delay && !restore_delay_lock)
+    {
+        frames = 0;
+        restore_delay_lock = true;
+    }
+    else if(restore_delay && frames >= 50)
+    {
+        restoring = false;
+        restore_delay = false;
+        restore_delay_lock = false;
+    }
     else if(savegame && frames >= 20)
     {
         if(!restoring) SaveGameSafe(false);
@@ -3021,7 +3036,7 @@ uint32_t RestoreOverride()
     *(uint8_t*)((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x130) = 0;
     
     protect_player = false;
-    restoring = false;
+    restore_delay = true;
     return 0;
 }
 
@@ -3434,6 +3449,19 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 {
     uint32_t returnVal = PlayerLoadOrig(arg0);
     //rootconsole->ConsolePrint("called main new player join func!");
+
+    uint32_t m_Network = *(uint32_t*)(arg0+0x24);
+    uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
+
+    uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
+    global_one = *(uint32_t*)(global_one);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
+    uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
+    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");
+
     return returnVal;
 }
 
@@ -3455,19 +3483,6 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
     GivePlayerWeapons(arg0, false);
-
-    uint32_t m_Network = *(uint32_t*)(arg0+0x24);
-    uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
-
-    uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
-    global_one = *(uint32_t*)(global_one);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
-    uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
-    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");
-
     return returnVal;
 }
 
@@ -3609,7 +3624,7 @@ uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
 
 uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
 {
-    if(savegame) return 0;
+    if(savegame && !restoring) return 0;
     restoring = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
