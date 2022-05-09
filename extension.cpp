@@ -3624,7 +3624,7 @@ uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
 
 uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
 {
-    if(savegame && !restoring) return 0;
+    if(savegame || restoring) return 0;
     restoring = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
