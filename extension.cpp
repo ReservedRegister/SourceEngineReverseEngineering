@@ -410,7 +410,6 @@ void PatchRestoring()
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
 
     memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
-    memset((void*)(engine_srv + 0x0012AA14), 0x90, 0xD);
 
     memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
     memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
@@ -1928,6 +1927,7 @@ uint32_t FrameLockHook(uint32_t arg0)
 
     //inactivate earlier
     InactivateClients(sv);
+    CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
@@ -1968,16 +1968,16 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     //Call orig funcs
 
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
+
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
     return 0;
 }
@@ -3424,23 +3424,20 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
+uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
+{
+    //Flush - data cache
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
+    return pDynamicOneArgFunc(arg0);
+}
+
 uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 {
     uint32_t returnVal = PlayerLoadOrig(arg0);
     //rootconsole->ConsolePrint("called main new player join func!");
-
-    /*uint32_t m_Network = *(uint32_t*)(arg0+0x24);
-    uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
-
-    uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
-    global_one = *(uint32_t*)(global_one);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
-    uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
-    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");*/
-
     return returnVal;
 }
 
@@ -3462,6 +3459,19 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
     GivePlayerWeapons(arg0);
+
+    uint32_t m_Network = *(uint32_t*)(arg0+0x24);
+    uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
+
+    uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
+    global_one = *(uint32_t*)(global_one);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
+    uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
+    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");
+
     return returnVal;
 }
 
@@ -3495,8 +3505,8 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
-    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
@@ -3812,12 +3822,6 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     snprintf(global_map, 1024, "%s", (char*)arg2);
 
     CleanupDeleteList(0);
-
-    //LVL SHUTDOWN
-    uint32_t global_lvl = *(uint32_t*)(engine_srv + 0x002BEF70);
-    pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(global_lvl))+0x18));
-    pDynamicOneArgFunc(global_lvl);
-    
     uint32_t returnVal = pSpawnServerFunc(arg1, arg2, arg3);
     CleanupDeleteList(0);
 
@@ -4135,6 +4139,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
