@@ -1942,6 +1942,12 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         frames = 0;
         savegame_lock = true;
     }
+    else if(savegame && frames >= 20)
+    {
+        if(!restoring) SaveGameSafe(false);
+        savegame = false;
+        savegame_lock = false;
+    }
     else if(gamestart && !savegame && !savegame_lock && !gamestart_lock)
     {
         frames = 0;
@@ -1964,12 +1970,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         restoring = false;
         restore_delay = false;
         restore_delay_lock = false;
-    }
-    else if(savegame && frames >= 20)
-    {
-        if(!restoring) SaveGameSafe(false);
-        savegame = false;
-        savegame_lock = false;
     }
     else if(frames >= 500)
         frames = 0;
