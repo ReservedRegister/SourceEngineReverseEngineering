@@ -78,7 +78,7 @@ uint32_t GetFileSize(char* file_name);
 uint32_t GetCBaseEntity(uint32_t EHandle);
 uint32_t GetEntityField(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, uint32_t searchField);
 FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, FieldList fieldList);
-void GivePlayerWeapons(uint32_t player_object);
+void GivePlayerWeapons(uint32_t player_object, bool force_give);
 void SendEntityInput(uint32_t ref_handle, uint32_t inputName, uint32_t activator, uint32_t caller, uint32_t val, uint32_t outputId);
 uint32_t SaveGameSafe(bool use_internal_savename);
 void SaveLinkedList(ValueList leakList);

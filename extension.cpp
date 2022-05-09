@@ -813,7 +813,7 @@ uint32_t GetEntityField(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offse
     return 0;
 }
 
-void GivePlayerWeapons(uint32_t player_object)
+void GivePlayerWeapons(uint32_t player_object, bool force_give)
 {
     uint32_t equip_coop = 0;
     while((equip_coop = FindEntityByClassname(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
@@ -822,7 +822,7 @@ void GivePlayerWeapons(uint32_t player_object)
         uint32_t dmap = pDynamicOneArgFunc(equip_coop);
         uint32_t m_bDisabled = GetEntityField(dmap, equip_coop, 0, 0, (uint32_t)"m_bDisabled");
 
-        if(m_bDisabled && *(uint8_t*)(m_bDisabled) == 0)
+        if((m_bDisabled && *(uint8_t*)(m_bDisabled) == 0) || force_give)
         {
             uint8_t esi_36C = *(uint8_t*)(equip_coop+0x36C);
             *(uint8_t*)(equip_coop+0x36C) = 0;
@@ -2930,7 +2930,7 @@ void RestorePlayers()
 
 
         rootconsole->ConsolePrint("Failed to restore player giving weapons...");
-        GivePlayerWeapons(playerEnt);
+        GivePlayerWeapons(playerEnt, true);
     }
 
     rootconsole->ConsolePrint("Finished restoring players!");
@@ -3458,7 +3458,7 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
-    GivePlayerWeapons(arg0);
+    GivePlayerWeapons(arg0, false);
 
     uint32_t m_Network = *(uint32_t*)(arg0+0x24);
     uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
