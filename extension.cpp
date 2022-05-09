@@ -44,7 +44,6 @@ uint32_t s_ServerPlugin;
 uint32_t SaveRestoreGlobal;
 uint32_t CGlobalEntityList;
 
-uint32_t VpkReloadAddr;
 uint32_t EdtLoadFuncAddr;
 uint32_t Flush;
 uint32_t HostChangelevel;
@@ -89,7 +88,6 @@ pSixArgProt pDynamicSixArgFunc;
 
 pOneArgProt pKillEntityDirectFunc;
 pTwoArgProt pEdtLoadFunc;
-pOneArgProt pCallFirstFunc;
 pThreeArgProt pHostChangelevelFunc;
 pThreeArgProt pFlushFunc;
 pThreeArgProt pSpawnServerFunc;
@@ -131,7 +129,6 @@ uint32_t hook_exclude_list[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
 ValueList leakedResourcesSaveRestoreSystem;
-ValueList leakedResourcesVpkSystem;
 ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
 
@@ -140,7 +137,6 @@ PlayerSaveList playerSaveList;
 
 char* global_map;
 char* last_map;
-bool allow_vpkhook;
 bool transition;
 bool savegame;
 bool savegame_lock;
@@ -174,7 +170,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 
     global_map = (char*) malloc(1024);
     last_map = (char*) malloc(1024);
-    allow_vpkhook = false;
     transition = false;
     savegame = false;
     savegame_lock = false;
@@ -261,7 +256,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     SaveRestoreGlobal = server_srv + 0x010121E0;
     CGlobalEntityList = server_srv + 0x00FF8740;
 
-    VpkReloadAddr = server_srv + 0x004CC6D0;
     Flush = datacache_srv + 0x0002BCD0;
     HostChangelevel = engine_srv + 0x0012A960;
     SpawnServer = engine_srv + 0x001AFC90;
@@ -297,7 +291,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
     CleanupDeleteListAddr = server_srv + 0x006B2510;
 
-    pCallFirstFunc = (pOneArgProt)VpkReloadAddr;
     pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
     pHostChangelevelFunc = (pThreeArgProt)HostChangelevel;
     pFlushFunc = (pThreeArgProt)Flush;
@@ -355,8 +348,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookSavingTwo();
     PatchAutosave();
     PatchRestore();
-    HookVpkSystem();
-    PatchVpkSystem();
     HookEdtSystem();
     //PatchEdtSystem();
     HookSpawnServer();
@@ -415,18 +406,6 @@ void PatchRestoring()
     *(uint8_t*)(exploit_patch_one) = 0xE9;
     *(uint32_t*)(exploit_patch_one+1) = -0x258;
 
-    uint32_t physics_patch = server_srv + 0x00A316FD;
-    *(uint8_t*)(physics_patch) = 0xE9;
-    *(uint32_t*)(physics_patch+1) = 0x48;
-
-    uint32_t clean_del_phys_replace_one = server_srv + 0x00A317C5;
-    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_one - 5;
-    *(uint32_t*)(clean_del_phys_replace_one+1) = offset;
-
-    uint32_t clean_del_phys_replace_two = server_srv + 0x00A31830;
-    offset = (uint32_t)CleanupDeleteList - clean_del_phys_replace_two - 5;
-    *(uint32_t*)(clean_del_phys_replace_two+1) = offset;
-
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
 
@@ -442,8 +421,6 @@ void PatchRestoring()
 
     memset((void*)(dedicated_srv + 0x000BE6F6), 0x90, 5);
     *(uint16_t*)((dedicated_srv + 0x000BE6F6)) = 0xC031;
-
-    memset((void*)(engine_srv + 0x001AF920), 0x90, 0xD);
 
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
@@ -519,31 +496,31 @@ void PatchRestoring()
     *(uint32_t*)(transition_call_patch_three+1) = offset;
 
     uint32_t remove_evidence_of_call = server_srv + 0x00CACE94;
-    *(uint32_t*)(remove_evidence_of_call) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v2 = server_srv + 0x00CACE60;
-    *(uint32_t*)(remove_evidence_of_call_v2) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v2) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v3 = server_srv + 0x00CACE74;
-    *(uint32_t*)(remove_evidence_of_call_v3) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v3) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v4 = server_srv + 0x00CACE78;
-    *(uint32_t*)(remove_evidence_of_call_v4) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v4) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v5 = server_srv + 0x00CACE6C;
-    *(uint32_t*)(remove_evidence_of_call_v5) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v5) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v6 = server_srv + 0x00CACE80;
-    *(uint32_t*)(remove_evidence_of_call_v6) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v6) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v7 = server_srv + 0x00CACE84;
-    *(uint32_t*)(remove_evidence_of_call_v7) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v7) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v8 = server_srv + 0x00CACE88;
-    *(uint32_t*)(remove_evidence_of_call_v8) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v8) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t remove_evidence_of_call_v9 = server_srv + 0x00CACE70;
-    *(uint32_t*)(remove_evidence_of_call_v9) = (uint32_t)EmptyCall;
+    *(uint32_t*)(remove_evidence_of_call_v9) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
     *(uint8_t*)(player_restore_full_remove) = 0xE9;
@@ -585,7 +562,9 @@ void PatchRestoring()
     *(uint8_t*)(patch_restore_base) = 0xE8;
     *(uint32_t*)(patch_restore_base+1) = offset;
 
-
+    uint32_t hook_game_frame_delete_list = server_srv + 0x00739AF1;
+    offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
+    *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
     /*uint32_t main_spawn_call_jmp_one = server_srv + 0x0099265B;
     ChangeMemoryProtections(main_spawn_call_jmp_one, 5);
@@ -628,10 +607,6 @@ void PatchRestoring()
     *(uint8_t*)(JMP_PATCH_GLOBALRESTORE_ONE) = 0xE9;
     *(uint32_t*)(JMP_PATCH_GLOBALRESTORE_ONE+1) = 0x45;
 
-    uint32_t hook_game_frame_delete_list = server_srv + 0x00739B48;
-    offset = (uint32_t)GameFrameHook - hook_game_frame_delete_list - 5;
-    *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
-
     uint32_t remove_end_of_ent_restore = server_srv + 0x004AE434;
     memset((void*)remove_end_of_ent_restore, 0x90, 5);
 
@@ -648,7 +623,7 @@ void PatchRestoring()
 
     //Disable ResponseSystem saving
     uint32_t disable_response_saving = server_srv + 0x00C70710;
-    *(uint32_t*)(disable_response_saving) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_response_saving) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable EventQueue saving
     /*uint32_t disable_event_queue_saving = server_srv + 0x00C817B0;
@@ -658,37 +633,37 @@ void PatchRestoring()
 
     //Disable Achievement saving
     uint32_t disable_achievement_saving = server_srv + 0x00C17570;
-    *(uint32_t*)(disable_achievement_saving) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_achievement_saving) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable SOMETHING saving
     uint32_t disable_something_saving = server_srv + 0x00D7DE90;
-    *(uint32_t*)(disable_something_saving) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_something_saving) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable SOMETHING saving
     uint32_t disable_something_saving_two = server_srv + 0x00C84630;
-    *(uint32_t*)(disable_something_saving_two) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_something_saving_two) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable SOMETHING saving
     uint32_t disable_something_saving_three = server_srv + 0x00C709F0;
-    *(uint32_t*)(disable_something_saving_three) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_something_saving_three) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
 
 
     //Disable AI restoring
     uint32_t disable_ai_restoring = server_srv + 0x00C70A04;
-    *(uint32_t*)(disable_ai_restoring) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_ai_restoring) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable Template restoring
     uint32_t disable_template_restoring = server_srv + 0x00D7DEA4;
-    *(uint32_t*)(disable_template_restoring) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_template_restoring) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable ResponseSystem restoring
     uint32_t disable_response_restoring = server_srv + 0x00C70724;
-    *(uint32_t*)(disable_response_restoring) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_response_restoring) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable Commentary restoring
     uint32_t disable_commentary_restoring = server_srv + 0x00C84644;
-    *(uint32_t*)(disable_commentary_restoring) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_commentary_restoring) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     //Disable EventQueue restoring
     /*uint32_t disable_event_queue_restoring = server_srv + 0x00C817C4;
@@ -698,7 +673,7 @@ void PatchRestoring()
 
     //Disable Achievement restoring
     uint32_t disable_achievement_restoring = server_srv + 0x00C17584;
-    *(uint32_t*)(disable_achievement_restoring) = (uint32_t)EmptyCall;
+    *(uint32_t*)(disable_achievement_restoring) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
 
 
@@ -1284,12 +1259,12 @@ void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
     if(lock_mutex)  pthread_mutex_unlock(&malloc_ref_lock);
 }
 
-uint32_t EmptyCall()
+uint32_t Hooks::EmptyCall()
 {
     return 0;
 }
 
-uint32_t HookEntityDelete(uint32_t arg0)
+uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 {
     if(arg0 == 0)
     {
@@ -1958,7 +1933,7 @@ uint32_t FrameLockHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t GameFrameHook(uint32_t arg0)
+uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
     CleanupDeleteList(0);
 
@@ -1990,6 +1965,20 @@ uint32_t GameFrameHook(uint32_t arg0)
 
     CleanupDeleteList(0);
     frames++;
+
+    //Call orig funcs
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -2008,14 +1997,12 @@ void SaveLinkedList(ValueList leakList)
     }
 
     char listName[256];
-    strcpy(listName, "Unknown List");
+    snprintf(listName, 256, "Unknown List");
 
-    if(leakList == leakedResourcesVpkSystem)
-        strcpy(listName, "leakedResourcesVpkSystem");
-    else if(leakList == leakedResourcesSaveRestoreSystem)
-        strcpy(listName, "leakedResourcesSaveRestoreSystem");
+    if(leakList == leakedResourcesSaveRestoreSystem)
+        snprintf(listName, 256, "leakedResourcesSaveRestoreSystem");
     else if(leakList == leakedResourcesEdtSystem)
-        strcpy(listName, "leakedResourcesEdtSystem");
+        snprintf(listName, 256, "leakedResourcesEdtSystem");
 
     rootconsole->ConsolePrint("Saving leaked resources list [%s]", listName);
 
@@ -2035,7 +2022,6 @@ void SaveLinkedList(ValueList leakList)
 void RestoreLinkedLists()
 {
     leakedResourcesSaveRestoreSystem = AllocateValuesList();
-    leakedResourcesVpkSystem = AllocateValuesList();
     leakedResourcesEdtSystem = AllocateValuesList();
 
     ValueList currentRestoreList = NULL;
@@ -2074,11 +2060,6 @@ void RestoreLinkedLists()
             currentRestoreList = leakedResourcesSaveRestoreSystem;
             continue;
         }
-        else if(strncmp(file_line, "leakedResourcesVpkSystem", 24) == 0)
-        {
-            currentRestoreList = leakedResourcesVpkSystem;
-            continue;
-        }
         else if(strncmp(file_line, "leakedResourcesEdtSystem", 24) == 0)
         {
             currentRestoreList = leakedResourcesEdtSystem;
@@ -2105,14 +2086,12 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
     
     Value* leak = *leakList;
     char listName[256];
-    strcpy(listName, "Unknown List");
+    snprintf(listName, 256, "Unknown List");
 
-    if(leakList == leakedResourcesVpkSystem)
-        strcpy(listName, "VPK Hook");
-    else if(leakList == leakedResourcesSaveRestoreSystem)
-        strcpy(listName, "Save/Restore Hook");
+    if(leakList == leakedResourcesSaveRestoreSystem)
+        snprintf(listName, 256, "Save/Restore Hook");
     else if(leakList == leakedResourcesEdtSystem)
-        strcpy(listName, "EDT Hook");
+        snprintf(listName, 256, "EDT Hook");
 
     if(!leak)
     {
@@ -2158,7 +2137,6 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
 void DestroyLinkedLists()
 {
     ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, true);
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, true);
     ReleaseLeakedMemory(leakedResourcesEdtSystem, true);
 
     rootconsole->ConsolePrint("---  Linked lists successfully destroyed  ---");
@@ -2308,7 +2286,7 @@ void PatchAutosave()
     //*(uint32_t*)(autosave_call_four) = (uint32_t)pCTriggerSaveMainFuncPtr;
 
 
-    uint32_t offset = (uint32_t)EmptyCall - autosave_call_five - 5;
+    uint32_t offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall) - autosave_call_five - 5;
     *(uint32_t*)(autosave_call_five+1) = offset;
 
     rootconsole->ConsolePrint("--------------------- Save system patched ---------------------");
@@ -2406,32 +2384,6 @@ void HookSavingTwo()
     rootconsole->ConsolePrint("--------------------- Save part 2 hooked ---------------------");
 }
 
-void HookVpkSystem()
-{
-    int length = 5;
-
-    uint32_t start = dedicated_srv + 0x000BE4F4;
-    uint32_t offset = (uint32_t)DirectMallocHookDedicatedSrv - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- VPK system hooked ---------------------");
-}
-
-void PatchVpkSystem()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x004CCB27;
-    uint32_t offset = (uint32_t)VpkReloadHook - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- VPK system patched ---------------------");
-}
-
 void HookEdtSystem()
 {
     int length = 5;
@@ -2469,7 +2421,7 @@ void PatchDropships()
     uint32_t patch_location_three = server_srv + 0x00CF1D58;
     uint32_t patch_location_four = server_srv + 0x0086B1B7;
 
-    *(uint32_t*)(patch_location_three) = (uint32_t)EmptyCall;
+    *(uint32_t*)(patch_location_three) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
 
     uint32_t offset_one = (uint32_t)DropshipsHook - patch_location_one - 5;
     uint32_t offset_two = (uint32_t)DropshipsHook - patch_location_two - 5;
@@ -2785,37 +2737,6 @@ uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size)
     return ref;
 }
 
-uint32_t DirectMallocHookDedicatedSrv(uint32_t arg1)
-{
-    uint32_t ref = (uint32_t)malloc(arg1*3.0);
-    
-    if(allow_vpkhook)
-    {
-        rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
-
-        Value* leak = CreateNewValue((void*)ref);
-        InsertToValuesList(leakedResourcesVpkSystem, leak, false, true, false);
-    }
-
-    return ref;
-}
-
-uint32_t VpkReloadHook(uint32_t arg1)
-{
-    allow_vpkhook = true;
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, false);
-
-    //CleanupDeleteList(0);
-
-    //UnloadUnreferencedModels(g_ModelLoader);
-
-    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
-    
-    //CleanupDeleteList(0);
-    return pCallFirstFunc(arg1);
-}
-
 uint32_t EdtSystemHookFunc(uint32_t arg1)
 {
     uint32_t ref = (uint32_t)malloc(arg1*3.0);
@@ -2905,7 +2826,7 @@ void CleanPlayerEnts(bool no_parent)
 
         uint32_t refHandle = (uint32_t)delete_ent->value;
         uint32_t object = GetCBaseEntity(refHandle);
-        if(object) HookEntityDelete(object);
+        if(object) Hooks::HookEntityDelete(object);
 
         free(delete_ent);
         delete_ent = detachedValue;
@@ -3065,14 +2986,12 @@ uint32_t RestoreOverride()
 
     CleanupDeleteList(0);
 
-    *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 0;
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
 
     // SIM END
 
-    /**(uint32_t*)(server_srv + 0x0100890C) = 0;
+    *(uint32_t*)(server_srv + 0x0100890C) = 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B52F0);
     pDynamicOneArgFunc(server_srv + 0x01008900);
@@ -3082,7 +3001,9 @@ uint32_t RestoreOverride()
     uint32_t eax_val = *(uint32_t*)(server_srv + 0x01008900);
     *(uint32_t*)(server_srv + 0x01008910) = eax_val;
     
-    *(uint8_t*)(server_srv + 0x00FF0990) = 0;*/
+    *(uint8_t*)(server_srv + 0x00FF0990) = 0;
+
+    *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 0;
 
     // -- END
 
@@ -3125,13 +3046,13 @@ uint32_t TransitionArgUpdateHookThree()
     return pDynamicOneArgFunc(0);
 }
 
-uint32_t SavegameInternalFunction(uint32_t arg0)
+uint32_t Hooks::SavegameInternalFunction(uint32_t arg0)
 {
     //SavePlayers();
     return pCallOrigSaveFunction(arg0);
 }
 
-uint32_t ChkHandle(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
 {
     if(arg1 == 0)
     {
@@ -3393,7 +3314,7 @@ uint32_t VehicleRollermineCheck(uint32_t arg1)
     return 0;
 }
 
-uint32_t SaveOverride(uint32_t arg1)
+uint32_t Hooks::SaveOverride(uint32_t arg1)
 {
     savegame = true;
     return 1;
@@ -3503,7 +3424,7 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
-uint32_t PlayerLoadHook(uint32_t arg0)
+uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 {
     uint32_t returnVal = PlayerLoadOrig(arg0);
     //rootconsole->ConsolePrint("called main new player join func!");
@@ -3523,7 +3444,7 @@ uint32_t PlayerLoadHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint("called the main spawn info sender!");
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
@@ -3552,7 +3473,7 @@ uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
     return pRestoreFileCallFunc(arg0, savegame_name);
 }
 
-uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
+uint32_t Hooks::UnmountPaths(uint32_t arg0)
 {
     //CleanupDeleteList(0);
 
@@ -3565,17 +3486,17 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     //CleanupDeleteList(0);
 
-    //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
-
     //Flush - mdl cache
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
+    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
 
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
+
+    //Flush - data cache
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
@@ -3589,7 +3510,7 @@ uint32_t Hooks::LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
-uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     uint32_t deref_arg4 = *(uint32_t*)(arg1);
 
@@ -3614,7 +3535,7 @@ uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
-uint32_t HunterCrashFix(uint32_t arg0)
+uint32_t Hooks::HunterCrashFix(uint32_t arg0)
 {
     if(FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player") != 0)
     {
@@ -3627,7 +3548,7 @@ uint32_t HunterCrashFix(uint32_t arg0)
     return 0;
 }
 
-uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+uint32_t Hooks::NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     return 0;
 }
@@ -3971,8 +3892,6 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
         rootconsole->ConsolePrint("Spawned door_2");
     }*/
 
-    allow_vpkhook = false;
-
     ReleasePlayerSavedList();
     savegame = true;
     gamestart = true;
@@ -4034,21 +3953,6 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
 void HookFunctionsWithC()
 {
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), (void*)HookEntityDelete);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), (void*)SaveOverride);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), (void*)PlayerSpawnHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), (void*)PlayerLoadHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)SavegameInternalFunction);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)ChkHandle);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), (void*)BarneyThinkHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), (void*)HunterCrashFix);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000EBE10), (void*)NET_BufferToBufferDecompress_Patch);
-
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471210), pEmptyCallOneArgPtr);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), (void*)EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), (void*)EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), pEmptyCallOneArgPtr);
-
     rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
@@ -4210,12 +4114,27 @@ void HookFunctionsWithC()
 
 void HookFunctionsWithCpp()
 {
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), g_SynUtils.getCppAddr(Hooks::UnmountPaths));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), g_SynUtils.getCppAddr(Hooks::PlayerloadSavedHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), g_SynUtils.getCppAddr(Hooks::PlayerLoadHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), g_SynUtils.getCppAddr(Hooks::SavegameInternalFunction));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), g_SynUtils.getCppAddr(Hooks::ChkHandle));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), g_SynUtils.getCppAddr(Hooks::BarneyThinkHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), g_SynUtils.getCppAddr(Hooks::HunterCrashFix));
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000EBE10), g_SynUtils.getCppAddr(Hooks::NET_BufferToBufferDecompress_Patch));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A6A660), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
