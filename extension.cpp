@@ -1502,9 +1502,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
 
     void* returnAddr = __builtin_return_address(0);
-
-    uint32_t enlarged_size = size*1.5;
-    uint32_t newRef = (uint32_t)malloc(enlarged_size);
+    uint32_t newRef = (uint32_t)malloc(size*2.5);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1519,7 +1517,7 @@ uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
 
     void* returnAddr = __builtin_return_address(0);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*2.0);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*2.5);
 
     /*RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
     MallocRef* new_ref_value = CreateNewMallocRef((void*)new_ref, (void*)new_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
@@ -1570,7 +1568,7 @@ uint32_t OperatorNewHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
 
     void* returnAddr = __builtin_return_address(0);
-    uint32_t newRef = (uint32_t)malloc(size*1.5);
+    uint32_t newRef = (uint32_t)malloc(size*2.5);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1583,7 +1581,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    return (uint32_t)malloc(size*2.0);
+    return (uint32_t)malloc(size*2.5);
     
 
     void* returnAddr = __builtin_return_address(0);
@@ -1984,6 +1982,10 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
 
     //ServiceEventQueue
