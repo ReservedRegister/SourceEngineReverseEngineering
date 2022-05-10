@@ -1515,13 +1515,15 @@ uint32_t MallocHook(uint32_t size)
 }
 
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
-{   
-    void* returnAddr = __builtin_return_address(0);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size);
+{
+    if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
 
-    RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
+    void* returnAddr = __builtin_return_address(0);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*2.0);
+
+    /*RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
     MallocRef* new_ref_value = CreateNewMallocRef((void*)new_ref, (void*)new_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);
+    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return new_ref;
 }
@@ -1565,9 +1567,10 @@ uint32_t FreeHook(uint32_t ref_tofree)
 
 uint32_t OperatorNewHook(uint32_t size)
 {
-    void* returnAddr = __builtin_return_address(0);
+    if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)operator new(size);
+    void* returnAddr = __builtin_return_address(0);
+    uint32_t newRef = (uint32_t)malloc(size*1.5);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1600,7 +1603,7 @@ uint32_t DeleteOperatorHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
         
-    operator delete ((void*)ref_tofree);
+    free((void*)ref_tofree);
     return 0;
 
     void* returnAddr = __builtin_return_address(0);
@@ -3990,18 +3993,18 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)MallocHook);
-    /*rootconsole->ConsolePrint("patching realloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pReallocPtr, pReallocHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pReallocPtr, pReallocHookPtr);
-    rootconsole->ConsolePrint("patching free()");
+    rootconsole->ConsolePrint("patching realloc()");
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)ReallocHook);
+    /*rootconsole->ConsolePrint("patching free()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, pFreePtr, pFreeHookPtr);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pFreePtr, pFreeHookPtr);
