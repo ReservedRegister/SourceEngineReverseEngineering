@@ -565,7 +565,7 @@ void PatchRestoring()
     *(uint8_t*)(patch_restore_base) = 0xE8;
     *(uint32_t*)(patch_restore_base+1) = offset;
 
-    uint32_t hook_game_frame_delete_list = server_srv + 0x00739AF1;
+    uint32_t hook_game_frame_delete_list = server_srv + 0x00739B32;
     offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
@@ -1934,7 +1934,7 @@ uint32_t FrameLockHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::GameFrameHook(uint32_t arg0)
+uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
 
@@ -1980,12 +1980,20 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     //Call orig funcs
 
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
+    uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+
+    //Dont simulate if there is no active player
+    if(ent == 0)
+        return 0;
+
+    SimulateEntities((bool)simulating);
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
 
     //ServiceEventQueue
@@ -1996,6 +2004,35 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
     return 0;
+}
+
+void SimulateEntities(bool simulating)
+{
+    CleanupDeleteList(0);
+    
+    if(simulating)
+    {
+        uint32_t ent = 0;
+        
+        while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+        {
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
+            pDynamicOneArgFunc(ent);
+        }
+    }
+    else
+    {
+        uint32_t ent = 0;
+        
+        while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+        {
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A52B70);
+            pDynamicOneArgFunc(ent);
+
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
+            pDynamicOneArgFunc(ent);
+        }
+    }
 }
 
 void SaveLinkedList(ValueList leakList)
@@ -4155,6 +4192,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004A5540), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
 }
 

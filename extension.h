@@ -112,6 +112,7 @@ void HookHostChangelevel();
 void PatchOthers();
 void HookFunctionsWithC();
 void HookFunctionsWithCpp();
+void SimulateEntities(bool simulating);
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
@@ -234,7 +235,7 @@ class Hooks
 		static uint32_t TransitionFixTheSecond(uint32_t arg0);
 		static uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0);
 		static uint32_t PlayerSpawnDirectHook(uint32_t arg0);
-		static uint32_t GameFrameHook(uint32_t arg0);
+		static uint32_t GameFrameHook(uint8_t simulating);
 		static uint32_t HookEntityDelete(uint32_t arg0);
 		static uint32_t SaveOverride(uint32_t arg1);
 		static uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
