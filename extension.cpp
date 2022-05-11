@@ -1986,8 +1986,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     if(ent == 0)
         return 0;
 
-    SimulateEntities((bool)simulating);
-
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
@@ -1996,13 +1994,15 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
 
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
 
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
+    SimulateEntities((bool)simulating);
     return 0;
 }
 
