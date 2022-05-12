@@ -148,9 +148,9 @@ bool gamestart;
 bool gamestart_lock;
 bool restore_delay;
 bool restore_delay_lock;
-bool allow_vpkhook;
 int frames;
 uint32_t global_map_ents;
+uint32_t vpk_cache_size;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -185,8 +185,8 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     gamestart_lock = false;
     restore_delay = false;
     restore_delay_lock = false;
-    allow_vpkhook = false;
     global_map_ents = 0;
+    vpk_cache_size = 0;
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -1241,6 +1241,23 @@ int MallocRefListSize(MallocRefList list, bool lock_mutex)
     return counter;
 }
 
+int ValueListItems(ValueList list, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+
+    Value* aValue = *list;
+    int counter = 0;
+
+    while(aValue)
+    {
+        counter++;
+        aValue = aValue->nextVal;
+    }
+
+    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    return counter;
+}
+
 void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
 {
     if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
@@ -2152,7 +2169,7 @@ void RestoreLinkedLists()
     fclose(list_file);
 }
 
-void ReleaseLeakedMemory(ValueList leakList, bool destroy)
+void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc)
 {
     if(!leakList)
         return;
@@ -2187,6 +2204,14 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
         SaveLinkedList(leakList);
     }
 
+    if((current_cap < allowed_cap) && !destroy)
+        return;
+
+    int total_items = ValueListItems(leakList, false);
+    int free_total_items = (float)free_perc / 100.0 * total_items;
+
+    int has_freed_items = 0;
+
     while(leak)
     {
         Value* detachedValue = leak->nextVal;
@@ -2195,25 +2220,32 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
         {
             rootconsole->ConsolePrint("[%s] FREED MEMORY LEAK WITH REF: [%X]", listName, leak->value);
             free(leak->value);
+            has_freed_items++;
         }
 
         free(leak);
         leak = detachedValue;
+        
+        if((has_freed_items >= free_total_items) && !destroy)
+        {
+            //Re-chain the list to point to the first valid value!
+            *leakList = leak;
+            break;
+        }
     }
-
-    *leakList = NULL;
 
     if(destroy)
     {
         free(leakList);
+        leakList = NULL;
     }
 }
 
 void DestroyLinkedLists()
 {
-    ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, true);
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, true);
-    ReleaseLeakedMemory(leakedResourcesEdtSystem, true);
+    ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, true, 0, 0, 100);
+    ReleaseLeakedMemory(leakedResourcesVpkSystem, true, 0, 0, 100);
+    ReleaseLeakedMemory(leakedResourcesEdtSystem, true, 0, 0, 100);
 
     rootconsole->ConsolePrint("---  Linked lists successfully destroyed  ---");
 }
@@ -2820,7 +2852,7 @@ uint32_t SaveHookDirectMalloc(uint32_t size)
     rootconsole->ConsolePrint("malloc() [Save/Restore Hook] " HOOK_MSG " size: [%d]", ref, new_size);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, false, true, false);
+    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, true, true, false);
 
     return ref;
 }
@@ -2834,7 +2866,7 @@ uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size)
     RemoveFromValuesList(leakedResourcesSaveRestoreSystem, (void*)old_ptr, false);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, false, true, false);
+    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, true, true, false);
 
     return ref;
 }
@@ -2845,7 +2877,7 @@ uint32_t EdtSystemHookFunc(uint32_t arg1)
     rootconsole->ConsolePrint("[EDT Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesEdtSystem, leak, false, true, false);
+    InsertToValuesList(leakedResourcesEdtSystem, leak, true, true, false);
 
     return ref;
 }
@@ -2853,13 +2885,13 @@ uint32_t EdtSystemHookFunc(uint32_t arg1)
 uint32_t PreEdtLoad(uint32_t arg1, uint32_t arg2)
 {
     uint32_t returnVal = pEdtLoadFunc(arg1, arg2);
-    ReleaseLeakedMemory(leakedResourcesEdtSystem, false);
+    ReleaseLeakedMemory(leakedResourcesEdtSystem, false, 0, 0, 100);
     return returnVal;
 }
 
 uint32_t SaveRestoreMemManage()
 {
-    ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, false);
+    ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, false, 0, 0, 100);
     *(uint32_t*)((*(uint32_t*)SaveRestoreGlobal)+0x2C) = 0;
     return 0;
 }
@@ -3150,23 +3182,21 @@ uint32_t TransitionArgUpdateHookThree()
 
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    uint32_t ref = (uint32_t)malloc(arg0*3.0);
+    uint32_t alloc_size = arg0*3.0;
+    uint32_t ref = (uint32_t)malloc(alloc_size);
     
-    if(allow_vpkhook)
-    {
-        rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
+    rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
 
-        Value* leak = CreateNewValue((void*)ref);
-        InsertToValuesList(leakedResourcesVpkSystem, leak, false, true, false);
-    }
+    Value* leak = CreateNewValue((void*)ref);
+    InsertToValuesList(leakedResourcesVpkSystem, leak, true, true, false);
 
+    vpk_cache_size = vpk_cache_size + alloc_size;
     return ref;
 }
 
 uint32_t VpkReloadHook(uint32_t arg0)
 {
-    allow_vpkhook = true;
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, false);
+    ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_cache_size, 209715200, 50);
 
     CleanupDeleteList(0);
 
@@ -4028,7 +4058,6 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     }*/
 
     ReleasePlayerSavedList();
-    allow_vpkhook = false;
     savegame = true;
     gamestart = true;
     return returnVal;

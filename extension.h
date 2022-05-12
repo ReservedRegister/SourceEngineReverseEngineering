@@ -85,7 +85,7 @@ void SaveLinkedList(ValueList leakList);
 void RestoreLinkedLists();
 void DestroyLinkedLists();
 void SaveProcessId();
-void ReleaseLeakedMemory(ValueList leakList, bool destroy);
+void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc);
 void ReleasePlayerSavedList();
 SavedEntity* SaveEntity(uint32_t firstEnt);
 void SavePlayers();
@@ -139,6 +139,7 @@ uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool lock_mute
 MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, bool lock_mutex);
 MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool lock_mutex);
 int MallocRefListSize(MallocRefList list, bool lock_mutex);
+int ValueListItems(ValueList list, bool lock_mutex);
 void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex);
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
