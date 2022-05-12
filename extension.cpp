@@ -78,6 +78,7 @@ uint32_t InactivateClientsAddr;
 uint32_t ReconnectClientsAddr;
 uint32_t PlayerLoadOrigAddr;
 uint32_t CleanupDeleteListAddr;
+uint32_t VpkReloadAddr;
 
 pOneArgProt pDynamicOneArgFunc;
 pTwoArgProt pDynamicTwoArgFunc;
@@ -129,6 +130,7 @@ uint32_t hook_exclude_list[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
 ValueList leakedResourcesSaveRestoreSystem;
+ValueList leakedResourcesVpkSystem;
 ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
 
@@ -146,6 +148,7 @@ bool gamestart;
 bool gamestart_lock;
 bool restore_delay;
 bool restore_delay_lock;
+bool allow_vpkhook;
 int frames;
 uint32_t global_map_ents;
 
@@ -182,6 +185,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     gamestart_lock = false;
     restore_delay = false;
     restore_delay_lock = false;
+    allow_vpkhook = false;
     global_map_ents = 0;
 
     char* root_dir = getenv("PWD");
@@ -294,6 +298,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     ReconnectClientsAddr = engine_srv + 0x000D5E50;
     PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
     CleanupDeleteListAddr = server_srv + 0x006B2510;
+    VpkReloadAddr = server_srv + 0x004CC6D0;
 
     pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
     pHostChangelevelFunc = (pThreeArgProt)HostChangelevel;
@@ -352,6 +357,8 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookSavingTwo();
     PatchAutosave();
     PatchRestore();
+    HookVpkSystem();
+    PatchVpkSystem();
     HookEdtSystem();
     //PatchEdtSystem();
     HookSpawnServer();
@@ -422,8 +429,7 @@ void PatchRestoring()
     *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
     *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
 
-    memset((void*)(dedicated_srv + 0x000BE6F6), 0x90, 5);
-    *(uint16_t*)((dedicated_srv + 0x000BE6F6)) = 0xC031;
+    memset((void*)(dedicated_srv + 0x000BE700), 0x90, 6);
 
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
@@ -2058,7 +2064,9 @@ void SaveLinkedList(ValueList leakList)
     char listName[256];
     snprintf(listName, 256, "Unknown List");
 
-    if(leakList == leakedResourcesSaveRestoreSystem)
+    if(leakList == leakedResourcesVpkSystem)
+        snprintf(listName, 256, "leakedResourcesVpkSystem");
+    else if(leakList == leakedResourcesSaveRestoreSystem)
         snprintf(listName, 256, "leakedResourcesSaveRestoreSystem");
     else if(leakList == leakedResourcesEdtSystem)
         snprintf(listName, 256, "leakedResourcesEdtSystem");
@@ -2081,6 +2089,7 @@ void SaveLinkedList(ValueList leakList)
 void RestoreLinkedLists()
 {
     leakedResourcesSaveRestoreSystem = AllocateValuesList();
+    leakedResourcesVpkSystem = AllocateValuesList();
     leakedResourcesEdtSystem = AllocateValuesList();
 
     ValueList currentRestoreList = NULL;
@@ -2119,6 +2128,11 @@ void RestoreLinkedLists()
             currentRestoreList = leakedResourcesSaveRestoreSystem;
             continue;
         }
+        else if(strncmp(file_line, "leakedResourcesVpkSystem", 24) == 0)
+        {
+            currentRestoreList = leakedResourcesVpkSystem;
+            continue;
+        }
         else if(strncmp(file_line, "leakedResourcesEdtSystem", 24) == 0)
         {
             currentRestoreList = leakedResourcesEdtSystem;
@@ -2147,7 +2161,9 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
     char listName[256];
     snprintf(listName, 256, "Unknown List");
 
-    if(leakList == leakedResourcesSaveRestoreSystem)
+    if(leakList == leakedResourcesVpkSystem)
+        snprintf(listName, 256, "VPK Hook");
+    else if(leakList == leakedResourcesSaveRestoreSystem)
         snprintf(listName, 256, "Save/Restore Hook");
     else if(leakList == leakedResourcesEdtSystem)
         snprintf(listName, 256, "EDT Hook");
@@ -2196,6 +2212,7 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy)
 void DestroyLinkedLists()
 {
     ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, true);
+    ReleaseLeakedMemory(leakedResourcesVpkSystem, true);
     ReleaseLeakedMemory(leakedResourcesEdtSystem, true);
 
     rootconsole->ConsolePrint("---  Linked lists successfully destroyed  ---");
@@ -2371,6 +2388,32 @@ void PatchRestore()
     *(uint32_t*)(restore_call_three+1) = offset_three;
 
     rootconsole->ConsolePrint("--------------------- Restore system patched ---------------------");
+}
+
+void HookVpkSystem()
+{
+    int length = 5;
+
+    uint32_t start = dedicated_srv + 0x000BE4F4;
+    uint32_t offset = (uint32_t)DirectMallocHookDedicatedSrv - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- VPK system hooked ---------------------");
+}
+
+void PatchVpkSystem()
+{
+    int length = 5;
+
+    uint32_t start = server_srv + 0x004CCB27;
+    uint32_t offset = (uint32_t)VpkReloadHook - start - 5;
+
+    *(uint8_t*)(start) = 0xE8;
+    *(uint32_t*)(start+1) = offset;
+
+    rootconsole->ConsolePrint("--------------------- VPK system patched ---------------------");
 }
 
 void HookSaveRestoreOne()
@@ -3103,6 +3146,35 @@ uint32_t TransitionArgUpdateHookThree()
 {
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00738250);
     return pDynamicOneArgFunc(0);
+}
+
+uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
+{
+    uint32_t ref = (uint32_t)malloc(arg0*3.0);
+    
+    if(allow_vpkhook)
+    {
+        rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
+
+        Value* leak = CreateNewValue((void*)ref);
+        InsertToValuesList(leakedResourcesVpkSystem, leak, false, true, false);
+    }
+
+    return ref;
+}
+
+uint32_t VpkReloadHook(uint32_t arg0)
+{
+    allow_vpkhook = true;
+    ReleaseLeakedMemory(leakedResourcesVpkSystem, false);
+
+    CleanupDeleteList(0);
+
+    //UnloadUnreferencedModels(g_ModelLoader);
+    
+    CleanupDeleteList(0);
+    pDynamicOneArgFunc = (pOneArgProt)(VpkReloadAddr);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::SavegameInternalFunction(uint32_t arg0)
@@ -3956,6 +4028,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     }*/
 
     ReleasePlayerSavedList();
+    allow_vpkhook = false;
     savegame = true;
     gamestart = true;
     return returnVal;

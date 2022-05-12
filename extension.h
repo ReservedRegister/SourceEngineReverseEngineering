@@ -99,6 +99,8 @@ void RestoreMemoryProtections();
 void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
 void PatchAutosave();
 void PatchRestore();
+void HookVpkSystem();
+void PatchVpkSystem();
 void HookSaveRestoreOne();
 void HookSaveRestoreTwo();
 void HookSaveRestoreThree();
@@ -182,6 +184,7 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t DropshipsHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3);
+uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0);
 
 
 /**
