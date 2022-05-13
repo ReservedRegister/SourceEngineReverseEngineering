@@ -1997,8 +1997,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     }
     else if(frames >= 500)
         frames = 0;
-
-    CleanupDeleteList(0);
+    
     frames++;
 
     //Call orig funcs
@@ -2009,11 +2008,17 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     if(ent == 0 && !gamestart)
         return 0;
 
+    CleanupDeleteList(0);
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    SimulateEntities((bool)simulating);
+    CleanupDeleteList(0);
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
+    
+    //SimulateEntities((bool)simulating);
 
     CleanupDeleteList(0);
     //UpdateClientData
