@@ -144,8 +144,8 @@ bool savegame;
 bool savegame_lock;
 bool restoring;
 bool protect_player;
-bool gamestart;
-bool gamestart_lock;
+bool gamestarting;
+bool gamestarting_lock;
 bool restore_delay;
 bool restore_delay_lock;
 int frames;
@@ -181,8 +181,8 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restoring = false;
     protect_player = false;
     frames = 0;
-    gamestart = false;
-    gamestart_lock = false;
+    gamestarting = false;
+    gamestarting_lock = false;
     restore_delay = false;
     restore_delay_lock = false;
     global_map_ents = 0;
@@ -1961,7 +1961,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
 
-    if(savegame && !savegame_lock && !gamestart_lock)
+    if(savegame && !savegame_lock && !gamestarting_lock)
     {
         frames = 0;
         savegame_lock = true;
@@ -1972,17 +1972,17 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         savegame = false;
         savegame_lock = false;
     }
-    else if(gamestart && !savegame && !savegame_lock && !gamestart_lock)
+    else if(gamestarting && !savegame && !savegame_lock && !gamestarting_lock)
     {
         frames = 0;
-        gamestart_lock = true;
+        gamestarting_lock = true;
     }
-    else if(gamestart && frames >= 100)
+    else if(gamestarting && frames >= 100)
     {
         rootconsole->ConsolePrint("\n\nGame started map [%s]\n\n", global_map);
         ReconnectClients(sv);
-        gamestart = false;
-        gamestart_lock = false;
+        gamestarting = false;
+        gamestarting_lock = false;
     }
     else if(restore_delay && !restore_delay_lock)
     {
@@ -2005,30 +2005,30 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     //Dont simulate if there is no active player
-    if(ent == 0 && !gamestart)
-        return 0;
+    if(gamestarting || ent)
+    {
+        CleanupDeleteList(0);
+        //PostSystems
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+        pDynamicOneArgFunc(0);
 
-    CleanupDeleteList(0);
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
+        CleanupDeleteList(0);
+        //SimulateEntities
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+        pDynamicOneArgFunc(simulating);
+        
+        //SimulateEntities((bool)simulating);
 
-    CleanupDeleteList(0);
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
-    
-    //SimulateEntities((bool)simulating);
+        CleanupDeleteList(0);
+        //UpdateClientData
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+        pDynamicOneArgFunc(0);
 
-    CleanupDeleteList(0);
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
-    CleanupDeleteList(0);
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
+        CleanupDeleteList(0);
+        //StartFrame
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+        pDynamicOneArgFunc(0);
+    }
 
     CleanupDeleteList(0);
     //ServiceEventQueue
@@ -4066,7 +4066,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
     ReleasePlayerSavedList();
     savegame = true;
-    gamestart = true;
+    gamestarting = true;
     return returnVal;
 }
 
