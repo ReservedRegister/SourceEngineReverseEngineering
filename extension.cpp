@@ -150,7 +150,7 @@ bool restore_delay;
 bool restore_delay_lock;
 int frames;
 uint32_t global_map_ents;
-uint32_t vpk_cache_size;
+uint32_t vpk_free_elements;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -186,7 +186,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restore_delay = false;
     restore_delay_lock = false;
     global_map_ents = 0;
-    vpk_cache_size = 0;
+    vpk_free_elements = 0;
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -2169,10 +2169,10 @@ void RestoreLinkedLists()
     fclose(list_file);
 }
 
-void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc)
+int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc)
 {
     if(!leakList)
-        return;
+        return 0;
     
     Value* leak = *leakList;
     char listName[256];
@@ -2191,11 +2191,11 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap,
         {
             free(leakList);
             leakList = NULL;
-            return;
+            return 0;
         }
 
         rootconsole->ConsolePrint("[%s] Attempted to free leaks from an empty leaked resources list!", listName);
-        return;
+        return 0;
     }
 
     if(destroy)
@@ -2205,7 +2205,7 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap,
     }
 
     if((current_cap < allowed_cap) && !destroy)
-        return;
+        return 0;
 
     int total_items = ValueListItems(leakList, false);
     int free_total_items = (float)free_perc / 100.0 * total_items;
@@ -2239,6 +2239,8 @@ void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap,
         free(leakList);
         leakList = NULL;
     }
+
+    return has_freed_items;
 }
 
 void DestroyLinkedLists()
@@ -3190,13 +3192,14 @@ uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
     Value* leak = CreateNewValue((void*)ref);
     InsertToValuesList(leakedResourcesVpkSystem, leak, true, true, false);
 
-    vpk_cache_size = vpk_cache_size + alloc_size;
+    vpk_free_elements = vpk_free_elements + 1;
     return ref;
 }
 
 uint32_t VpkReloadHook(uint32_t arg0)
 {
-    ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_cache_size, 209715200, 50);
+    int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 30, 50);
+    vpk_free_elements = vpk_free_elements - freed_items;
 
     CleanupDeleteList(0);
 

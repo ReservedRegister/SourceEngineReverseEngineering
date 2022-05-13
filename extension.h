@@ -85,7 +85,7 @@ void SaveLinkedList(ValueList leakList);
 void RestoreLinkedLists();
 void DestroyLinkedLists();
 void SaveProcessId();
-void ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc);
+int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc);
 void ReleasePlayerSavedList();
 SavedEntity* SaveEntity(uint32_t firstEnt);
 void SavePlayers();
