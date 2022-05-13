@@ -2006,8 +2006,12 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     //Dont simulate if there is no active player
-    if(ent == 0)
+    if(ent == 0 && !gamestart)
         return 0;
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
 
     SimulateEntities((bool)simulating);
 
@@ -2024,11 +2028,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     CleanupDeleteList(0);
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
-    CleanupDeleteList(0);
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
     return 0;
 }
@@ -4303,7 +4302,6 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004A5540), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
 }
 
