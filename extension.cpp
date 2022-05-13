@@ -3202,7 +3202,7 @@ uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 
 uint32_t VpkReloadHook(uint32_t arg0)
 {
-    int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 30, 50);
+    int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 50);
     vpk_free_elements = vpk_free_elements - freed_items;
 
     CleanupDeleteList(0);
