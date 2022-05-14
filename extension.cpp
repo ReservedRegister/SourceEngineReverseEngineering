@@ -1945,6 +1945,7 @@ uint32_t FrameLockHook(uint32_t arg0)
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
     
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
+    restoring = false;
     CleanupDeleteList(0);
     SaveGameSafe(true);
     CleanupDeleteList(0);
