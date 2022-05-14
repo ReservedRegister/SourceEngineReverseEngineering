@@ -1966,42 +1966,49 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         frames = 0;
         savegame_lock = true;
     }
-    else if(savegame && frames >= 20)
+    else if(savegame && savegame_lock && frames >= 20)
     {
         if(!restoring) SaveGameSafe(false);
         savegame = false;
         savegame_lock = false;
     }
-    else if(gamestarting && !savegame && !savegame_lock && !gamestarting_lock)
+    
+    if(gamestarting && !savegame && !savegame_lock && !gamestarting_lock)
     {
         frames = 0;
         gamestarting_lock = true;
     }
-    else if(gamestarting && frames >= 100)
+    else if(gamestarting && gamestarting_lock && frames >= 100)
     {
         rootconsole->ConsolePrint("\n\nGame started map [%s]\n\n", global_map);
         ReconnectClients(sv);
         gamestarting = false;
         gamestarting_lock = false;
     }
-    else if(restore_delay && !restore_delay_lock)
+    
+    if(restore_delay && !restore_delay_lock)
     {
         frames = 0;
         restore_delay_lock = true;
     }
-    else if(restore_delay && frames >= 50)
+    else if(restore_delay && restore_delay_lock && frames >= 50)
     {
         restoring = false;
         restore_delay = false;
         restore_delay_lock = false;
     }
-    else if(frames >= 500)
+    
+    if(frames >= 500)
         frames = 0;
     
     frames++;
 
-    //Call orig funcs
+    CleanupDeleteList(0);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
 
+    //Call orig funcs
     uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     //Dont simulate if there is no active player
@@ -2030,10 +2037,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         pDynamicOneArgFunc(0);
     }
 
-    CleanupDeleteList(0);
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -3594,10 +3597,6 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
-    //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
-    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
     return pDynamicOneArgFunc(arg0);
 }
@@ -3668,13 +3667,13 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
     //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
 
+    //Flush - data cache
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
+    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
-
-    //Flush - data cache
-    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
-    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
@@ -4065,6 +4064,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     }*/
 
     ReleasePlayerSavedList();
+    restoring = false;
     savegame = true;
     gamestarting = true;
     return returnVal;
