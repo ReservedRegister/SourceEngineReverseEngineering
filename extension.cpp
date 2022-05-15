@@ -369,6 +369,45 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookFunctionsWithCpp();
 
     RestoreMemoryProtections();
+
+    sleep(6);
+
+    char* root_dir = getenv("PWD");
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    char workshop_path[512];
+    snprintf(workshop_path, 512, "%s../../workshop/content/17520/", root_dir);
+    dir = opendir(workshop_path);
+    
+    if(dir == NULL)
+    {
+        snprintf(workshop_path, 512, "%s/steamapps/workshop/content/17520/", root_dir);
+        dir = opendir(workshop_path);
+
+        if(dir == NULL)
+            rootconsole->ConsolePrint("Failed to open directory.\n");
+    }
+    
+    while((entry = readdir(dir)) != NULL)
+    {
+        if(entry->d_type == DT_DIR)
+        {
+            if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+            {
+                rootconsole->ConsolePrint("%s", entry->d_name);
+                char workshop_addon[512];
+                snprintf(workshop_addon, 512, "%s%s", workshop_path, entry->d_name);
+
+                pDynamicFourArgFunc = (pFourArgProt)(dedicated_srv + 0x0006D820);
+                pDynamicFourArgFunc(dedicated_srv + 0x0026C920, (uint32_t)workshop_addon, (uint32_t)"GAME", (uint32_t)0);
+
+                rootconsole->ConsolePrint("[ContentLoader] Workshop item loaded %s", entry->d_name);
+            }
+        }
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C92B0);
+    pDynamicOneArgFunc(0);
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
 }
 
