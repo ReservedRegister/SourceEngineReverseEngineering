@@ -431,6 +431,10 @@ void PatchRestoring()
 
     memset((void*)(dedicated_srv + 0x000BE700), 0x90, 6);
 
+    uint32_t content_loader_jmp = server_srv + 0x004CCC31;
+    *(uint8_t*)(content_loader_jmp) = 0xE9;
+    *(uint32_t*)(content_loader_jmp+1) = -0x14D;
+
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
     *(uint32_t*)(jmp_new_lvl+1) = 0x4B;
@@ -2004,29 +2008,12 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     
     frames++;
 
-    CleanupDeleteList(0);
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
     //Call orig funcs
     uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     //Dont simulate if there is no active player
     if(gamestarting || ent)
     {
-        CleanupDeleteList(0);
-        //PostSystems
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-        pDynamicOneArgFunc(0);
-
-        CleanupDeleteList(0);
-        //SimulateEntities
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-        pDynamicOneArgFunc(simulating);
-        
-        //SimulateEntities((bool)simulating);
-
         CleanupDeleteList(0);
         //UpdateClientData
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
@@ -2036,8 +2023,23 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         //StartFrame
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
         pDynamicOneArgFunc(0);
+
+        CleanupDeleteList(0);
+        SimulateEntities((bool)simulating);
+        //SimulateEntities
+        /*pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+        pDynamicOneArgFunc(simulating);*/
+
+        CleanupDeleteList(0);
+        //PostSystems
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+        pDynamicOneArgFunc(0);
     }
 
+    CleanupDeleteList(0);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -3598,6 +3600,14 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
+    //Flush - data cache
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
+    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+
+    //Flush - mdl cache
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
+    
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
     return pDynamicOneArgFunc(arg0);
 }
@@ -3663,14 +3673,6 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     //pDynamicOneArgFunc(0);
 
     //CleanupDeleteList(0);
-
-    //Flush - mdl cache
-    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
-
-    //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
 
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
