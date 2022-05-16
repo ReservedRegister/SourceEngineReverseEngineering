@@ -115,6 +115,7 @@ void PatchOthers();
 void HookFunctionsWithC();
 void HookFunctionsWithCpp();
 void SimulateEntities(bool simulating);
+void LoadWorkshopItemVpks(const char* workshop_item_path);
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();

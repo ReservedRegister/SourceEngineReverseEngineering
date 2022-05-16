@@ -370,45 +370,84 @@ void SynergyUtils::SDK_OnAllLoaded()
 
     RestoreMemoryProtections();
 
+
+
+
     sleep(6);
 
     char* root_dir = getenv("PWD");
-    DIR *dir = NULL;
-    struct dirent *entry = NULL;
     char workshop_path[512];
     snprintf(workshop_path, 512, "%s../../workshop/content/17520/", root_dir);
-    dir = opendir(workshop_path);
+
+    DIR* workshop_root = opendir(workshop_path);
+    struct dirent *workshop_entry = NULL;
     
-    if(dir == NULL)
+    if(workshop_root == NULL)
     {
         snprintf(workshop_path, 512, "%s/steamapps/workshop/content/17520/", root_dir);
-        dir = opendir(workshop_path);
+        workshop_root = opendir(workshop_path);
 
-        if(dir == NULL)
+        if(workshop_root == NULL)
             rootconsole->ConsolePrint("Failed to open directory.\n");
     }
     
-    while((entry = readdir(dir)) != NULL)
+    while((workshop_entry = readdir(workshop_root)) != NULL)
     {
-        if(entry->d_type == DT_DIR)
+        if(workshop_entry->d_type == DT_DIR)
         {
-            if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+            if(strcmp(workshop_entry->d_name, ".") != 0 && strcmp(workshop_entry->d_name, "..") != 0)
             {
-                rootconsole->ConsolePrint("%s", entry->d_name);
                 char workshop_addon[512];
-                snprintf(workshop_addon, 512, "%s%s", workshop_path, entry->d_name);
+                snprintf(workshop_addon, 512, "%s%s", workshop_path, workshop_entry->d_name);
+                //rootconsole->ConsolePrint(workshop_addon);
 
                 pDynamicFourArgFunc = (pFourArgProt)(dedicated_srv + 0x0006D820);
                 pDynamicFourArgFunc(dedicated_srv + 0x0026C920, (uint32_t)workshop_addon, (uint32_t)"GAME", (uint32_t)0);
 
-                rootconsole->ConsolePrint("[ContentLoader] Workshop item loaded %s", entry->d_name);
+                rootconsole->ConsolePrint("ContentLoader[SV]: Loaded WORKSHOP ITEM %s", workshop_entry->d_name);
+
+                LoadWorkshopItemVpks(workshop_addon);
+
+                //rootconsole->ConsolePrint("[ContentLoader] Workshop item loaded %s", workshop_entry->d_name);
             }
         }
     }
 
+    closedir(workshop_root);
+
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C92B0);
     pDynamicOneArgFunc(0);
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+}
+
+void LoadWorkshopItemVpks(const char* workshop_item_path)
+{
+    DIR* workshop_item_dir = opendir(workshop_item_path);
+    struct dirent *workshop_item_entry = NULL;
+
+    while((workshop_item_entry = readdir(workshop_item_dir)) != NULL)
+    {
+        if(workshop_item_entry->d_type == DT_REG)
+        {
+            int max_size = strlen(workshop_item_entry->d_name);
+
+            if(max_size >= 4)
+            {
+                if(strcasecmp(workshop_item_entry->d_name+max_size-4, ".vpk") == 0)
+                {
+                    char vpk_search_path[512];
+                    snprintf(vpk_search_path, 512, "%s/%s", workshop_item_path, workshop_item_entry->d_name);
+
+                    pDynamicFourArgFunc = (pFourArgProt)(dedicated_srv + 0x0006D820);
+                    pDynamicFourArgFunc(dedicated_srv + 0x0026C920, (uint32_t)vpk_search_path, (uint32_t)"GAME", (uint32_t)0);
+
+                    rootconsole->ConsolePrint("ContentLoader[SV]: Loaded VPK %s", workshop_item_entry->d_name);
+                }
+            }
+        }
+    }
+
+    closedir(workshop_item_dir);
 }
 
 void PatchRestoring()
