@@ -2025,10 +2025,14 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         pDynamicOneArgFunc(0);
 
         CleanupDeleteList(0);
-        SimulateEntities((bool)simulating);
         //SimulateEntities
-        /*pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-        pDynamicOneArgFunc(simulating);*/
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+        pDynamicOneArgFunc(simulating);
+
+        //PreSystems
+        CleanupDeleteList(0);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
+        pDynamicOneArgFunc(0);
 
         CleanupDeleteList(0);
         //PostSystems
