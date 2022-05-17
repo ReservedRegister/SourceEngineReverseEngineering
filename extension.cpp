@@ -431,10 +431,6 @@ void PatchRestoring()
 
     memset((void*)(dedicated_srv + 0x000BE700), 0x90, 6);
 
-    uint32_t content_loader_jmp = server_srv + 0x004CCC31;
-    *(uint8_t*)(content_loader_jmp) = 0xE9;
-    *(uint32_t*)(content_loader_jmp+1) = -0x14D;
-
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
     *(uint32_t*)(jmp_new_lvl+1) = 0x4B;
@@ -1960,6 +1956,14 @@ uint32_t FrameLockHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t Hooks::ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
+{
+    //rootconsole->ConsolePrint("size: [%d] destSize: [%d]", arg3, arg2);
+    
+    pDynamicFiveArgFunc = (pFiveArgProt)(dedicated_srv + 0x00064470);
+    return pDynamicFiveArgFunc(arg0, arg1, arg3, arg3, arg4);
 }
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
@@ -4315,6 +4319,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x00064470), g_SynUtils.getCppAddr(Hooks::ReadExHook));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
