@@ -88,6 +88,8 @@ void SaveProcessId();
 int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, uint32_t allowed_cap, uint32_t free_perc);
 void ReleasePlayerSavedList();
 SavedEntity* SaveEntity(uint32_t firstEnt);
+void* copy_val(void* val, size_t copy_size);
+bool hasTagAlreadyLoadedBefore(uint32_t arg0);
 void SavePlayers();
 void DisablePlayerViewControl();
 void EnablePlayerViewControl();

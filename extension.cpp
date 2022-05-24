@@ -133,6 +133,7 @@ ValueList leakedResourcesSaveRestoreSystem;
 ValueList leakedResourcesVpkSystem;
 ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
+ValueList played_gametags_list;
 
 MallocRefList mallocAllocations;
 PlayerSaveList playerSaveList;
@@ -255,6 +256,10 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     antiCycleListDoors = AllocateValuesList();
     mallocAllocations = AllocateMallocRefList();
     playerSaveList = AllocatePlayerSaveList();
+    played_gametags_list = AllocateValuesList();
+
+    Value* new_gametag = CreateNewValue(copy_val((void*)"hl2", 4));
+    InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
 
     sv = engine_srv + 0x00324580;
     g_ModelLoader = engine_srv + 0x00317380;
@@ -1507,14 +1512,13 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
-    void* returnAddr = __builtin_return_address(0);
-
-    uint32_t enlarged_size = nitems*2.0;
+    uint32_t enlarged_size = nitems*1.5;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
-    /*MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
+    /*void* returnAddr = __builtin_return_address(0);
+    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
     InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return newRef;
@@ -1523,13 +1527,12 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 uint32_t MallocHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-
-    void* returnAddr = __builtin_return_address(0);
-    uint32_t newRef = (uint32_t)malloc(size*2.5);
+    uint32_t newRef = (uint32_t)malloc(size*1.5);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
-    /*MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
+    /*void* returnAddr = __builtin_return_address(0);
+    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
     InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return newRef;
@@ -1538,15 +1541,42 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.5);
 
-    void* returnAddr = __builtin_return_address(0);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*2.5);
-
-    /*RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
+    /*void* returnAddr = __builtin_return_address(0);
+    RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
     MallocRef* new_ref_value = CreateNewMallocRef((void*)new_ref, (void*)new_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
     InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return new_ref;
+}
+
+uint32_t OperatorNewHook(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)operator new(size);
+    uint32_t newRef = (uint32_t)operator new(size*1.5);
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
+
+    /*void* returnAddr = __builtin_return_address(0);
+    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new");
+    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+
+    return newRef;
+}
+
+uint32_t OperatorNewArrayHook(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)operator new[](size);
+    uint32_t newRef = (uint32_t)operator new[](size*1.5);
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
+
+    /*void* returnAddr = __builtin_return_address(0);
+    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new_array");
+    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+
+    return newRef;
 }
 
 uint32_t FreeHook(uint32_t ref_tofree)
@@ -1586,45 +1616,12 @@ uint32_t FreeHook(uint32_t ref_tofree)
     return 0;
 }
 
-uint32_t OperatorNewHook(uint32_t size)
-{
-    if(size <= 0) return (uint32_t)malloc(size);
-
-    void* returnAddr = __builtin_return_address(0);
-    uint32_t newRef = (uint32_t)malloc(size*2.5);
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
-
-    /*MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
-
-    return newRef;
-}
-
-uint32_t OperatorNewArrayHook(uint32_t size)
-{
-    if(size <= 0) return (uint32_t)malloc(size);
-    return (uint32_t)malloc(size*2.5);
-    
-
-    void* returnAddr = __builtin_return_address(0);
-
-    uint32_t newRef = (uint32_t)operator new[](size);
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
-
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new_array");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);
-
-    return newRef;
-}
-
 uint32_t DeleteOperatorHook(uint32_t ref_tofree)
 {
     if(ref_tofree == 0)
         return 0;
         
-    free((void*)ref_tofree);
+    operator delete((void*)ref_tofree);
     return 0;
 
     void* returnAddr = __builtin_return_address(0);
@@ -1664,7 +1661,7 @@ uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
 
-    free((void*)ref_tofree);
+    operator delete[]((void*)ref_tofree);
     return 0;
         
     void* returnAddr = __builtin_return_address(0);
@@ -3606,6 +3603,28 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
+bool hasTagAlreadyLoadedBefore(uint32_t arg0)
+{
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
+    uint32_t currentTag = pDynamicOneArgFunc(arg0);
+
+    Value* head = *played_gametags_list;
+
+    while(head)
+    {
+        char* gametag = (char*) head->value;
+
+        if(strcmp(gametag, (char*)currentTag) == 0)
+            return true;
+
+        head = head->nextVal;
+    }
+
+    Value* new_gametag = CreateNewValue(copy_val((void*)currentTag, strlen((char*)currentTag)+1));
+    InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
+    return false;
+}
+
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     //Flush - data cache
@@ -3615,9 +3634,47 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //Flush - mdl cache
     pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
     pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
-    
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
-    return pDynamicOneArgFunc(arg0);
+
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
+    pDynamicOneArgFunc(arg0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5D50);
+    uint8_t returnVal = pDynamicOneArgFunc(arg0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CC6D0);
+    pDynamicOneArgFunc(arg0);
+
+    if(returnVal != 0)
+    {
+        int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 50);
+        vpk_free_elements = vpk_free_elements - freed_items;
+
+        UnmountPaths(arg0);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C9AF0);
+        pDynamicOneArgFunc(arg0);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CBC60);
+        pDynamicOneArgFunc(arg0);
+
+        if(!hasTagAlreadyLoadedBefore(arg0))
+        {
+            rootconsole->ConsolePrint("A new game tag was loaded!!\n\n");
+
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004994B0);
+            pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x00FC1FC0), *(uint32_t*)(server_srv + 0x01012410));
+
+            //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
+            //pDynamicTwoArgFunc(1, 1);
+
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
+            pDynamicOneArgFunc(arg0);
+        }
+    }
+
+    return 0;
+
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
+    //return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
@@ -3625,7 +3682,7 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
     uint32_t returnVal = PlayerLoadOrig(arg0);
     //rootconsole->ConsolePrint("called main new player join func!");
 
-    uint32_t m_Network = *(uint32_t*)(arg0+0x24);
+    /*uint32_t m_Network = *(uint32_t*)(arg0+0x24);
     uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
 
     uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
@@ -3635,7 +3692,7 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
     uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
 
     pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
-    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");
+    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");*/
 
     return returnVal;
 }
@@ -4204,7 +4261,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
-    rootconsole->ConsolePrint("patching operator delete");
+    /*rootconsole->ConsolePrint("patching operator delete");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
@@ -4225,7 +4282,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);*/
 
     /*rootconsole->ConsolePrint("patching memcpy()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pMemcpyPtr, pMemcpyHookPtr);
