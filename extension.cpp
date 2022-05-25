@@ -3675,10 +3675,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
             //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
         }
-
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
-        pDynamicOneArgFunc(arg0);
     }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
+    pDynamicOneArgFunc(arg0);
 
     return 0;
 
