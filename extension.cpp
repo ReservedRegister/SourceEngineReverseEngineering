@@ -1512,6 +1512,8 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
+    if(nitems <= 0) return (uint32_t)calloc(nitems, size);
+
     uint32_t enlarged_size = nitems*1.5;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
