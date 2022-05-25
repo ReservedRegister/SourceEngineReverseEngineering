@@ -1963,9 +1963,21 @@ uint32_t Hooks::ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t
     return pDynamicFiveArgFunc(arg0, arg1, arg3, arg3, arg4);
 }
 
+void UpdateGlobalListGlobals()
+{
+    uint32_t ent = 0;
+    uint32_t count_valid_ents = 0;
+        
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0) count_valid_ents++;
+    *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018) = count_valid_ents;
+}
+
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
+    // add robustness to memory
+    UpdateGlobalListGlobals();
+    //rootconsole->ConsolePrint("0x10014 [%d] ; 0x10018 [%d]", *(uint32_t*)(server_srv + 0x00FF8740 + 0x10014), *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018));
 
     if(savegame && !savegame_lock && !gamestarting_lock)
     {
@@ -2009,42 +2021,39 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     
     frames++;
 
-    //Call orig funcs
-    uint32_t ent = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    
 
-    //Dont simulate if there is no active player
-    if(gamestarting || ent)
-    {
-        CleanupDeleteList(0);
-        //UpdateClientData
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-        pDynamicOneArgFunc(0);
-
-        CleanupDeleteList(0);
-        //StartFrame
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-        pDynamicOneArgFunc(0);
-
-        CleanupDeleteList(0);
-        //SimulateEntities
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-        pDynamicOneArgFunc(simulating);
-
-        //PreSystems
-        CleanupDeleteList(0);
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
-        pDynamicOneArgFunc(0);
-
-        CleanupDeleteList(0);
-        //PostSystems
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-        pDynamicOneArgFunc(0);
-    }
+    if(restore_delay) return 0;
 
     CleanupDeleteList(0);
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
+
+    //PreSystems
+    CleanupDeleteList(0);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
+    pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
     return 0;
 }
 
@@ -3100,8 +3109,8 @@ uint32_t RestoreOverride()
     rootconsole->ConsolePrint("Clearing entities!");
     protect_player = true;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
+    //pDynamicOneArgFunc(0);
 
     *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 1;
 
@@ -3142,7 +3151,7 @@ uint32_t RestoreOverride()
 
     // SIM END
 
-    *(uint32_t*)(server_srv + 0x0100890C) = 0;
+    /**(uint32_t*)(server_srv + 0x0100890C) = 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B52F0);
     pDynamicOneArgFunc(server_srv + 0x01008900);
@@ -3152,7 +3161,7 @@ uint32_t RestoreOverride()
     uint32_t eax_val = *(uint32_t*)(server_srv + 0x01008900);
     *(uint32_t*)(server_srv + 0x01008910) = eax_val;
     
-    *(uint8_t*)(server_srv + 0x00FF0990) = 0;
+    *(uint8_t*)(server_srv + 0x00FF0990) = 0;*/
 
     *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 0;
 
@@ -3665,10 +3674,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
             //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
-
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
-            pDynamicOneArgFunc(arg0);
         }
+
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
+        pDynamicOneArgFunc(arg0);
     }
 
     return 0;
