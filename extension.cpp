@@ -2027,21 +2027,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
-    CleanupDeleteList(0);
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
-    CleanupDeleteList(0);
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
-    CleanupDeleteList(0);
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
-
     //PreSystems
     CleanupDeleteList(0);
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
@@ -2056,6 +2041,21 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
+
+    CleanupDeleteList(0);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    CleanupDeleteList(0);
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -3021,8 +3021,8 @@ void RestorePlayers()
 
         if(returnVal == 0)
         {
-            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-            pDynamicThreeArgFunc(playerEnt, 1, 1);
+            //pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+            //pDynamicThreeArgFunc(playerEnt, 1, 1);
 
             pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));
             pDynamicOneArgFunc(playerEnt);
@@ -3673,6 +3673,9 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004994B0);
             pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x00FC1FC0), *(uint32_t*)(server_srv + 0x01012410));
+
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
+            pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
 
             //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
