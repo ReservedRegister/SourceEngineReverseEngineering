@@ -374,6 +374,10 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookFunctionsWithCpp();
 
     RestoreMemoryProtections();
+
+    //Content loader call
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
+    pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
 }
 
@@ -1977,9 +1981,6 @@ void UpdateGlobalListGlobals()
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
-    // add robustness to memory
-    UpdateGlobalListGlobals();
-    //rootconsole->ConsolePrint("0x10014 [%d] ; 0x10018 [%d]", *(uint32_t*)(server_srv + 0x00FF8740 + 0x10014), *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018));
 
     if(savegame && !savegame_lock && !gamestarting_lock)
     {
@@ -2023,9 +2024,17 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     
     frames++;
 
-    
-
     if(restore_delay) return 0;
+
+    CleanupDeleteList(0);
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
+
+    CleanupDeleteList(0);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
 
     //PreSystems
     CleanupDeleteList(0);
@@ -2038,13 +2047,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc(0);
 
     CleanupDeleteList(0);
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
-
-    CleanupDeleteList(0);
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
 
     CleanupDeleteList(0);
@@ -2052,10 +2056,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
 
-    CleanupDeleteList(0);
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
+    // add robustness to memory
+    UpdateGlobalListGlobals();
     return 0;
 }
 
@@ -3227,11 +3229,8 @@ uint32_t VpkReloadHook(uint32_t arg0)
     int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 50);
     vpk_free_elements = vpk_free_elements - freed_items;
 
-    CleanupDeleteList(0);
-
     //UnloadUnreferencedModels(g_ModelLoader);
-    
-    CleanupDeleteList(0);
+
     pDynamicOneArgFunc = (pOneArgProt)(VpkReloadAddr);
     return pDynamicOneArgFunc(arg0);
 }
@@ -3370,13 +3369,7 @@ uint32_t TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2)
 
 uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
 {
-    // INIT LEVEL
-
-    //BEGIN RESTORE ENTITIES
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
-    pDynamicOneArgFunc(0);
-
-    *(uint8_t*)(server_srv + 0x01012150) = 1;
+    //LEVEL INIT
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D110);
     pDynamicOneArgFunc(server_srv + 0x01012430);
@@ -3478,10 +3471,15 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
             }
         }
     }*/
+
+    //BEGIN RESTORE ENTITIES
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
+    pDynamicOneArgFunc(0);
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
     SaveRestoreMemManage();
 
+    //END RESTORE ENTITIES
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
     pDynamicOneArgFunc(0);
     return returnVal;
@@ -3639,12 +3637,32 @@ bool hasTagAlreadyLoadedBefore(uint32_t arg0)
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
+    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
 
     //Flush - mdl cache
     pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ALL);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_AUTOPLAY);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VIRTUALMODEL);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ANIMBLOCK);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VCOLLIDE);
+
+    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_STUDIOHWDATA);
+
+    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_STUDIOHDR);
+
+    
 
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
@@ -3673,9 +3691,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004994B0);
             pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x00FC1FC0), *(uint32_t*)(server_srv + 0x01012410));
-
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
-            pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
 
             //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
@@ -3856,7 +3871,7 @@ uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
         }
     }
 
-    rootconsole->ConsolePrint("nah");
+    //rootconsole->ConsolePrint("nah");
     return 0;
 }
 
@@ -4069,11 +4084,7 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     snprintf(last_map, 1024, "%s", global_map);
     snprintf(global_map, 1024, "%s", (char*)arg2);
-
-    CleanupDeleteList(0);
     uint32_t returnVal = pSpawnServerFunc(arg1, arg2, arg3);
-    CleanupDeleteList(0);
-
     return returnVal;
 }
 
@@ -4081,12 +4092,9 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     transition = false;
     
-    CleanupDeleteList(0);
     *(uint8_t*)(*(uint32_t*)(server_srv + 0x00FA0CF0)) = 0;
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
     uint32_t returnVal = pHostChangelevelFunc(arg1, arg2, arg3);
-
-    CleanupDeleteList(0);
 
     /*if(strcmp(global_map, "d3_c17_10a") == 0)
     {
