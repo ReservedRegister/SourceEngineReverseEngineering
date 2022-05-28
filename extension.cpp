@@ -3479,7 +3479,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
     SaveRestoreMemManage();
 
-    *(uint8_t*)(server_srv + 0x01012150) = 1;
+    //*(uint8_t*)(server_srv + 0x01012150) = 1;
 
     //END RESTORE ENTITIES
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
