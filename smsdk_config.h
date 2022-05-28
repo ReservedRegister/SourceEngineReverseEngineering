@@ -43,7 +43,7 @@
 #define SMEXT_CONF_VERSION		"9.9.9.40"
 #define SMEXT_CONF_AUTHOR		"AlliedModders"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
-#define SMEXT_CONF_LOGTAG		"SAMPLE"
+#define SMEXT_CONF_LOGTAG		"SynergyUtils"
 #define SMEXT_CONF_LICENSE		"GPL"
 #define SMEXT_CONF_DATESTRING	__DATE__
 
