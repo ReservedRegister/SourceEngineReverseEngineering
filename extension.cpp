@@ -3637,32 +3637,12 @@ bool hasTagAlreadyLoadedBefore(uint32_t arg0)
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     //Flush - data cache
-    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
 
     //Flush - mdl cache
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_AUTOPLAY);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VIRTUALMODEL);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_ANIMBLOCK);
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VCOLLIDE);
-
     //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_STUDIOHWDATA);
-
-    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_STUDIOHDR);
-
-    
+    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
 
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
