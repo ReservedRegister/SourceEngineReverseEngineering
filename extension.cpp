@@ -2819,13 +2819,13 @@ void PatchOthers()
     *(uint8_t*)(bf_read_base+3) = 0x13;
 
     //PATCH NETWROK EXPLOIT TWO
-    uint32_t mecpy_hook_one = engine_srv + 0x000EBE87;
-    offset = (uint32_t)memcpyNetworkHook - mecpy_hook_one - 5;
-    *(uint32_t*)(mecpy_hook_one+1) = offset;
+    uint32_t memcpy_hook_one = engine_srv + 0x000EBE87;
+    offset = (uint32_t)memcpyNetworkHook - memcpy_hook_one - 5;
+    *(uint32_t*)(memcpy_hook_one+1) = offset;
 
-    uint32_t mecpy_hook_two = engine_srv + 0x0016ABE7;
-    offset = (uint32_t)memcpyNetworkHook - mecpy_hook_two - 5;
-    *(uint32_t*)(mecpy_hook_two+1) = offset;
+    uint32_t memcpy_hook_two = engine_srv + 0x0016ABE7;
+    offset = (uint32_t)memcpyNetworkHook - memcpy_hook_two - 5;
+    *(uint32_t*)(memcpy_hook_two+1) = offset;
 
     //avoid causes high mem usage
     //0x00489F53
