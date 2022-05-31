@@ -1590,6 +1590,9 @@ uint32_t FreeHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
 
+    operator delete((void*)ref_tofree);
+    return 0;
+
     void* returnAddr = __builtin_return_address(0);
 
     MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, true);
@@ -4276,17 +4279,17 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)ReallocHook);
-    /*rootconsole->ConsolePrint("patching free()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pFreePtr, pFreeHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pFreePtr, pFreeHookPtr);*/
+    rootconsole->ConsolePrint("patching free()");
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)free, (void*)FreeHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)free, (void*)FreeHook);
 
     
     rootconsole->ConsolePrint("patching operator new()");
