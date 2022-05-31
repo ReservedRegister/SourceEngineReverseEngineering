@@ -387,7 +387,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x00992640,5,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x004C5FBA,2
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x004C5FBA,2,0x00739B4D,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -422,9 +422,9 @@ void PatchRestoring()
     *(uint8_t*)(spawn_patch_one) = 0xE9;
     *(uint32_t*)(spawn_patch_one+1) = 0x17F;*/
 
-    uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
+    /*uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
     *(uint8_t*)(exploit_patch_one) = 0xE9;
-    *(uint32_t*)(exploit_patch_one+1) = -0x258;
+    *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
@@ -458,8 +458,8 @@ void PatchRestoring()
     uint32_t begin_map_load_patch = datacache_srv + 0x0005A4CC;
     *(uint32_t*)(begin_map_load_patch) = (uint32_t)FrameLockHook;
 
-    uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
-    *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;
+    /*uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
+    *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;*/
 
     uint32_t null_manhack_patch = server_srv + 0x008C1DC8;
     *(uint8_t*)(null_manhack_patch) = 0xE9;
@@ -1518,7 +1518,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.5;
+    uint32_t enlarged_size = nitems*1.6;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -1532,8 +1532,8 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 
 uint32_t MallocHook(uint32_t size)
 {
-    if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*1.5);
+    if(size <= 0) return (uint32_t)operator new(size);
+    uint32_t newRef = (uint32_t)operator new(size*1.6);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1547,7 +1547,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.5);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.6);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
@@ -1560,7 +1560,7 @@ uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t OperatorNewHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)operator new(size);
-    uint32_t newRef = (uint32_t)operator new(size*1.5);
+    uint32_t newRef = (uint32_t)operator new(size*1.6);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1574,7 +1574,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)operator new[](size);
-    uint32_t newRef = (uint32_t)operator new[](size*1.5);
+    uint32_t newRef = (uint32_t)operator new[](size*1.6);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1982,6 +1982,9 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
 
+    // add robustness to memory
+    UpdateGlobalListGlobals();
+
     if(savegame && !savegame_lock && !gamestarting_lock)
     {
         frames = 0;
@@ -2027,13 +2030,13 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     if(restore_delay) return 0;
 
     CleanupDeleteList(0);
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
 
     CleanupDeleteList(0);
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
 
     //PreSystems
@@ -2047,17 +2050,14 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc(0);
 
     CleanupDeleteList(0);
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
 
     CleanupDeleteList(0);
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
-
-    // add robustness to memory
-    UpdateGlobalListGlobals();
     return 0;
 }
 
@@ -2807,6 +2807,26 @@ void PatchOthers()
     *(uint8_t*)(scripted_sequence_patch_crash) = 0xE9;
     *(uint32_t*)(scripted_sequence_patch_crash+1) = 0x70;
 
+
+    //PATCH NETWORK EXPLOIT ONE
+    uint32_t bf_read_base = engine_srv + 0x001DBE93;
+    memset((void*)bf_read_base, 0x90, 0xC);
+
+    *(uint8_t*)(bf_read_base) = 0x85;
+    *(uint8_t*)(bf_read_base+1) = 0xD2;
+
+    *(uint8_t*)(bf_read_base+2) = 0x74;
+    *(uint8_t*)(bf_read_base+3) = 0x13;
+
+    //PATCH NETWROK EXPLOIT TWO
+    uint32_t mecpy_hook_one = engine_srv + 0x000EBE87;
+    offset = (uint32_t)memcpyNetworkHook - mecpy_hook_one - 5;
+    *(uint32_t*)(mecpy_hook_one+1) = offset;
+
+    uint32_t mecpy_hook_two = engine_srv + 0x0016ABE7;
+    offset = (uint32_t)memcpyNetworkHook - mecpy_hook_two - 5;
+    *(uint32_t*)(mecpy_hook_two+1) = offset;
+
     //avoid causes high mem usage
     //0x00489F53
     //0x00489F17
@@ -3537,6 +3557,17 @@ uint32_t SV_TriggerMovedFix(uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
+uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size)
+{
+    if(size <= 4096 && size >= 0)
+    {
+        return (uint32_t)memcpy((void*)dest, (void*)src, size);
+    }
+
+    rootconsole->ConsolePrint("NET_EXPLOIT %d", size);
+    return 0;
+}
+
 uint32_t DoorCycleResolve(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
 {
     uint32_t something = *(uint32_t*)(server_srv + 0x00F4BA30);
@@ -3600,6 +3631,21 @@ uint32_t FixManhackCrash(uint32_t arg0)
     }
 
     return returnVal;
+}
+
+uint32_t bf_readNetworkHook(uint32_t eax, uint32_t edx)
+{
+    uint32_t ecx = *(uint32_t*)(eax+8);
+
+    *(uint32_t*)(eax+0xC) = ecx;
+    *(uint8_t*)(eax+0x10) = 1;
+
+    if(edx)
+    {
+        *(uint32_t*)(edx) = 0;
+    }
+
+    return 0;
 }
 
 uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -3712,7 +3758,7 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint("called the main spawn info sender!");
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    return pDynamicThreeArgFunc(arg0, 1, 1);
+    return pDynamicThreeArgFunc(arg0, 0, 1);
 }
 
 uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
@@ -3720,7 +3766,7 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    pDynamicThreeArgFunc(arg0, 1, 1);
+    pDynamicThreeArgFunc(arg0, 0, 1);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
@@ -4372,9 +4418,8 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), g_SynUtils.getCppAddr(Hooks::ChkHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), g_SynUtils.getCppAddr(Hooks::BarneyThinkHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), g_SynUtils.getCppAddr(Hooks::HunterCrashFix));
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000EBE10), g_SynUtils.getCppAddr(Hooks::NET_BufferToBufferDecompress_Patch));
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000EBE10), g_SynUtils.getCppAddr(Hooks::NET_BufferToBufferDecompress_Patch));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A6A660), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
