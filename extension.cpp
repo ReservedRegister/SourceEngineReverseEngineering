@@ -387,8 +387,8 @@ void PatchRestoring()
     uint32_t nop_patch_list[128] = 
     {
         0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x00992640,5,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5
+        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5,0x004C5FBA,2
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -1950,6 +1950,16 @@ uint32_t FrameLockHook(uint32_t arg0)
     CleanupDeleteList(0);
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
+    
+    rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
+    restoring = false;
+    CleanupDeleteList(0);
+    SaveGameSafe(true);
+    CleanupDeleteList(0);
+
+    //inactivate earlier
+    InactivateClients(sv);
+    CleanupDeleteList(0);
 
     //npc_reset
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
@@ -1966,16 +1976,6 @@ uint32_t FrameLockHook(uint32_t arg0)
     //ReloadTextures
     pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
     pDynamicOneArgFunc(materialsystem_srv + 0x00134B20);
-    
-    rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
-    restoring = false;
-    CleanupDeleteList(0);
-    SaveGameSafe(true);
-    CleanupDeleteList(0);
-
-    //inactivate earlier
-    InactivateClients(sv);
-    CleanupDeleteList(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
@@ -3211,6 +3211,10 @@ uint32_t RestoreOverride()
 
     // -- END
 
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 1);
+
     //EDICT REUSE
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
     pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
@@ -3786,7 +3790,6 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 
     pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
     pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");*/
-
     return returnVal;
 }
 
@@ -3794,7 +3797,7 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint("called the main spawn info sender!");
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    return pDynamicThreeArgFunc(arg0, 0, 1);
+    return pDynamicThreeArgFunc(arg0, 1, 1);
 }
 
 uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
@@ -3802,12 +3805,10 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    pDynamicThreeArgFunc(arg0, 0, 1);
+    pDynamicThreeArgFunc(arg0, 1, 1);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    GivePlayerWeapons(arg0, false);
     return returnVal;
 }
 
