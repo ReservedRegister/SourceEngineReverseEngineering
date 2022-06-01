@@ -117,6 +117,7 @@ void PatchOthers();
 void HookFunctionsWithC();
 void HookFunctionsWithCpp();
 void SimulateEntities(bool simulating);
+void DisableCacheCvars();
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();

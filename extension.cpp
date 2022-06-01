@@ -375,6 +375,7 @@ void SynergyUtils::SDK_OnAllLoaded()
 
     RestoreMemoryProtections();
 
+    DisableCacheCvars();
     //Content loader call
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
     pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
@@ -387,7 +388,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x00992640,5,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x004C5FBA,2,0x00739B4D,5
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -1949,6 +1950,22 @@ uint32_t FrameLockHook(uint32_t arg0)
     CleanupDeleteList(0);
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
+
+    //npc_reset
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
+    pDynamicOneArgFunc(0);
+
+    //scene_flush direct call
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    pDynamicOneArgFunc(0);
+
+    //ReloadAllMaterials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
+
+    //ReloadTextures
+    pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
+    pDynamicOneArgFunc(materialsystem_srv + 0x00134B20);
     
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
@@ -3685,10 +3702,27 @@ bool hasTagAlreadyLoadedBefore(uint32_t arg0)
     return false;
 }
 
+void DisableCacheCvars()
+{
+    EnqueueCommandFunc((uint32_t)"sv_disable_querycache 1");
+    EnqueueCommandFunc((uint32_t)"mod_forcetouchdata 0");
+    EnqueueCommandFunc((uint32_t)"mod_forcedata 0");
+}
+
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
+    DisableCacheCvars();
+
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
+
+    //Reload model sounds cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
+    pDynamicOneArgFunc(arg0);
+
     //Flush - data cache
-    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)true, (uint32_t)false);
+    uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
     rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
 
     //Flush - mdl cache
@@ -3730,7 +3764,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
     pDynamicOneArgFunc(arg0);
-
     return 0;
 
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
@@ -3798,10 +3831,6 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     //pDynamicOneArgFunc(0);
 
     //CleanupDeleteList(0);
-
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
@@ -4185,6 +4214,11 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     }*/
 
     ReleasePlayerSavedList();
+
+    EnqueueCommandFunc((uint32_t)"r_flushlod");
+    EnqueueCommandFunc((uint32_t)"vehicle_flushscript");
+    DisableCacheCvars();
+
     restoring = false;
     savegame = true;
     gamestarting = true;
