@@ -387,8 +387,8 @@ void PatchRestoring()
     uint32_t nop_patch_list[128] = 
     {
         0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x15,0x00AF43EE,5,0x00AF43FC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5,0x004C5FBA,2
+        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x5,
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -1633,7 +1633,7 @@ uint32_t DeleteOperatorHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
         
-    operator delete((void*)ref_tofree);
+    free((void*)ref_tofree);
     return 0;
 
     void* returnAddr = __builtin_return_address(0);
@@ -1673,7 +1673,7 @@ uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree)
     if(ref_tofree == 0)
         return 0;
 
-    operator delete[]((void*)ref_tofree);
+    free((void*)ref_tofree);
     return 0;
         
     void* returnAddr = __builtin_return_address(0);
@@ -4323,7 +4323,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)free, (void*)FreeHook);*/
 
     
-    rootconsole->ConsolePrint("patching operator new()");
+    rootconsole->ConsolePrint("patching operator new");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_addr, (void*)OperatorNewHook);
@@ -4334,7 +4334,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)OperatorNewHook);
-    rootconsole->ConsolePrint("patching operator new[]()");
+    rootconsole->ConsolePrint("patching operator new[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
@@ -4345,7 +4345,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
-    /*rootconsole->ConsolePrint("patching operator delete");
+    rootconsole->ConsolePrint("patching operator delete");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
@@ -4366,7 +4366,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);*/
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
 
     /*rootconsole->ConsolePrint("patching memcpy()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pMemcpyPtr, pMemcpyHookPtr);
