@@ -4216,6 +4216,10 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     ReleasePlayerSavedList();
     DisableCacheCvars();
 
+    //Remove soundent forever
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
+    pDynamicOneArgFunc(0);
+
     restoring = false;
     savegame = true;
     gamestarting = true;
