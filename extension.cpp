@@ -1519,7 +1519,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.5;
+    uint32_t enlarged_size = nitems*10.0;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -1534,9 +1534,9 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 uint32_t MallocHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    if(size <= 8192) return (uint32_t)malloc(size*3.0);
+    //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.25);
+    uint32_t newRef = (uint32_t)malloc(size*10.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1550,7 +1550,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.5);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*10.0);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
@@ -1563,7 +1563,7 @@ uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t OperatorNewHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*1.25);
+    uint32_t newRef = (uint32_t)malloc(size*10.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1577,7 +1577,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*2.0);
+    uint32_t newRef = (uint32_t)malloc(size*10.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1949,10 +1949,6 @@ uint32_t SaveGameSafe(bool use_internal_savename)
 
 uint32_t FrameLockHook(uint32_t arg0)
 {
-    CleanupDeleteList(0);
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-    //pDynamicOneArgFunc(server_srv + 0x00FF3020);
-    
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
     CleanupDeleteList(0);
@@ -2045,8 +2041,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
 
-    SimulatePlayers();
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
@@ -2063,7 +2057,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    // add robustness to memory
+    SimulatePlayers();
     UpdateGlobalListGlobals();
     return 0;
 }
@@ -3034,8 +3028,8 @@ void RestorePlayers()
 
         if(returnVal == 0)
         {
-            //pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-            //pDynamicThreeArgFunc(playerEnt, 1, 1);
+            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+            pDynamicThreeArgFunc(playerEnt, 1, 1);
 
             pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));
             pDynamicOneArgFunc(playerEnt);
@@ -4281,7 +4275,7 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
 void HookFunctionsWithC()
 {
-    rootconsole->ConsolePrint("patching calloc()");
+    /*rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
@@ -4291,7 +4285,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
@@ -4303,7 +4297,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)MallocHook);
-    rootconsole->ConsolePrint("patching realloc()");
+    /*rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)ReallocHook);
@@ -4313,7 +4307,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)ReallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)ReallocHook);*/
     /*rootconsole->ConsolePrint("patching free()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)free, (void*)FreeHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)free, (void*)FreeHook);
@@ -4327,7 +4321,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)free, (void*)FreeHook);*/
 
     
-    rootconsole->ConsolePrint("patching operator new");
+    /*rootconsole->ConsolePrint("patching operator new");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_addr, (void*)OperatorNewHook);
@@ -4337,7 +4331,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)OperatorNewHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)OperatorNewHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)OperatorNewHook);*/
     rootconsole->ConsolePrint("patching operator new[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
@@ -4349,7 +4343,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
-    rootconsole->ConsolePrint("patching operator delete");
+    /*rootconsole->ConsolePrint("patching operator delete");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
@@ -4359,7 +4353,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);*/
     rootconsole->ConsolePrint("patching operator delete[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
@@ -4447,7 +4441,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
