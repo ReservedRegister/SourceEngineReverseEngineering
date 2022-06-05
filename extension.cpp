@@ -3703,6 +3703,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
     pDynamicOneArgFunc(0);
 
+    //Flush materials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
+
     //ReloadTextures
     pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
     pDynamicOneArgFunc(materialsystem_srv + 0x00134B20);
