@@ -386,9 +386,10 @@ void PatchRestoring()
 {
     uint32_t nop_patch_list[128] = 
     {
-        0x00AF4F98,5,0x00AF4655,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5
+        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
+        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x15,0x009906C3,5,0x00AF44A5,5,
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5,
+        0x00992640,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -482,7 +483,7 @@ void PatchRestoring()
     *(uint8_t*)(transition_system_patch_one) = 0xE9;
     *(uint32_t*)(transition_system_patch_one+1) = 0x6C;*/
 
-    uint32_t transition_system_patch_two = server_srv + 0x00AF4B11;
+    /*uint32_t transition_system_patch_two = server_srv + 0x00AF4B11;
     *(uint8_t*)(transition_system_patch_two) = 0xE9;
     *(uint32_t*)(transition_system_patch_two+1) = -0x208;
 
@@ -492,13 +493,13 @@ void PatchRestoring()
 
     uint32_t transition_system_patch_four = server_srv + 0x00AF4856;
     *(uint8_t*)(transition_system_patch_four) = 0xE9;
-    *(uint32_t*)(transition_system_patch_four+1) = 0xB3;
+    *(uint32_t*)(transition_system_patch_four+1) = 0xB3;*/
 
     /*uint32_t save_system_patch_one = server_srv + 0x00AF3410;
     *(uint8_t*)(save_system_patch_one) = 0xE9;
     *(uint32_t*)(save_system_patch_one+1) = 0x169;*/
 
-    uint32_t transition_savefile_load_patch = server_srv + 0x00AF493D;
+    /*uint32_t transition_savefile_load_patch = server_srv + 0x00AF493D;
     offset = (uint32_t)SavegameInitialLoad - transition_savefile_load_patch - 5;
     *(uint32_t*)(transition_savefile_load_patch+1) = offset;
 
@@ -512,7 +513,7 @@ void PatchRestoring()
 
     uint32_t transition_call_patch_three = server_srv + 0x00AF47A5;
     offset = (uint32_t)TransitionArgUpdateHookThree - transition_call_patch_three - 5;
-    *(uint32_t*)(transition_call_patch_three+1) = offset;
+    *(uint32_t*)(transition_call_patch_three+1) = offset;*/
 
     uint32_t remove_evidence_of_call = server_srv + 0x00CACE94;
     *(uint32_t*)(remove_evidence_of_call) = (uint32_t)g_SynUtils.getCppAddr(Hooks::EmptyCall);
@@ -552,9 +553,9 @@ void PatchRestoring()
     uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
     *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
 
-    uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
+    /*uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
     *(uint8_t*)(patch_player_restore_asm) = 0xE9;
-    *(uint32_t*)(patch_player_restore_asm+1) = -0x1F7;
+    *(uint32_t*)(patch_player_restore_asm+1) = -0x1F7;*/
 
     uint32_t clientPutInServerRestoreCancel = server_srv + 0x00B030A1;
     *(uint8_t*)(clientPutInServerRestoreCancel) = 0xEB;
@@ -3028,8 +3029,8 @@ void RestorePlayers()
 
         if(returnVal == 0)
         {
-            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-            pDynamicThreeArgFunc(playerEnt, 1, 1);
+            //pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+            //pDynamicThreeArgFunc(playerEnt, 1, 1);
 
             pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));
             pDynamicOneArgFunc(playerEnt);
@@ -3805,6 +3806,17 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     return returnVal;
 }
 
+uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
+{
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pDynamicThreeArgFunc(arg0, 1, 1);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B02140);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    GivePlayerWeapons(arg0, false);
+    return returnVal;
+}
+
 uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
 {
     //get transition file name
@@ -4441,7 +4453,8 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02140), g_SynUtils.getCppAddr(Hooks::PlayerSpawnFinal));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
@@ -4456,6 +4469,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471320), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3120), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x00064470), g_SynUtils.getCppAddr(Hooks::ReadExHook));
 }

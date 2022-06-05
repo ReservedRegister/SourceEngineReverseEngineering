@@ -257,6 +257,7 @@ class Hooks
 		static uint32_t LevelChangeSafeHook(uint32_t arg0);
 		static uint32_t ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
 		static uint32_t PhysSimEnt(uint32_t arg0);
+		static uint32_t PlayerSpawnFinal(uint32_t arg0);
 };
 
 /**
