@@ -126,7 +126,8 @@ pOneArgProt CleanupDeleteList;
 pthread_mutex_t malloc_ref_lock;
 pthread_mutex_t value_list_lock;
 
-uint32_t hook_exclude_list[512] = {};
+uint32_t hook_exclude_list_offset[512] = {};
+uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
 ValueList leakedResourcesSaveRestoreSystem;
@@ -348,6 +349,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 
     strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
 
+    PopulateHookExclusionLists();
     HookFunctionsWithC();
     return true;
 }
@@ -1537,7 +1539,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*10.0);
+    uint32_t newRef = (uint32_t)malloc(size*1.25);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -3177,13 +3179,13 @@ uint32_t RestoreOverride()
 
     // -- END
 
-    //npc_reset
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
-    pDynamicOneArgFunc(0);
-
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 1);
+
+    //npc_reset
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
+    pDynamicOneArgFunc(0);
 
     //EDICT REUSE
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
@@ -3699,6 +3701,14 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     DisableCacheCvars();
 
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
+
+    //Reload model sounds cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
+    pDynamicOneArgFunc(arg0);
+
     //scene_flush direct call
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
     pDynamicOneArgFunc(0);
@@ -3714,14 +3724,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //ReloadAllMaterials
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
     pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
-
-    //Reload model sounds cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
-    pDynamicOneArgFunc(arg0);
-
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //Flush - data cache
     //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
@@ -4055,6 +4057,28 @@ void RestoreMemoryProtections()
     }
 }
 
+void PopulateHookExclusionLists()
+{
+    hook_exclude_list_base[0] = server_srv;
+    hook_exclude_list_offset[0] = 0x00B025BA;
+}
+
+bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(hook_exclude_list_offset[i] == 0 || hook_exclude_list_base[i] == 0)
+            continue;
+
+        uint32_t patch_address = base_address + hook_exclude_list_offset[i];
+
+        if(patch_address == search_address && hook_exclude_list_base[i] == base_address)
+            return true;
+    }
+
+    return false;
+}
+
 void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer)
 {
     uint32_t search_address = base_address;
@@ -4066,7 +4090,14 @@ void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* targ
 
         if(four_byte_addr == (uint32_t)target_pointer)
         {
-            rootconsole->ConsolePrint("Patched abs address: [%X]", search_address);
+            if(IsAddressExcluded(base_address, search_address))
+            {
+                rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
+                search_address++;
+                continue;
+            }
+
+            //rootconsole->ConsolePrint("Patched abs address: [%X]", search_address);
             *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
             
             search_address++;
@@ -4082,30 +4113,14 @@ void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* targ
 
             if(chk == (uint32_t)target_pointer)
             {
-                bool skip = false;
-
-                for(int i = 0; i < 512; i++)
-                {
-                    if(hook_exclude_list[i] == 0)
-                        continue;
-
-                    uint32_t patch_address = base_address + hook_exclude_list[i];
-
-                    if(patch_address == search_address)
-                    {
-                        skip = true;
-                        break;
-                    }
-                }
-
-                if(skip)
+                if(IsAddressExcluded(base_address, search_address))
                 {
                     rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
                     search_address++;
                     continue;
                 }
 
-                rootconsole->ConsolePrint("(unsigned) Hooked address: [%X]", search_address - base_address);
+                //rootconsole->ConsolePrint("(unsigned) Hooked address: [%X]", search_address - base_address);
                 uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
                 *(uint32_t*)(search_address+1) = offset;
             }
@@ -4116,23 +4131,7 @@ void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* targ
 
                 if(chk == (uint32_t)target_pointer)
                 {
-                    bool skip = false;
-
-                    for(int i = 0; i < 512; i++)
-                    {
-                        if(hook_exclude_list[i] == 0)
-                            continue;
-
-                        uint32_t patch_address = base_address + hook_exclude_list[i];
-
-                        if(patch_address == search_address)
-                        {
-                            skip = true;
-                            break;
-                        }
-                    }
-
-                    if(skip)
+                    if(IsAddressExcluded(base_address, search_address))
                     {
                         rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
                         search_address++;
