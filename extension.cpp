@@ -146,8 +146,6 @@ bool savegame;
 bool savegame_lock;
 bool restoring;
 bool protect_player;
-bool gamestarting;
-bool gamestarting_lock;
 bool restore_delay;
 bool restore_delay_lock;
 int frames;
@@ -183,8 +181,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restoring = false;
     protect_player = false;
     frames = 0;
-    gamestarting = false;
-    gamestarting_lock = false;
     restore_delay = false;
     restore_delay_lock = false;
     global_map_ents = 0;
@@ -436,7 +432,7 @@ void PatchRestoring()
     memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
 
     memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
-    memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
+    //memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
 
     /*uint32_t fix_null_ent_crash_cfire = server_srv + 0x007159A4;
     *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
@@ -1539,7 +1535,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.25);
+    uint32_t newRef = (uint32_t)malloc(size*1.125);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1963,8 +1959,8 @@ uint32_t FrameLockHook(uint32_t arg0)
     CleanupDeleteList(0);
 
     //npc_reset
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
+    //pDynamicOneArgFunc(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
@@ -1991,7 +1987,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     CleanupDeleteList(0);
 
-    if(savegame && !savegame_lock && !gamestarting_lock)
+    if(savegame && !savegame_lock)
     {
         frames = 0;
         savegame_lock = true;
@@ -2001,19 +1997,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         if(!restoring) SaveGameSafe(false);
         savegame = false;
         savegame_lock = false;
-    }
-    
-    if(gamestarting && !savegame && !savegame_lock && !gamestarting_lock)
-    {
-        frames = 0;
-        gamestarting_lock = true;
-    }
-    else if(gamestarting && gamestarting_lock && frames >= 100)
-    {
-        rootconsole->ConsolePrint("\n\nGame started map [%s]\n\n", global_map);
-        ReconnectClients(sv);
-        gamestarting = false;
-        gamestarting_lock = false;
     }
     
     if(restore_delay && !restore_delay_lock)
@@ -3184,8 +3167,8 @@ uint32_t RestoreOverride()
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 1);
 
     //npc_reset
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
+    //pDynamicOneArgFunc(0);
 
     //EDICT REUSE
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
@@ -4231,7 +4214,6 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
     restoring = false;
     savegame = true;
-    gamestarting = true;
     return returnVal;
 }
 
