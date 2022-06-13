@@ -120,6 +120,7 @@ void SimulatePlayers();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
+bool IsEntityMarkedForDeletion(uint32_t refHandle);
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
@@ -238,30 +239,31 @@ uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size);
 
 class Hooks
 {
-	public:
-		static uint32_t EmptyCall();
-		static uint32_t UnmountPaths(uint32_t arg0);
-		static uint32_t PlayerloadSavedHook(uint32_t arg0, uint32_t arg1);
-		static uint32_t LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-		static uint32_t TransitionFixTheSecond(uint32_t arg0);
-		static uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0);
-		static uint32_t PlayerSpawnDirectHook(uint32_t arg0);
-		static uint32_t GameFrameHook(uint8_t simulating);
-		static uint32_t HookEntityDelete(uint32_t arg0);
-		static uint32_t SaveOverride(uint32_t arg1);
-		static uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
-		static uint32_t HunterCrashFix(uint32_t arg0);
-		static uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-		static uint32_t ChkHandle(uint32_t arg0, uint32_t arg1);
-		static uint32_t SavegameInternalFunction(uint32_t arg0);
-		static uint32_t PlayerLoadHook(uint32_t arg0);
-		static uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-		static uint32_t LevelChangeSafeHook(uint32_t arg0);
-		static uint32_t ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
-		static uint32_t PhysSimEnt(uint32_t arg0);
-		static uint32_t PlayerSpawnFinal(uint32_t arg0);
-		static uint32_t FindEntityByFuncOne(uint32_t arg0, uint32_t arg1);
-		static uint32_t FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+public:
+	static uint32_t EmptyCall();
+	static uint32_t UnmountPaths(uint32_t arg0);
+	static uint32_t PlayerloadSavedHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t TransitionFixTheSecond(uint32_t arg0);
+	static uint32_t PatchAnotherPlayerAccessCrash(uint32_t arg0);
+	static uint32_t PlayerSpawnDirectHook(uint32_t arg0);
+	static uint32_t GameFrameHook(uint8_t simulating);
+	static uint32_t HookEntityDelete(uint32_t arg0);
+	static uint32_t SaveOverride(uint32_t arg1);
+	static uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
+	static uint32_t HunterCrashFix(uint32_t arg0);
+	static uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t ChkHandle(uint32_t arg0, uint32_t arg1);
+	static uint32_t SavegameInternalFunction(uint32_t arg0);
+	static uint32_t PlayerLoadHook(uint32_t arg0);
+	static uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t LevelChangeSafeHook(uint32_t arg0);
+	static uint32_t ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
+	static uint32_t PhysSimEnt(uint32_t arg0);
+	static uint32_t PlayerSpawnFinal(uint32_t arg0);
+	static uint32_t FindEntityByFuncOne(uint32_t arg0, uint32_t arg1);
+	static uint32_t FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 };
 
 /**

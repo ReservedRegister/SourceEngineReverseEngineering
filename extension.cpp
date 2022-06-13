@@ -76,7 +76,6 @@ uint32_t AutosaveLoadOrigAddr;
 uint32_t InactivateClientsAddr;
 uint32_t ReconnectClientsAddr;
 uint32_t PlayerLoadOrigAddr;
-uint32_t CleanupDeleteListAddr;
 uint32_t VpkReloadAddr;
 
 pOneArgProt pDynamicOneArgFunc;
@@ -118,7 +117,6 @@ pThreeArgProt AutosaveLoadOrig;
 pOneArgProt InactivateClients;
 pOneArgProt ReconnectClients;
 pOneArgProt PlayerLoadOrig;
-pOneArgProt CleanupDeleteList;
 
 
 pthread_mutex_t malloc_ref_lock;
@@ -133,6 +131,7 @@ ValueList leakedResourcesVpkSystem;
 ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
 ValueList played_gametags_list;
+ValueList entityDeleteList;
 
 MallocRefList mallocAllocations;
 PlayerSaveList playerSaveList;
@@ -252,6 +251,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     mallocAllocations = AllocateMallocRefList();
     playerSaveList = AllocatePlayerSaveList();
     played_gametags_list = AllocateValuesList();
+    entityDeleteList = AllocateValuesList();
 
     Value* new_gametag = CreateNewValue(copy_val((void*)"hl2", 4));
     InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
@@ -296,7 +296,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     InactivateClientsAddr = engine_srv + 0x000D5DA0;
     ReconnectClientsAddr = engine_srv + 0x000D5E50;
     PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
-    CleanupDeleteListAddr = server_srv + 0x006B2510;
     VpkReloadAddr = server_srv + 0x004CC6D0;
 
     pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
@@ -331,7 +330,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     InactivateClients = (pOneArgProt)InactivateClientsAddr;
     ReconnectClients = (pOneArgProt)ReconnectClientsAddr;
     PlayerLoadOrig = (pOneArgProt)PlayerLoadOrigAddr;
-    CleanupDeleteList = (pOneArgProt)CleanupDeleteListAddr;
 
     delete_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8CD + 1) + (server_srv + 0x0041C8CD) + 5 );
     delete_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8FD + 1) + (server_srv + 0x0041C8FD) + 5 );
@@ -1319,11 +1317,22 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
             return 0;
         }
 
+        Value* new_deleted_entity = CreateNewValue((void*)m_refHandle);
+        InsertToValuesList(entityDeleteList, new_deleted_entity, false, true, false);
+
         pKillEntityDirectFunc(chk_ref);
     }
     else rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
 
     return 0;
+}
+
+uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
+{
+    DeleteAllValuesInList(entityDeleteList, false, false);
+    
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
+    return pDynamicOneArgFunc(arg0);
 }
 
 FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, FieldList fieldList)
@@ -1949,13 +1958,13 @@ uint32_t FrameLockHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
     SaveGameSafe(true);
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 
     //inactivate earlier
     InactivateClients(sv);
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 
     //npc_reset
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
@@ -1984,7 +1993,7 @@ void UpdateGlobalListGlobals()
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 
     if(savegame && !savegame_lock)
     {
@@ -2016,7 +2025,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     frames++;
 
     if(restore_delay) return 0;
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
@@ -2049,7 +2058,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
 void SimulatePlayers()
 {
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
     
     uint32_t ent = 0;
     
@@ -2059,7 +2068,7 @@ void SimulatePlayers()
         pDynamicOneArgFunc(ent);
     }
 
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 }
 
 void SaveLinkedList(ValueList leakList)
@@ -2986,7 +2995,7 @@ void CleanPlayerEnts(bool no_parent)
         delete_ent = detachedValue;
     }
 
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
     free(deleteList);
 }
 
@@ -3092,7 +3101,7 @@ void RestorePlayers()
 
 uint32_t RestoreOverride()
 {
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
 
@@ -3138,7 +3147,7 @@ uint32_t RestoreOverride()
         }
     }
 
-    CleanupDeleteList(0);
+    Hooks::CleanupDeleteListHook(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
@@ -3821,6 +3830,14 @@ uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
     return returnVal;
 }
 
+bool IsEntityMarkedForDeletion(uint32_t refHandle)
+{
+    if(refHandle == 0 || refHandle == 0xFFFFFFFF)
+        return false;
+    
+    return IsInValuesList(entityDeleteList, (void*)refHandle, false);
+}
+
 uint32_t Hooks::FindEntityByFuncOne(uint32_t arg0, uint32_t arg1)
 {
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
@@ -3831,12 +3848,15 @@ uint32_t Hooks::FindEntityByFuncOne(uint32_t arg0, uint32_t arg1)
 
     uint32_t refHandle = *(uint32_t*)(object+0x350);
 
-    if(GetCBaseEntity(refHandle))
+    if(!IsEntityMarkedForDeletion(refHandle))
         return object;
     else
     {
-        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (HookOne)");
-        return 0;
+        //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
+        uint32_t next_object = pDynamicTwoArgFunc(arg0, object);
+        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicTwoArgFunc(arg0, next_object);
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (HookOne) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+        return next_object;
     }
 }
 
@@ -3850,12 +3870,15 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
 
     uint32_t refHandle = *(uint32_t*)(object+0x350);
 
-    if(GetCBaseEntity(refHandle))
+    if(!IsEntityMarkedForDeletion(refHandle))
         return object;
     else
     {
-        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Classname)");
-        return 0;
+        //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
+        uint32_t next_object = pDynamicThreeArgFunc(arg0, object, arg2);
+        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Classname) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+        return next_object;
     }
 }
 
@@ -3869,7 +3892,7 @@ uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
 
 uint32_t Hooks::UnmountPaths(uint32_t arg0)
 {
-    //CleanupDeleteList(0);
+    //Hooks::CleanupDeleteListHook(0);
 
     //rootconsole->ConsolePrint("Flushing model cache!");
     //UnloadUnreferencedModels(g_ModelLoader);
@@ -3878,7 +3901,7 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
     //pDynamicOneArgFunc(0);
 
-    //CleanupDeleteList(0);
+    //Hooks::CleanupDeleteListHook(0);
     
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
@@ -4495,10 +4518,11 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), g_SynUtils.getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), g_SynUtils.getCppAddr(Hooks::PlayerLoadHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), g_SynUtils.getCppAddr(Hooks::SavegameInternalFunction));
