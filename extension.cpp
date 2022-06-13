@@ -3853,9 +3853,16 @@ uint32_t Hooks::FindEntityByFuncOne(uint32_t arg0, uint32_t arg1)
     else
     {
         //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
-        uint32_t next_object = pDynamicTwoArgFunc(arg0, object);
-        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicTwoArgFunc(arg0, next_object);
         rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (HookOne) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+        uint32_t next_object = pDynamicTwoArgFunc(arg0, object);
+        if(!next_object) return 0;
+        
+        while(IsEntityMarkedForDeletion(*(uint32_t*)(next_object+0x350)))
+        {
+            next_object = pDynamicTwoArgFunc(arg0, next_object);
+            if(!next_object) return 0;
+        }
+
         return next_object;
     }
 }
@@ -3875,9 +3882,17 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
     else
     {
         //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
-        uint32_t next_object = pDynamicThreeArgFunc(arg0, object, arg2);
-        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);
         rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Classname) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+
+        uint32_t next_object = pDynamicThreeArgFunc(arg0, object, arg2);
+        if(!next_object) return 0;
+
+        while(IsEntityMarkedForDeletion(*(uint32_t*)(next_object+0x350)))
+        {
+            next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);   
+            if(!next_object) return 0;
+        }
+
         return next_object;
     }
 }
