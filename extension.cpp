@@ -4518,6 +4518,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02140), g_SynUtils.getCppAddr(Hooks::PlayerSpawnFinal));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), g_SynUtils.getCppAddr(Hooks::CleanupDeleteListHook));
