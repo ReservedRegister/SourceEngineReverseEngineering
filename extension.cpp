@@ -78,13 +78,6 @@ uint32_t ReconnectClientsAddr;
 uint32_t PlayerLoadOrigAddr;
 uint32_t VpkReloadAddr;
 
-pOneArgProt pDynamicOneArgFunc;
-pTwoArgProt pDynamicTwoArgFunc;
-pThreeArgProt pDynamicThreeArgFunc;
-pFourArgProt pDynamicFourArgFunc;
-pFiveArgProt pDynamicFiveArgFunc;
-pSixArgProt pDynamicSixArgFunc;
-
 pOneArgProt pKillEntityDirectFunc;
 pTwoArgProt pEdtLoadFunc;
 pThreeArgProt pHostChangelevelFunc;
@@ -839,13 +832,13 @@ void GivePlayerWeapons(uint32_t player_object, bool force_give)
     uint32_t equip_coop = 0;
     while((equip_coop = Hooks::FindEntityByClassnameHook(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)equip_coop)+0x30));
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)equip_coop)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(equip_coop);
         uint32_t m_bDisabled = GetEntityField(dmap, equip_coop, 0, 0, (uint32_t)"m_bDisabled");
 
         if((m_bDisabled && *(uint8_t*)(m_bDisabled) == 0) || force_give)
         { 
-            pDynamicTwoArgFunc = (pTwoArgProt)(  *(uint32_t*)((*(uint32_t*)(equip_coop))+0x2F0)  );
+            pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(  *(uint32_t*)((*(uint32_t*)(equip_coop))+0x2F0)  );
             pDynamicTwoArgFunc(equip_coop, player_object);
         }
     }
@@ -862,7 +855,7 @@ void SendEntityInput(uint32_t ref_handle, uint32_t inputName, uint32_t activator
     }
     
     //rootconsole->ConsolePrint("Sending entity input: [%s] to entity", inputName);
-    pDynamicSixArgFunc = (pSixArgProt)(*(uint32_t*)((*(uint32_t*)entity)+0x94));
+    pSixArgProt pDynamicSixArgFunc = (pSixArgProt)(*(uint32_t*)((*(uint32_t*)entity)+0x94));
     pDynamicSixArgFunc(entity, inputName, activator, caller, (uint32_t)&val, outputId);
 }
 
@@ -1309,6 +1302,9 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 
     if(chk_ref)
     {
+        if(IsEntityMarkedForDeletion(chk_ref))
+            return 0;
+        
         char* classname = (char*) ( *(uint32_t*)(chk_ref+0x68) );
 
         if(strcmp(classname, "player") == 0 && protect_player)
@@ -1322,7 +1318,8 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 
         pKillEntityDirectFunc(chk_ref);
     }
-    else rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
+    else
+        rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
 
     return 0;
 }
@@ -1331,7 +1328,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     DeleteAllValuesInList(entityDeleteList, false, false);
     
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -1894,7 +1891,7 @@ uint32_t SaveGameSafe(bool use_internal_savename)
 
     if(deleteQueue == 0 && physQueue == 0)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007BA940);
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007BA940);
         pDynamicOneArgFunc(0);
 
         uint32_t mainEnt = 0;
@@ -1905,7 +1902,7 @@ uint32_t SaveGameSafe(bool use_internal_savename)
             if(strcmp(classname, "prop_vehicle_jeep") != 0 && strcmp(classname, "prop_vehicle_mp") != 0)
                 continue;
 
-            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)mainEnt)+0x30));
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)mainEnt)+0x30));
             uint32_t dmap = pDynamicOneArgFunc(mainEnt);
             uint32_t m_ModelName = GetEntityField(dmap, mainEnt, 0, 0, (uint32_t)"m_ModelName");
 
@@ -1967,10 +1964,10 @@ uint32_t FrameLockHook(uint32_t arg0)
     Hooks::CleanupDeleteListHook(0);
 
     //npc_reset
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
+    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0059D350);
     //pDynamicOneArgFunc(0);
 
-    pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -1978,7 +1975,7 @@ uint32_t Hooks::ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t
 {
     //rootconsole->ConsolePrint("size: [%d] destSize: [%d]", arg3, arg2);
     
-    pDynamicFiveArgFunc = (pFiveArgProt)(dedicated_srv + 0x00064470);
+    pFiveArgProt pDynamicFiveArgFunc = (pFiveArgProt)(dedicated_srv + 0x00064470);
     return pDynamicFiveArgFunc(arg0, arg1, arg3, arg3, arg4);
 }
 
@@ -2027,6 +2024,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     if(restore_delay) return 0;
     Hooks::CleanupDeleteListHook(0);
 
+    pOneArgProt pDynamicOneArgFunc;
+
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
@@ -2064,7 +2063,7 @@ void SimulatePlayers()
     
     while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
         pDynamicOneArgFunc(ent);
     }
 
@@ -2327,7 +2326,7 @@ SavedEntity* SaveEntity(uint32_t firstEnt)
 
     rootconsole->ConsolePrint("saving entity with classname: [%s]", classlabel);
 
-    pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)firstEnt)+0x30));
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)firstEnt)+0x30));
     uint32_t dmap = pDynamicOneArgFunc(firstEnt);
 
     FieldList fieldList = AllocateFieldList();
@@ -2359,7 +2358,7 @@ void DisablePlayerViewControl()
     uint32_t view_control = 0;
     while((view_control = Hooks::FindEntityByClassnameHook(CGlobalEntityList, view_control, (uint32_t)"point_viewcontrol")) != 0)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B52180);
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B52180);
         pDynamicOneArgFunc(view_control);
     }
 }
@@ -2371,14 +2370,14 @@ void EnablePlayerViewControl()
     {
         uint32_t m_refHandle = *(uint32_t*)(view_control+0x350);
         
-        pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)view_control)+0x30));
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)view_control)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(view_control);
 
         uint32_t m_state = GetEntityField(dmap, view_control, 0, 0, (uint32_t)"m_state");
 
         if(m_state && *(uint8_t*)(m_state) == 1)
         {
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B52180);
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B52180);
             pDynamicOneArgFunc(view_control);
             
             SendEntityInput(m_refHandle, (uint32_t)"Enable", 0, 0, 0, (uint32_t)-1);
@@ -2863,7 +2862,7 @@ uint32_t RestoreSystemPatchStart(uint32_t arg0)
     {
         if((chk_three & 0x40) == 0)
         {
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF29F0);
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF29F0);
             uint8_t allowEntRestore = pDynamicOneArgFunc(*(uint32_t*)(arg0+0x20));
 
             if(allowEntRestore) return 1;
@@ -2937,7 +2936,7 @@ void CleanPlayerEnts(bool no_parent)
 
         if(classname && ( strncmp(classname, "weapon_", 7) == 0 || strcmp(classname, "predicted_viewmodel") == 0 ) )
         {
-            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)oldEnt)+0x30));
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)oldEnt)+0x30));
             uint32_t dmap = pDynamicOneArgFunc(oldEnt);
 
             uint32_t m_pParent = GetEntityField(dmap, oldEnt, 0, 0, (uint32_t)"m_pParent");
@@ -3004,6 +3003,8 @@ void RestorePlayers()
     if(playerSaveList == NULL)
         return;
 
+    pThreeArgProt pDynamicThreeArgFunc;
+
     //Cleanup old entities
     CleanPlayerEnts(false);
 
@@ -3022,17 +3023,17 @@ void RestorePlayers()
 
         if(returnVal == 0)
         {
-            //pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+            //pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
             //pDynamicThreeArgFunc(playerEnt, 1, 1);
 
-            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));
             pDynamicOneArgFunc(playerEnt);
         }
 
         uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
         global_one = *(uint32_t*)(global_one);
 
-        pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
+        pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
         uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
 
         pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
@@ -3102,6 +3103,8 @@ void RestorePlayers()
 uint32_t RestoreOverride()
 {
     Hooks::CleanupDeleteListHook(0);
+    pOneArgProt pDynamicOneArgFunc;
+
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
 
@@ -3171,7 +3174,7 @@ uint32_t RestoreOverride()
     // -- END
 
     //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 1);
 
     //npc_reset
@@ -3207,13 +3210,13 @@ uint32_t TransitionArgUpdateHook(uint32_t arg0, uint32_t arg1)
 
 uint32_t TransitionArgUpdateHookTwo(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AF2370);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AF2370);
     return pDynamicThreeArgFunc(arg0, arg1, ((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x131));
 }
 
 uint32_t TransitionArgUpdateHookThree()
 {
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00738250);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00738250);
     return pDynamicOneArgFunc(0);
 }
 
@@ -3238,7 +3241,7 @@ uint32_t VpkReloadHook(uint32_t arg0)
 
     //UnloadUnreferencedModels(g_ModelLoader);
 
-    pDynamicOneArgFunc = (pOneArgProt)(VpkReloadAddr);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(VpkReloadAddr);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -3252,7 +3255,7 @@ uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
 {
     if(arg1 == 0)
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
+        pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
@@ -3262,7 +3265,7 @@ uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
     if(object != 0)
     {
         //call orig function
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
+        pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
         return pDynamicTwoArgFunc(arg0, object);
     }
 
@@ -3275,7 +3278,7 @@ uint32_t FixNullCrash(uint32_t arg0)
     if(arg0 == 0)
         return 0;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -3288,8 +3291,10 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         return 0;
     }
     
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
-    return pDynamicOneArgFunc(arg0);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    Hooks::CleanupDeleteListHook(0);
+    return returnVal;
 }
 
 uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1)
@@ -3336,7 +3341,7 @@ uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1)
                         if(newEnt)
                         {
                             uint32_t newEntDeref = *(uint32_t*)(newEnt);
-                            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(newEntDeref+0x0C));
+                            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(newEntDeref+0x0C));
                             uint32_t returnVal = pDynamicOneArgFunc(newEnt);
 
                             rootconsole->ConsolePrint(EXT_PREFIX "Transitioning [%s]", clsname);
@@ -3391,6 +3396,8 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 {
     //LEVEL INIT
 
+    pOneArgProt pDynamicOneArgFunc;
+
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D110);
     pDynamicOneArgFunc(server_srv + 0x01012430);
 
@@ -3404,14 +3411,14 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 
 
 
-    //pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000E0A50);
+    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000E0A50);
     //uint32_t mapEnts = pDynamicOneArgFunc(0);
     //rootconsole->ConsolePrint("MAP ENTS HEAP AREA: [%X]", mapEnts);
     uint32_t arg4_internal = server_srv + 0x00CACDF0;
 
     //CALL MAIN LEVEL PARSE FUNC
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
     pDynamicThreeArgFunc(global_map_ents, (uint32_t)&arg4_internal, 0);
     global_map_ents = 0;
 
@@ -3542,7 +3549,7 @@ uint32_t SV_TriggerMovedFix(uint32_t arg1, uint32_t arg2)
     if(edx)
     {
         uint32_t edx_deref = *(uint32_t*)edx;
-        pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(edx_deref+0x10));
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(edx_deref+0x10));
         uint32_t returnVal = pDynamicOneArgFunc(edx);
 
         if(returnVal)
@@ -3625,7 +3632,7 @@ uint32_t FixManhackCrash(uint32_t arg0)
     if(chk > (uint32_t)0xFFFF)
     {
         uint32_t chk_deref = *(uint32_t*)(chk);
-        pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(chk_deref+0x64));
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(chk_deref+0x64));
         pDynamicOneArgFunc(chk);
     }
 
@@ -3652,7 +3659,7 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     if(arg0 > (uint32_t)0xFFFF)
     {
         uint32_t arg0_deref = *(uint32_t*)(arg0);
-        pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(arg0_deref+0x0D0));
+        pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(arg0_deref+0x0D0));
         return pDynamicThreeArgFunc(arg0, arg1, arg2);
     }
 
@@ -3661,7 +3668,7 @@ uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
 bool hasTagAlreadyLoadedBefore(uint32_t arg0)
 {
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
     uint32_t currentTag = pDynamicOneArgFunc(arg0);
 
     Value* head = *played_gametags_list;
@@ -3690,6 +3697,9 @@ void DisableCacheCvars()
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     DisableCacheCvars();
+
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
@@ -3720,7 +3730,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
 
     //Flush - mdl cache
-    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    //pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
     //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
 
 
@@ -3767,7 +3777,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004994B0);
             pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x00FC1FC0), *(uint32_t*)(server_srv + 0x01012410));
 
-            //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
+            //pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
         }
     }
@@ -3791,10 +3801,10 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
     uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
     global_one = *(uint32_t*)(global_one);
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
+    pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
     uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
     pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");*/
     return returnVal;
 }
@@ -3802,7 +3812,7 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint("called the main spawn info sender!");
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
     return pDynamicThreeArgFunc(arg0, 1, 1);
 }
 
@@ -3810,10 +3820,10 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
     pDynamicThreeArgFunc(arg0, 1, 1);
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     GivePlayerWeapons(arg0, false);
     return returnVal;
@@ -3821,78 +3831,53 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 
 uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
 {
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
     pDynamicThreeArgFunc(arg0, 1, 1);
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B02140);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B02140);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     //GivePlayerWeapons(arg0, false);
     return returnVal;
 }
 
-bool IsEntityMarkedForDeletion(uint32_t refHandle)
+bool IsEntityMarkedForDeletion(uint32_t object)
 {
-    if(refHandle == 0 || refHandle == 0xFFFFFFFF)
+    if(object == 0)
         return false;
     
-    return IsInValuesList(entityDeleteList, (void*)refHandle, false);
+    return IsInValuesList(entityDeleteList, (void*)( *(uint32_t*)(object+0x350) ), false);
 }
 
 uint32_t Hooks::FindEntityByFuncOne(uint32_t arg0, uint32_t arg1)
 {
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
+    pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
     uint32_t object = pDynamicTwoArgFunc(arg0, arg1);
 
-    if(!object)
-        return 0;
-
-    uint32_t refHandle = *(uint32_t*)(object+0x350);
-
-    if(!IsEntityMarkedForDeletion(refHandle))
+    if(!IsEntityMarkedForDeletion(object))
         return object;
     else
     {
         //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
-        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (HookOne) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Handle) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
         uint32_t next_object = pDynamicTwoArgFunc(arg0, object);
-        if(!next_object) return 0;
-        
-        while(IsEntityMarkedForDeletion(*(uint32_t*)(next_object+0x350)))
-        {
-            next_object = pDynamicTwoArgFunc(arg0, next_object);
-            if(!next_object) return 0;
-        }
-
+        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicTwoArgFunc(arg0, next_object);
         return next_object;
     }
 }
 
 uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x006B2740);
+    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x006B2740);
     uint32_t object = pDynamicThreeArgFunc(arg0, arg1, arg2);
 
-    if(!object)
-        return 0;
-
-    uint32_t refHandle = *(uint32_t*)(object+0x350);
-
-    if(!IsEntityMarkedForDeletion(refHandle))
+    if(!IsEntityMarkedForDeletion(object))
         return object;
     else
     {
         //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
         rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Classname) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
-
         uint32_t next_object = pDynamicThreeArgFunc(arg0, object, arg2);
-        if(!next_object) return 0;
-
-        while(IsEntityMarkedForDeletion(*(uint32_t*)(next_object+0x350)))
-        {
-            next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);   
-            if(!next_object) return 0;
-        }
-
+        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);
         return next_object;
     }
 }
@@ -3913,12 +3898,12 @@ uint32_t Hooks::UnmountPaths(uint32_t arg0)
     //UnloadUnreferencedModels(g_ModelLoader);
 
     //scene_flush direct call
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
     //pDynamicOneArgFunc(0);
 
     //Hooks::CleanupDeleteListHook(0);
     
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -3945,7 +3930,7 @@ uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
             if(object)
             {
                 //Call orig func
-                pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0057D930);
+                pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0057D930);
                 return pDynamicThreeArgFunc(arg0, arg1, arg2);
             }
         }
@@ -3960,7 +3945,7 @@ uint32_t Hooks::HunterCrashFix(uint32_t arg0)
     if(Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"player") != 0)
     {
         //Call orig func
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006F6910);
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006F6910);
         return pDynamicOneArgFunc(arg0);
     }
 
@@ -3990,7 +3975,7 @@ uint32_t Hooks::TransitionFixTheSecond(uint32_t arg0)
                 if(idk)
                 {
                     //rootconsole->ConsolePrint("Worked i guess!\n\n\n\n");
-                    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005A8680);
+                    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005A8680);
                     return pDynamicOneArgFunc(arg0);
                 }
             }
@@ -4006,13 +3991,13 @@ uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
 
     if(npc_combine_s)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(npc_combine_s))+0x180)    );
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(npc_combine_s))+0x180)    );
         uint32_t returnVal = pDynamicOneArgFunc(npc_combine_s); 
 
         if(returnVal)
         {
             //Call orig
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0058FBD0);
+            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0058FBD0);
             return pDynamicOneArgFunc(arg0);
         }
     }
@@ -4025,7 +4010,7 @@ uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
 {
     if(savegame || restoring) return 0;
     restoring = true;
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     return returnVal;
 }
@@ -4250,7 +4235,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
         }
         
         uint32_t newEntity = CreateEntityByName((uint32_t)"npc_barney", (uint32_t)-1);
-        pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)newEntity)+0x78));
+        pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)newEntity)+0x78));
         pDynamicThreeArgFunc(newEntity, (uint32_t)"origin", (uint32_t)"-4083 6789.41 12");
         pDynamicThreeArgFunc(newEntity, (uint32_t)"targetname", (uint32_t)"barney");
         pDynamicThreeArgFunc(newEntity, (uint32_t)"spawnflags", (uint32_t)"4");
@@ -4280,7 +4265,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
         }
 
         uint32_t newEntity = CreateEntityByName((uint32_t)"prop_door_rotating", (uint32_t)-1);
-        pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)newEntity)+0x78));
+        pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)newEntity)+0x78));
         pDynamicThreeArgFunc(newEntity, (uint32_t)"origin", (uint32_t)"-1155 3372.09 438");
         pDynamicThreeArgFunc(newEntity, (uint32_t)"angles", (uint32_t)"0 270 0");
         pDynamicThreeArgFunc(newEntity, (uint32_t)"speed", (uint32_t)"100");
@@ -4300,7 +4285,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     DisableCacheCvars();
 
     //Remove soundent forever
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
     pDynamicOneArgFunc(0);
 
     restoring = false;
@@ -4537,7 +4522,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), g_SynUtils.getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), g_SynUtils.getCppAddr(Hooks::PlayerLoadHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), g_SynUtils.getCppAddr(Hooks::SavegameInternalFunction));
