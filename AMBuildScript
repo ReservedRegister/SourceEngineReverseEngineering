@@ -179,6 +179,7 @@ class ExtensionConfig(object):
     ]
     cxx.cxxflags += [
       '-std=c++14',
+      '-fconcepts',
       '-fno-exceptions',
       '-fno-threadsafe-statics',
       '-Wno-non-virtual-dtor',
