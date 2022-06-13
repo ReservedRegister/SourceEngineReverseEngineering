@@ -846,14 +846,9 @@ void GivePlayerWeapons(uint32_t player_object, bool force_give)
         uint32_t m_bDisabled = GetEntityField(dmap, equip_coop, 0, 0, (uint32_t)"m_bDisabled");
 
         if((m_bDisabled && *(uint8_t*)(m_bDisabled) == 0) || force_give)
-        {
-            uint8_t esi_36C = *(uint8_t*)(equip_coop+0x36C);
-            *(uint8_t*)(equip_coop+0x36C) = 0;
-                
+        { 
             pDynamicTwoArgFunc = (pTwoArgProt)(  *(uint32_t*)((*(uint32_t*)(equip_coop))+0x2F0)  );
             pDynamicTwoArgFunc(equip_coop, player_object);
-
-            *(uint8_t*)(equip_coop+0x36C) = esi_36C;
         }
     }
 }
