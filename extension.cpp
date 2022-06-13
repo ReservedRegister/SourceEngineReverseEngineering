@@ -374,9 +374,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     RestoreMemoryProtections();
 
     DisableCacheCvars();
-    //Content loader call
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
-    pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
 }
 
@@ -385,9 +382,9 @@ void PatchRestoring()
     uint32_t nop_patch_list[128] = 
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00B021A3,0x15,0x009906C3,5,0x00AF44A5,5,
+        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
         0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5,
-        0x00992640,5
+        0x00992640,5,0x00B024D2,5,0x00B02603,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -429,6 +426,9 @@ void PatchRestoring()
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
 
+    *(uint16_t*)((server_srv + 0x00B024D2)) = 0xC031;
+    *(uint16_t*)((server_srv + 0x00B02603)) = 0xC031;
+
     memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
 
     memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
@@ -439,6 +439,10 @@ void PatchRestoring()
     *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
 
     memset((void*)(dedicated_srv + 0x000BE700), 0x90, 6);
+
+    uint32_t spawn_func = server_srv + 0x00992548;
+    *(uint8_t*)(spawn_func) = 0xE9;
+    *(uint32_t*)(spawn_func+1) = 0x2A3;
 
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
@@ -3736,6 +3740,22 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
         pDynamicOneArgFunc(arg0);
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CBC60);
         pDynamicOneArgFunc(arg0);
+
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
+        char* currentTag = (char*) pDynamicOneArgFunc(arg0);
+
+        if(strcasecmp(currentTag, "hl2") == 0)
+        {
+            //Content loader call
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
+            pDynamicTwoArgFunc(server_srv + 0x00FB2180, 0);
+        }
+        else
+        {
+            //Content loader call
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B8EB50);
+            pDynamicTwoArgFunc(server_srv + 0x00FB2180, 1);
+        }
 
         if(!hasTagAlreadyLoadedBefore(arg0))
         {
