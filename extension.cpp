@@ -64,7 +64,6 @@ uint32_t OriginalTriggerMovedAddr;
 uint32_t DoorFinalFunctionAddr;
 uint32_t GetNumClientsAddr;
 uint32_t GetNumProxiesAddr;
-uint32_t FindEntityByClassnameAddr;
 uint32_t origAutosaveCall;
 uint32_t origRestoreCall;
 uint32_t UnloadUnreferencedModelsFuncAddr;
@@ -107,7 +106,6 @@ pTwoArgProt pCallOriginalTriggerMoved;
 pFiveArgProt pDoorFinalFunction;
 pOneArgProt GetNumClients;
 pOneArgProt GetNumProxies;
-pThreeArgProt FindEntityByClassname;
 pThreeArgProt pOrigAutosaveCallFunc;
 pOneArgProt UnloadUnreferencedModels;
 pOneArgProt EnqueueCommandFunc;
@@ -286,7 +284,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     DoorFinalFunctionAddr = server_srv + 0x00A94600;
     GetNumClientsAddr = engine_srv + 0x000D3030;
     GetNumProxiesAddr = engine_srv + 0x000D3080;
-    FindEntityByClassnameAddr = server_srv + 0x006B2740;
     origAutosaveCall = server_srv + 0x00AF3990;
     origRestoreCall = server_srv + 0x00AF2A60;
     UnloadUnreferencedModelsFuncAddr = engine_srv + 0x0014D6E0;
@@ -322,7 +319,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     pDoorFinalFunction = (pFiveArgProt)DoorFinalFunctionAddr;
     GetNumClients = (pOneArgProt)GetNumClientsAddr;
     GetNumProxies = (pOneArgProt)GetNumProxiesAddr;
-    FindEntityByClassname = (pThreeArgProt)FindEntityByClassnameAddr;
     pOrigAutosaveCallFunc = (pThreeArgProt)origAutosaveCall;
     UnloadUnreferencedModels = (pOneArgProt)UnloadUnreferencedModelsFuncAddr;
     EnqueueCommandFunc = (pOneArgProt)EnqueueCommandAddr;
@@ -439,6 +435,10 @@ void PatchRestoring()
     *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
 
     memset((void*)(dedicated_srv + 0x000BE700), 0x90, 6);
+
+    uint32_t save_system_ent_list_patch = server_srv + 0x004AF339;
+    *(uint8_t*)(save_system_ent_list_patch) = 0xE9;
+    *(uint32_t*)(save_system_ent_list_patch+1) = 0xFB;
 
     uint32_t spawn_func = server_srv + 0x00992548;
     *(uint8_t*)(spawn_func) = 0xE9;
@@ -839,7 +839,7 @@ uint32_t GetEntityField(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offse
 void GivePlayerWeapons(uint32_t player_object, bool force_give)
 {
     uint32_t equip_coop = 0;
-    while((equip_coop = FindEntityByClassname(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
+    while((equip_coop = Hooks::FindEntityByClassnameHook(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
     {
         pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)equip_coop)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(equip_coop);
@@ -1889,7 +1889,7 @@ uint32_t SaveGameSafe(bool use_internal_savename)
         pDynamicOneArgFunc(0);
 
         uint32_t mainEnt = 0;
-        while((mainEnt = FindEntityByClassname(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+        while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
         {
             char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
             
@@ -1978,7 +1978,7 @@ void UpdateGlobalListGlobals()
     uint32_t ent = 0;
     uint32_t count_valid_ents = 0;
         
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0) count_valid_ents++;
+    while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"*")) != 0) count_valid_ents++;
     *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018) = count_valid_ents;
 }
 
@@ -2053,7 +2053,7 @@ void SimulatePlayers()
     
     uint32_t ent = 0;
     
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
         pDynamicOneArgFunc(ent);
@@ -2332,7 +2332,7 @@ void SavePlayers()
     uint32_t firstEnt = 0;
 
     // Save players
-    while((firstEnt = FindEntityByClassname(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
+    while((firstEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
     {
         SavedEntity* saved_player = SaveEntity(firstEnt);
 
@@ -2348,7 +2348,7 @@ void SavePlayers()
 void DisablePlayerViewControl()
 {
     uint32_t view_control = 0;
-    while((view_control = FindEntityByClassname(CGlobalEntityList, view_control, (uint32_t)"point_viewcontrol")) != 0)
+    while((view_control = Hooks::FindEntityByClassnameHook(CGlobalEntityList, view_control, (uint32_t)"point_viewcontrol")) != 0)
     {
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B52180);
         pDynamicOneArgFunc(view_control);
@@ -2358,7 +2358,7 @@ void DisablePlayerViewControl()
 void EnablePlayerViewControl()
 {
     uint32_t view_control = 0;
-    while((view_control = FindEntityByClassname(CGlobalEntityList, view_control, (uint32_t)"point_viewcontrol")) != 0)
+    while((view_control = Hooks::FindEntityByClassnameHook(CGlobalEntityList, view_control, (uint32_t)"point_viewcontrol")) != 0)
     {
         uint32_t m_refHandle = *(uint32_t*)(view_control+0x350);
         
@@ -2649,16 +2649,16 @@ void PatchOthers()
     uint32_t patch_location_twentyone = server_srv + 0x008B2A7B;
 
 
+    uint32_t offset = 0;
 
-
-    *(uint8_t*)(patch_location_one + 1) = 0xA7;
+    //*(uint8_t*)(patch_location_one + 1) = 0xA7;
 
 
     
-    uint32_t offset = (uint32_t)SaveRestoreMemManage - patch_location_two - 5;
-    *(uint8_t*)(patch_location_two) = 0xE8;
-    *(uint32_t*)(patch_location_two+1) = offset;
-    memset((void*)(patch_location_two+5), 0x90, length_two - 5);
+    //uint32_t offset = (uint32_t)SaveRestoreMemManage - patch_location_two - 5;
+    //*(uint8_t*)(patch_location_two) = 0xE8;
+    //*(uint32_t*)(patch_location_two+1) = offset;
+    //memset((void*)(patch_location_two+5), 0x90, length_two - 5);
 
 
     //*(uint8_t*)(patch_location_three) = 0xE9;
@@ -2922,7 +2922,7 @@ void CleanPlayerEnts(bool no_parent)
     ValueList deleteList = AllocateValuesList();
 
     uint32_t oldEnt = 0;
-    while((oldEnt = FindEntityByClassname(CGlobalEntityList, oldEnt, (uint32_t)"*")) != 0)
+    while((oldEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, oldEnt, (uint32_t)"*")) != 0)
     {
         char* classname = (char*) ( *(uint32_t*)(oldEnt+0x68) );
 
@@ -2944,7 +2944,7 @@ void CleanPlayerEnts(bool no_parent)
                 uint16_t ParentIndex = *(uint16_t*)(m_Network_Parent+0x6);
 
                 uint32_t playerEnt = 0;
-                while((playerEnt = FindEntityByClassname(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
+                while((playerEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
                 {
                     uint32_t m_Network_Player = *(uint32_t*)(playerEnt+0x24);
                     uint16_t playerIndex = *(uint16_t*)(m_Network_Player+0x6);
@@ -3001,7 +3001,7 @@ void RestorePlayers()
     rootconsole->ConsolePrint("Restoring players...");
     
     uint32_t playerEnt = 0;
-    while((playerEnt = FindEntityByClassname(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
+    while((playerEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
     {
         uint32_t m_Network = *(uint32_t*)(playerEnt+0x24);
         uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
@@ -3109,7 +3109,7 @@ uint32_t RestoreOverride()
     *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 1;
 
     uint32_t mainEnt = 0;
-    while((mainEnt = FindEntityByClassname(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+    while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
     {
         char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
         uint32_t refHandle = *(uint32_t*)(mainEnt+0x350);
@@ -3412,7 +3412,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
     {
         uint32_t searchEnt = 0;
 
-        while((searchEnt = FindEntityByClassname(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
+        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
         {
             char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
             if(!targetname)
@@ -3430,7 +3430,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 
         searchEnt = 0;
 
-        while((searchEnt = FindEntityByClassname(CGlobalEntityList, searchEnt, (uint32_t)"trigger_once")) != 0)
+        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"trigger_once")) != 0)
         {
             char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
             if(!targetname)
@@ -3448,7 +3448,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 
         searchEnt = 0;
 
-        while((searchEnt = FindEntityByClassname(CGlobalEntityList, searchEnt, (uint32_t)"point_template")) != 0)
+        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"point_template")) != 0)
         {
             char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
             if(!targetname)
@@ -3466,7 +3466,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 
         searchEnt = 0;
 
-        while((searchEnt = FindEntityByClassname(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
+        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
         {
             char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
             if(!targetname)
@@ -3490,7 +3490,6 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
     *(uint8_t*)(server_srv + 0x01012150) = 1;
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
-    SaveRestoreMemManage();
 
     //END RESTORE ENTITIES
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
@@ -3822,28 +3821,42 @@ uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::E20HookOne(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::FindEntityByFuncOne(uint32_t arg0, uint32_t arg1)
 {
-    if(arg1 == (server_srv + 0x01099E20))
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
+    uint32_t object = pDynamicTwoArgFunc(arg0, arg1);
+
+    if(!object)
+        return 0;
+
+    uint32_t refHandle = *(uint32_t*)(object+0x350);
+
+    if(GetCBaseEntity(refHandle))
+        return object;
+    else
     {
-        //rootconsole->ConsolePrint("no");
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (HookOne)");
         return 0;
     }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00657820);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t Hooks::E20HookTwo(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    if(arg1 == (server_srv + 0x01099E20))
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x006B2740);
+    uint32_t object = pDynamicThreeArgFunc(arg0, arg1, arg2);
+
+    if(!object)
+        return 0;
+
+    uint32_t refHandle = *(uint32_t*)(object+0x350);
+
+    if(GetCBaseEntity(refHandle))
+        return object;
+    else
     {
-        //rootconsole->ConsolePrint("no");
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Classname)");
         return 0;
     }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00657A40);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
@@ -3906,7 +3919,7 @@ uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
 uint32_t Hooks::HunterCrashFix(uint32_t arg0)
 {
-    if(FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player") != 0)
+    if(Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"player") != 0)
     {
         //Call orig func
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006F6910);
@@ -4190,7 +4203,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
     /*if(strcmp(global_map, "d3_c17_10a") == 0)
     {
-        uint32_t searchEnt = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"npc_barney");
+        uint32_t searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"npc_barney");
 
         if(searchEnt != 0)
         {
@@ -4213,7 +4226,7 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     {
         uint32_t searchEnt = 0;
 
-        while((searchEnt = FindEntityByClassname(CGlobalEntityList, searchEnt, (uint32_t)"prop_door_rotating")) != 0)
+        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"prop_door_rotating")) != 0)
         {
             char* targetname = (char*) ( *(uint32_t*)(searchEnt+0x124) );
             if(!targetname)
@@ -4312,6 +4325,9 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
 void HookFunctionsWithC()
 {
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
+
+
     /*rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
@@ -4479,8 +4495,8 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00657820), g_SynUtils.getCppAddr(Hooks::E20HookOne));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00657A40), g_SynUtils.getCppAddr(Hooks::E20HookTwo));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
