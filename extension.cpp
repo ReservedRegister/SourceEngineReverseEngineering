@@ -3792,6 +3792,7 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    GivePlayerWeapons(arg0, false);
     return returnVal;
 }
 
@@ -3802,8 +3803,32 @@ uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B02140);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    GivePlayerWeapons(arg0, false);
+    //GivePlayerWeapons(arg0, false);
     return returnVal;
+}
+
+uint32_t Hooks::E20HookOne(uint32_t arg0, uint32_t arg1)
+{
+    if(arg1 == (server_srv + 0x01099E20))
+    {
+        //rootconsole->ConsolePrint("no");
+        return 0;
+    }
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00657820);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t Hooks::E20HookTwo(uint32_t arg0, uint32_t arg1)
+{
+    if(arg1 == (server_srv + 0x01099E20))
+    {
+        //rootconsole->ConsolePrint("no");
+        return 0;
+    }
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00657A40);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
@@ -4439,7 +4464,8 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02140), g_SynUtils.getCppAddr(Hooks::PlayerSpawnFinal));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00657820), g_SynUtils.getCppAddr(Hooks::E20HookOne));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00657A40), g_SynUtils.getCppAddr(Hooks::E20HookTwo));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), g_SynUtils.getCppAddr(Hooks::PlayerSpawnHook));
