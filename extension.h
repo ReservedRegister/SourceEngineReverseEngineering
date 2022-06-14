@@ -252,6 +252,7 @@ public:
 	static uint32_t SaveOverride(uint32_t arg1);
 	static uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t HunterCrashFix(uint32_t arg0);
+	static uint32_t HunterCrashFixTwo(uint32_t arg0);
 	static uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t ChkHandle(uint32_t arg0, uint32_t arg1);
 	static uint32_t SavegameInternalFunction(uint32_t arg0);

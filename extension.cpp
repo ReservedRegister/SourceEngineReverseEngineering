@@ -370,7 +370,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B4D,5,
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B48,10,
         0x00992640,5,0x00B024D2,5,0x00B02603,5
     };
 
@@ -430,10 +430,6 @@ void PatchRestoring()
     uint32_t save_system_ent_list_patch = server_srv + 0x004AF339;
     *(uint8_t*)(save_system_ent_list_patch) = 0xE9;
     *(uint32_t*)(save_system_ent_list_patch+1) = 0xFB;
-
-    uint32_t spawn_func = server_srv + 0x00992548;
-    *(uint8_t*)(spawn_func) = 0xE9;
-    *(uint32_t*)(spawn_func+1) = 0x2A3;
 
     uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
@@ -2024,7 +2020,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     frames++;
 
     if(restore_delay) return 0;
-    Hooks::CleanupDeleteListHook(0);
+    UpdateGlobalListGlobals();
 
     pOneArgProt pDynamicOneArgFunc;
 
@@ -2053,7 +2049,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc(0);
 
     SimulatePlayers();
-    UpdateGlobalListGlobals();
     return 0;
 }
 
@@ -3697,39 +3692,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
-
-    //Reload model sounds cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
-    pDynamicOneArgFunc(arg0);
-
-    //scene_flush direct call
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
-    pDynamicOneArgFunc(0);
-
-    //Flush materials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
-
-    //ReloadTextures
-    pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
-    pDynamicOneArgFunc(materialsystem_srv + 0x00134B20);
-
-    //ReloadAllMaterials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
-
-    //Flush - data cache
-    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
-    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
-
-    //Flush - mdl cache
-    //pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
-    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
-
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
     pDynamicOneArgFunc(arg0);
 
@@ -3780,6 +3742,39 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
     pDynamicOneArgFunc(arg0);
+
+
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
+
+    //Reload model sounds cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
+    pDynamicOneArgFunc(arg0);
+
+    //scene_flush direct call
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    pDynamicOneArgFunc(0);
+
+    //Flush materials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 1);
+
+    //ReloadTextures
+    pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
+    pDynamicOneArgFunc(materialsystem_srv + 0x00134B20);
+
+    //ReloadAllMaterials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
+
+    //Flush - data cache
+    //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
+    //rootconsole->ConsolePrint("Freed [%d] bytes from cache!", freed_bytes);
+
+    //Flush - mdl cache
+    //pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x000381D0);
+    //pDynamicTwoArgFunc(datacache_srv + 0x00075140, (uint32_t)MDLCACHE_FLUSH_VERTEXES);
     return 0;
 
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CCA80);
@@ -3962,7 +3957,20 @@ uint32_t Hooks::HunterCrashFix(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    rootconsole->ConsolePrint("Player did not exist!");
+    rootconsole->ConsolePrint(EXT_PREFIX "Player did not exist!");
+    return 0;
+}
+
+uint32_t Hooks::HunterCrashFixTwo(uint32_t arg0)
+{
+    if(Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"player") != 0)
+    {
+        //Call orig func
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008DA5A0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint(EXT_PREFIX "Player did not exist!");
     return 0;
 }
 
@@ -4544,6 +4552,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), g_SynUtils.getCppAddr(Hooks::ChkHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), g_SynUtils.getCppAddr(Hooks::BarneyThinkHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), g_SynUtils.getCppAddr(Hooks::HunterCrashFix));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), g_SynUtils.getCppAddr(Hooks::HunterCrashFixTwo));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A311D0), g_SynUtils.getCppAddr(Hooks::PhysSimEnt));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), g_SynUtils.getCppAddr(Hooks::EmptyCall));
