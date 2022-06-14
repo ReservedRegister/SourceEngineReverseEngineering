@@ -1981,6 +1981,8 @@ uint32_t Hooks::ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t
 
 void UpdateGlobalListGlobals()
 {
+    Hooks::CleanupDeleteListHook(0);
+    
     uint32_t ent = 0;
     uint32_t count_valid_ents = 0;
         
