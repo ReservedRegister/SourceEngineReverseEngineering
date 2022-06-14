@@ -3876,6 +3876,23 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
     }
 }
 
+uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
+{
+    pSevenArgProt pDynamicSevenArgFunc = (pSevenArgProt)(server_srv + 0x006B2CA0);
+    uint32_t object = pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+
+    if(!IsEntityMarkedForDeletion(object))
+        return object;
+    else
+    {
+        //DONT INTERRUPT CHAIN GET NEXT "VALID" ENTITY
+        rootconsole->ConsolePrint("ERROR: FAILED TO FIND ENTITY (Name) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
+        uint32_t next_object = pDynamicSevenArgFunc(arg0, object, arg2, arg3, arg4, arg5, arg6);
+        while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicSevenArgFunc(arg0, next_object, arg2, arg3, arg4, arg5, arg6);
+        return next_object;
+    }
+}
+
 uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
 {
     //get transition file name
@@ -4515,6 +4532,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02140), g_SynUtils.getCppAddr(Hooks::PlayerSpawnFinal));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), g_SynUtils.getCppAddr(Hooks::FindEntityByName));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), g_SynUtils.getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), g_SynUtils.getCppAddr(Hooks::HookEntityDelete));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), g_SynUtils.getCppAddr(Hooks::SaveOverride));
