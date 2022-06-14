@@ -2057,8 +2057,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
 void SimulatePlayers()
 {
-    Hooks::CleanupDeleteListHook(0);
-    
     uint32_t ent = 0;
     
     while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
@@ -2066,8 +2064,6 @@ void SimulatePlayers()
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
         pDynamicOneArgFunc(ent);
     }
-
-    Hooks::CleanupDeleteListHook(0);
 }
 
 void SaveLinkedList(ValueList leakList)
@@ -3292,9 +3288,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     }
     
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    Hooks::CleanupDeleteListHook(0);
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1)
