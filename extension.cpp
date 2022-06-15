@@ -2020,7 +2020,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     frames++;
 
     if(restore_delay) return 0;
-    UpdateGlobalListGlobals();
+
+    SimulatePlayers();
 
     pOneArgProt pDynamicOneArgFunc;
 
@@ -2048,12 +2049,14 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    SimulatePlayers();
+    UpdateGlobalListGlobals();
     return 0;
 }
 
 void SimulatePlayers()
 {
+    Hooks::CleanupDeleteListHook(0);
+
     uint32_t ent = 0;
     
     while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
