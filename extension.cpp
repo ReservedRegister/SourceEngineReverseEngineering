@@ -371,7 +371,7 @@ void PatchRestoring()
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
         0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B48,10,
-        0x00992640,5,0x00B024D2,5,0x00B02603,5
+        0x00992640,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -412,9 +412,6 @@ void PatchRestoring()
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
-
-    *(uint16_t*)((server_srv + 0x00B024D2)) = 0xC031;
-    *(uint16_t*)((server_srv + 0x00B02603)) = 0xC031;
 
     memset((void*)(engine_srv + 0x00136808), 0x90, 0xD);
 
@@ -3818,20 +3815,13 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     pDynamicThreeArgFunc(arg0, 1, 1);
 
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    GivePlayerWeapons(arg0, false);
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::PlayerSpawnFinal(uint32_t arg0)
+uint32_t Hooks::GivePlayerWeaponsHook(uint32_t arg0)
 {
-    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    pDynamicThreeArgFunc(arg0, 1, 1);
-
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B02140);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    //GivePlayerWeapons(arg0, false);
-    return returnVal;
+    GivePlayerWeapons(arg0, false);
+    return 0;
 }
 
 bool IsEntityMarkedForDeletion(uint32_t object)
@@ -4542,7 +4532,9 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02140), g_SynUtils.getCppAddr(Hooks::PlayerSpawnFinal));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), g_SynUtils.getCppAddr(Hooks::GivePlayerWeaponsHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098FFE0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B58C0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByFuncOne));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), g_SynUtils.getCppAddr(Hooks::FindEntityByName));

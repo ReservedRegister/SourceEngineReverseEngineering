@@ -1,1 +1,1 @@
-Dependencies: edtrebuild.smx
+Dependencies: edtrebuild.smx, synmodes.smx
