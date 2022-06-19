@@ -262,7 +262,7 @@ public:
 	static uint32_t ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t GivePlayerWeaponsHook(uint32_t arg0);
-	static uint32_t FindEntityByFuncOne(uint32_t arg0, uint32_t arg1);
+	static uint32_t FindEntityByHandle(uint32_t arg0, uint32_t arg1);
 	static uint32_t FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 	static uint32_t FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
