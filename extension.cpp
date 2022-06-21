@@ -138,6 +138,7 @@ bool restoring;
 bool protect_player;
 bool restore_delay;
 bool restore_delay_lock;
+bool disable_delete_list;
 int frames;
 uint32_t global_map_ents;
 uint32_t vpk_free_elements;
@@ -173,6 +174,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     frames = 0;
     restore_delay = false;
     restore_delay_lock = false;
+    disable_delete_list = false;
     global_map_ents = 0;
     vpk_free_elements = 0;
 
@@ -408,6 +410,11 @@ void PatchRestoring()
     /*uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
     *(uint8_t*)(exploit_patch_one) = 0xE9;
     *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
+
+
+    uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
+    *(uint8_t*)(player_think_patch_one) = 0xE9;
+    *(uint32_t*)(player_think_patch_one+1) = 0xD1;
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
@@ -1318,6 +1325,7 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 
 uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
+    if(disable_delete_list) return 0;
     DeleteAllValuesInList(entityDeleteList, false, false);
     
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
@@ -1559,7 +1567,7 @@ uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t OperatorNewHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*10.0);
+    uint32_t newRef = (uint32_t)malloc(size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1573,7 +1581,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
+    uint32_t newRef = (uint32_t)malloc(size*1.125);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -2016,10 +2024,12 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     frames++;
 
     if(restore_delay) return 0;
-
-    SimulatePlayers();
-
     pOneArgProt pDynamicOneArgFunc;
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //Disable deleting of ents during simulation
+    disable_delete_list = true;
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
@@ -2045,6 +2055,9 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
+    SimulatePlayers();
+
+    disable_delete_list = false;
     UpdateGlobalListGlobals();
     return 0;
 }
@@ -4532,7 +4545,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), g_SynUtils.getCppAddr(Hooks::GivePlayerWeaponsHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098FFE0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098FFE0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B58C0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
