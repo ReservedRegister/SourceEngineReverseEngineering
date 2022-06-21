@@ -416,6 +416,10 @@ void PatchRestoring()
     *(uint8_t*)(player_think_patch_one) = 0xE9;
     *(uint32_t*)(player_think_patch_one+1) = 0xD1;
 
+    uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
+    *(uint8_t*)(player_think_patch_two) = 0xE9;
+    *(uint32_t*)(player_think_patch_two+1) = 0xC8;
+
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
 
@@ -2028,17 +2032,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    //Disable deleting of ents during simulation
-    disable_delete_list = true;
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
-
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
@@ -2055,23 +2048,31 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    SimulatePlayers();
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
 
-    disable_delete_list = false;
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    SimulatePlayers();
     UpdateGlobalListGlobals();
     return 0;
 }
 
 void SimulatePlayers()
 {
-    Hooks::CleanupDeleteListHook(0);
-
     uint32_t ent = 0;
     
     while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
+        Hooks::CleanupDeleteListHook(0);
+
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
         pDynamicOneArgFunc(ent);
+
+        Hooks::CleanupDeleteListHook(0);
     }
 }
 
@@ -3296,8 +3297,11 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         return 0;
     }
     
+    disable_delete_list = true;
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    disable_delete_list = false;
+    return returnVal;
 }
 
 uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1)
@@ -4570,6 +4574,9 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
     //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x00064470), g_SynUtils.getCppAddr(Hooks::ReadExHook));
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A5A1F0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), g_SynUtils.getCppAddr(Hooks::EmptyCall));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
