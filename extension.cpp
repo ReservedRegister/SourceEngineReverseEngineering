@@ -140,6 +140,7 @@ bool restore_delay;
 bool restore_delay_lock;
 bool disable_delete_list;
 int frames;
+uint32_t weapon_substitute;
 uint32_t global_map_ents;
 uint32_t vpk_free_elements;
 
@@ -176,6 +177,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restore_delay_lock = false;
     disable_delete_list = false;
     global_map_ents = 0;
+    weapon_substitute = 0;
     vpk_free_elements = 0;
 
     char* root_dir = getenv("PWD");
@@ -370,9 +372,9 @@ void PatchRestoring()
 {
     uint32_t nop_patch_list[128] = 
     {
-        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x004AE331,0x8,0x00AF4EA0,0x27,
+        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x0073C6FD,0xA,0x00739B48,10
+        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x00739B48,10
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -546,8 +548,8 @@ void PatchRestoring()
     memset((void*)remove_player_file_restoring, 0x90, 5);
     *(uint16_t*)(remove_player_file_restoring) = 0xC031;
 
-    uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
-    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
+    /*uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
+    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;*/
 
     /*uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
     *(uint8_t*)(patch_player_restore_asm) = 0xE9;
@@ -581,6 +583,10 @@ void PatchRestoring()
     uint32_t hook_game_frame_delete_list = server_srv + 0x00739B32;
     offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
+
+    uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
+    offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::WeaponGetHook) - weapon_hook_one - 5;
+    *(uint32_t*)(weapon_hook_one+1) = offset;
 
     /*uint32_t main_spawn_call_jmp_one = server_srv + 0x0099265B;
     ChangeMemoryProtections(main_spawn_call_jmp_one, 5);
@@ -1527,7 +1533,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.125;
+    uint32_t enlarged_size = nitems*1.0625+8;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -1544,7 +1550,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.125);
+    uint32_t newRef = (uint32_t)malloc(size*1.0625+8);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1558,7 +1564,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.125);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.0625+8);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
@@ -1585,7 +1591,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*1.125);
+    uint32_t newRef = (uint32_t)malloc(size*1.0625+8);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1895,9 +1901,6 @@ uint32_t SaveGameSafe(bool use_internal_savename)
 
     if(deleteQueue == 0 && physQueue == 0)
     {
-        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007BA940);
-        pDynamicOneArgFunc(0);
-
         uint32_t mainEnt = 0;
         while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
         {
@@ -3405,7 +3408,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
 
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D110);
+    /*pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D110);
     pDynamicOneArgFunc(server_srv + 0x01012430);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D190);
@@ -3414,7 +3417,7 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
     *(uint16_t*)(server_srv + 0x01012440) = (uint16_t)0xFFFFFFFF;
     *(uint16_t*)(server_srv + 0x01012444) = 0;
     *(uint32_t*)(server_srv + 0x01012448) = *(uint32_t*)(server_srv + 0x01012430);
-    *(uint16_t*)(server_srv + 0x01012446) = (uint16_t)0xFFFFFFFF;
+    *(uint16_t*)(server_srv + 0x01012446) = (uint16_t)0xFFFFFFFF;*/
 
 
 
@@ -3838,6 +3841,32 @@ uint32_t Hooks::GivePlayerWeaponsHook(uint32_t arg0)
 {
     GivePlayerWeapons(arg0, false);
     return 0;
+}
+
+uint32_t Hooks::WeaponGetHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x003C2120);
+    uint32_t weapon_ent = pDynamicOneArgFunc(arg0);
+
+    if(!weapon_ent)
+    {
+        uint32_t isWeaponValid = GetCBaseEntity(weapon_substitute);
+
+        if(!isWeaponValid)
+        {
+            uint32_t newEntity = CreateEntityByName((uint32_t)"weapon_crowbar", (uint32_t)-1);
+            pDispatchSpawnFunc(newEntity);
+            pActivateEntityFunc(newEntity);
+
+            weapon_substitute = *(uint32_t*)(newEntity+0x350);
+            isWeaponValid = newEntity;
+        }
+
+        rootconsole->ConsolePrint("Warning: failed to find a valid weapon entity!");
+        return isWeaponValid;
+    }
+
+    return weapon_ent;
 }
 
 bool IsEntityMarkedForDeletion(uint32_t object)
@@ -4549,7 +4578,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), g_SynUtils.getCppAddr(Hooks::GivePlayerWeaponsHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098FFE0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2120), g_SynUtils.getCppAddr(Hooks::WeaponGetHook));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B58C0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
