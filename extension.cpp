@@ -570,7 +570,7 @@ void PatchRestoring()
     memset((void*)orig_dll_discovery_v2, 0x90, 6);
     RestoreMemoryProtections(orig_dll_discovery_v2, 6);*/
 
-    uint32_t patch_restore_stack = server_srv + 0x004AE5B0;
+    /*uint32_t patch_restore_stack = server_srv + 0x004AE5B0;
     *(uint8_t*)(patch_restore_stack) = 0x89;
     *(uint8_t*)(patch_restore_stack+1) = 0x1C;
     *(uint8_t*)(patch_restore_stack+2) = 0x24;
@@ -578,7 +578,7 @@ void PatchRestoring()
     uint32_t patch_restore_base = server_srv + 0x004AE5B3;
     offset = (uint32_t)RestoreSystemPatchStart - patch_restore_base - 5;
     *(uint8_t*)(patch_restore_base) = 0xE8;
-    *(uint32_t*)(patch_restore_base+1) = offset;
+    *(uint32_t*)(patch_restore_base+1) = offset;*/
 
     uint32_t hook_game_frame_delete_list = server_srv + 0x00739B32;
     offset = (uint32_t)g_SynUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
@@ -2759,7 +2759,7 @@ void PatchOthers()
     offset = (uint32_t)pTransitionEntsHookPtr - patch_save_system_one - 5;
     *(uint32_t*)(patch_save_system_one+1) = offset;*/
 
-    uint32_t restore_patch_address_two = server_srv + 0x004AE788;
+    /*uint32_t restore_patch_address_two = server_srv + 0x004AE788;
     memset((void*)restore_patch_address_two, 0x90, 0x28);
     *(uint8_t*)(restore_patch_address_two) = 0x89;
     *(uint8_t*)(restore_patch_address_two+1) = 0x1C;
@@ -2768,7 +2768,7 @@ void PatchOthers()
     uint32_t restore_patch_address_three = server_srv + 0x4AE78B;
     offset = (uint32_t)RestoreSystemPatch - restore_patch_address_three - 5;
     *(uint8_t*)(restore_patch_address_three) = 0xE8;
-    *(uint32_t*)(restore_patch_address_three+1) = offset;
+    *(uint32_t*)(restore_patch_address_three+1) = offset;*/
 
     /*uint32_t restore_patch_address_four = server_srv + 0x00AF41EF;
     ChangeMemoryProtections(restore_patch_address_four, 2);
