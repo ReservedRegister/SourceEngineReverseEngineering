@@ -413,11 +413,6 @@ void PatchRestoring()
     *(uint8_t*)(exploit_patch_one) = 0xE9;
     *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
 
-
-    uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
-    *(uint8_t*)(player_think_patch_one) = 0xE9;
-    *(uint32_t*)(player_think_patch_one+1) = 0xD1;
-
     uint32_t player_think_patch_two = server_srv + 0x0098FFF9;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
     *(uint32_t*)(player_think_patch_two+1) = 0x187;
@@ -3762,6 +3757,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
     pDynamicOneArgFunc(arg0);
 
+
+    //Invalidate mdl cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
+    pDynamicOneArgFunc(0);
 
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
