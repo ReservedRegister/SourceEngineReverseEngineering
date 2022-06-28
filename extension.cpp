@@ -374,7 +374,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
-        0x0096026E,5,0x00815EF0,5,0x0073CDFC,5,0x0073C6D3,2,0x00739B48,10
+        0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B48,10
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -418,9 +418,9 @@ void PatchRestoring()
     *(uint8_t*)(player_think_patch_one) = 0xE9;
     *(uint32_t*)(player_think_patch_one+1) = 0xD1;
 
-    uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
+    uint32_t player_think_patch_two = server_srv + 0x0098FFF9;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
-    *(uint32_t*)(player_think_patch_two+1) = 0xC8;
+    *(uint32_t*)(player_think_patch_two+1) = 0x187;
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
@@ -440,9 +440,9 @@ void PatchRestoring()
     *(uint8_t*)(save_system_ent_list_patch) = 0xE9;
     *(uint32_t*)(save_system_ent_list_patch+1) = 0xFB;
 
-    uint32_t jmp_new_lvl = server_srv + 0x0073C760;
+    /*uint32_t jmp_new_lvl = server_srv + 0x0073C760;
     *(uint8_t*)(jmp_new_lvl) = 0xE9;
-    *(uint32_t*)(jmp_new_lvl+1) = 0x4B;
+    *(uint32_t*)(jmp_new_lvl+1) = 0x4B;*/
 
     uint32_t jmp_to_fix_heli = server_srv + 0x00960275;
     *(uint8_t*)(jmp_to_fix_heli) = 0xE9;
@@ -1533,7 +1533,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.0625+8;
+    uint32_t enlarged_size = nitems*1.115+8;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -1550,7 +1550,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.0625+8);
+    uint32_t newRef = (uint32_t)malloc(size*1.115+8);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1564,7 +1564,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.0625+8);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.115+8);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
@@ -1591,7 +1591,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*1.0625+8);
+    uint32_t newRef = (uint32_t)malloc(size*1.115+8);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -2728,9 +2728,9 @@ void PatchOthers()
     *(uint8_t*)(patch_location_twelve) = 0xE8;
     *(uint32_t*)(patch_location_twelve + 1) = offset_three;
 
-    uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
+    /*uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
     *(uint8_t*)(patch_location_ten) = 0xE8;
-    *(uint32_t*)(patch_location_ten + 1) = offset_four;
+    *(uint32_t*)(patch_location_ten + 1) = offset_four;*/
 
     *(uint32_t*)(patch_location_fifthteen) = (uint32_t)DoorCycleResolve;
     *(uint32_t*)(patch_location_seventeen) = (uint32_t)DoorCycleResolve;
@@ -4573,7 +4573,7 @@ void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), g_SynUtils.getCppAddr(Hooks::UnmountPaths));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), g_SynUtils.getCppAddr(Hooks::PlayerloadSavedHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::LevelInitHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), g_SynUtils.getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
