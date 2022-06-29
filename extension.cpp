@@ -372,7 +372,7 @@ void PatchRestoring()
 {
     uint32_t nop_patch_list[128] = 
     {
-        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,0x0073CDFC,5
+        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
         0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B48,10
     };
@@ -2049,10 +2049,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
@@ -2062,6 +2058,11 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc(0);
 
     SimulatePlayers();
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
+    
     UpdateGlobalListGlobals();
     return 0;
 }
@@ -2730,9 +2731,9 @@ void PatchOthers()
     *(uint8_t*)(patch_location_twelve) = 0xE8;
     *(uint32_t*)(patch_location_twelve + 1) = offset_three;
 
-    uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
+    /*uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
     *(uint8_t*)(patch_location_ten) = 0xE8;
-    *(uint32_t*)(patch_location_ten + 1) = offset_four;
+    *(uint32_t*)(patch_location_ten + 1) = offset_four;*/
 
     *(uint32_t*)(patch_location_fifthteen) = (uint32_t)DoorCycleResolve;
     *(uint32_t*)(patch_location_seventeen) = (uint32_t)DoorCycleResolve;
