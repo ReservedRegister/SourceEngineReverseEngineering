@@ -3,14 +3,17 @@
 BmsUtils g_BmsUtils;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_BmsUtils);
 
-struct link_map *engine_lm;
+struct link_map *engine_srv_lm;
 struct link_map *server_srv_lm;
+struct link_map *materialsystem_srv_lm;
 
 uint32_t engine_srv;
 uint32_t server_srv;
+uint32_t materialsystem_srv;
 
 uint32_t engine_srv_size;
 uint32_t server_srv_size;
+uint32_t materialsystem_srv_size;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -25,18 +28,23 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 
     char server_srv_fullpath[max_path_length];
     char engine_srv_fullpath[max_path_length];
+    char materialsystem_srv_fullpath[max_path_length];
 
     snprintf(server_srv_fullpath, max_path_length, "%s/bms/bin/server_srv.so", root_dir);
     snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
+    snprintf(materialsystem_srv_fullpath, max_path_length, "%s/bin/materialsystem_srv.so", root_dir);
 
-    engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_NOW));
+    engine_srv_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_NOW));
     server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_NOW));
+    materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_NOW));
 
     engine_srv_size = 0x2C2000;
     server_srv_size = 0xFD7000;
+    materialsystem_srv_size = 0x167000;
 
-    engine_srv = engine_lm->l_addr;
+    engine_srv = engine_srv_lm->l_addr;
     server_srv = server_srv_lm->l_addr;
+    materialsystem_srv = materialsystem_srv_lm->l_addr;
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -140,14 +148,30 @@ uint32_t Hooks::EmptyCall()
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 {
-    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked\n\n");
+    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked 4\n\n");
     pOneArgProt pDynamicOneArgFunc;
-
-    //InvalidaMdlCache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
-    pDynamicOneArgFunc(0);
-
     pTwoArgProt pDynamicTwoArgFunc;
+
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0013AE80);
+    pDynamicTwoArgFunc(engine_srv + 0x00320560, 0);
+
+    //Flush materials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D280);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 1);
+
+    //ReloadAllMaterials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
+
+    //ReloadTextures
+    pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003D240);
+    pDynamicOneArgFunc(materialsystem_srv + 0x00166B20);
+
+    //InvalidateMdlCache
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
+    //pDynamicOneArgFunc(0);
+
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
