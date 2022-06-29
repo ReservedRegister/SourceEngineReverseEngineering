@@ -46,8 +46,6 @@ bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
-uint32_t OperatorNewHook(uint32_t size);
-uint32_t OperatorNewArrayHook(uint32_t size);
 
 
 /**
