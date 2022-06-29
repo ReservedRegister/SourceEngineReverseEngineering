@@ -46,11 +46,8 @@ bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
-uint32_t FreeHook(uint32_t ref_tofree);
 uint32_t OperatorNewHook(uint32_t size);
 uint32_t OperatorNewArrayHook(uint32_t size);
-uint32_t DeleteOperatorHook(uint32_t ref_tofree);
-uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree);
 
 
 /**
@@ -98,6 +95,7 @@ class Hooks
 {
 public:
 	static uint32_t EmptyCall();
+	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
 };
 
 /**

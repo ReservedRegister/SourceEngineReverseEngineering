@@ -32,8 +32,8 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     engine_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_NOW));
     server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_NOW));
 
-    engine_srv_size = 0x2C0000;
-    server_srv_size = 0xFB1000;
+    engine_srv_size = 0x2C2000;
+    server_srv_size = 0xFD7000;
 
     engine_srv = engine_lm->l_addr;
     server_srv = server_srv_lm->l_addr;
@@ -49,6 +49,15 @@ void BmsUtils::SDK_OnAllLoaded()
     RestoreMemoryProtections();
     DisableCacheCvars();
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+}
+
+void DisableCacheCvars()
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001B1340);
+
+    pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
+    pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
 }
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size)
@@ -124,9 +133,23 @@ uint32_t OperatorNewArrayHook(uint32_t size)
     return newRef;
 }
 
-uint32_t EmptyCall()
+uint32_t Hooks::EmptyCall()
 {
     return 0;
+}
+
+uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
+{
+    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked\n\n");
+    pOneArgProt pDynamicOneArgFunc;
+
+    //InvalidaMdlCache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
+    pDynamicOneArgFunc(0);
+
+    pTwoArgProt pDynamicTwoArgFunc;
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 void AllowWriteToMappedMemory()
@@ -150,7 +173,7 @@ void AllowWriteToMappedMemory()
     {
         sscanf(file_line, "%[^\n]s", file_line);
 
-        if(strcasestr(file_line, "/Synergy/bin/") == NULL && strcasestr(file_line, "/Synergy/synergy/bin/") == NULL)
+        if(strcasestr(file_line, "/bin/") == NULL)
             continue;
 
         char* file_line_cpy = (char*) malloc(strlen(file_line)+1);
@@ -232,8 +255,7 @@ void RestoreMemoryProtections()
 
 void PopulateHookExclusionLists()
 {
-    hook_exclude_list_base[0] = server_srv;
-    hook_exclude_list_offset[0] = 0x00B025BA;
+
 }
 
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
@@ -337,7 +359,7 @@ void HookFunctionsWithC()
 
 void HookFunctionsWithCpp()
 {
-
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
 }
 
 void* BmsUtils::getCppAddr(auto classAddr)
