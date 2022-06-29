@@ -372,7 +372,7 @@ void PatchRestoring()
 {
     uint32_t nop_patch_list[128] = 
     {
-        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
+        0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,0x0073CDFC,5
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,
         0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B48,10
     };
@@ -413,9 +413,13 @@ void PatchRestoring()
     *(uint8_t*)(exploit_patch_one) = 0xE9;
     *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
 
-    uint32_t player_think_patch_two = server_srv + 0x0098FFF9;
+    uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
+    *(uint8_t*)(player_think_patch_one) = 0xE9;
+    *(uint32_t*)(player_think_patch_one+1) = 0xD1;
+
+    uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
-    *(uint32_t*)(player_think_patch_two+1) = 0x187;
+    *(uint32_t*)(player_think_patch_two+1) = 0xC8;
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
@@ -1896,6 +1900,9 @@ uint32_t SaveGameSafe(bool use_internal_savename)
 
     if(deleteQueue == 0 && physQueue == 0)
     {
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007BA940);
+        pDynamicOneArgFunc(0);
+        
         uint32_t mainEnt = 0;
         while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
         {
@@ -2034,10 +2041,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
     pDynamicOneArgFunc(0);
@@ -2046,12 +2049,16 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
 
     SimulatePlayers();
@@ -2723,9 +2730,9 @@ void PatchOthers()
     *(uint8_t*)(patch_location_twelve) = 0xE8;
     *(uint32_t*)(patch_location_twelve + 1) = offset_three;
 
-    /*uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
+    uint32_t offset_four = (uint32_t)TransitionRestoreMain - patch_location_ten - 5;
     *(uint8_t*)(patch_location_ten) = 0xE8;
-    *(uint32_t*)(patch_location_ten + 1) = offset_four;*/
+    *(uint32_t*)(patch_location_ten + 1) = offset_four;
 
     *(uint32_t*)(patch_location_fifthteen) = (uint32_t)DoorCycleResolve;
     *(uint32_t*)(patch_location_seventeen) = (uint32_t)DoorCycleResolve;
@@ -3399,33 +3406,7 @@ uint32_t TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2)
 
 uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
 {
-    //LEVEL INIT
-
     pOneArgProt pDynamicOneArgFunc;
-
-    /*pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D110);
-    pDynamicOneArgFunc(server_srv + 0x01012430);
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073D190);
-    pDynamicOneArgFunc(server_srv + 0x01012430);
-
-    *(uint16_t*)(server_srv + 0x01012440) = (uint16_t)0xFFFFFFFF;
-    *(uint16_t*)(server_srv + 0x01012444) = 0;
-    *(uint32_t*)(server_srv + 0x01012448) = *(uint32_t*)(server_srv + 0x01012430);
-    *(uint16_t*)(server_srv + 0x01012446) = (uint16_t)0xFFFFFFFF;*/
-
-
-
-    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000E0A50);
-    //uint32_t mapEnts = pDynamicOneArgFunc(0);
-    //rootconsole->ConsolePrint("MAP ENTS HEAP AREA: [%X]", mapEnts);
-    uint32_t arg4_internal = server_srv + 0x00CACDF0;
-
-    //CALL MAIN LEVEL PARSE FUNC
-
-    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
-    pDynamicThreeArgFunc(global_map_ents, (uint32_t)&arg4_internal, 0);
-    global_map_ents = 0;
 
     transition = true;
 
@@ -3503,12 +3484,6 @@ uint32_t TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint
             }
         }
     }*/
-
-    //BEGIN RESTORE ENTITIES
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
-    pDynamicOneArgFunc(0);
-
-    *(uint8_t*)(server_srv + 0x01012150) = 1;
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
 
@@ -3758,21 +3733,9 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicOneArgFunc(arg0);
 
 
-    //Invalidate mdl cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
-    pDynamicOneArgFunc(0);
-
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
     pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
-
-    //Reload model sounds cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
-    pDynamicOneArgFunc(arg0);
-
-    //scene_flush direct call
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
-    pDynamicOneArgFunc(0);
 
     //Flush materials
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
@@ -3785,6 +3748,18 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //ReloadAllMaterials
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
     pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
+
+    //scene_flush direct call
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    pDynamicOneArgFunc(0);
+
+    //Reload model sounds cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
+    pDynamicOneArgFunc(arg0);
+
+    //Invalidate mdl cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
+    pDynamicOneArgFunc(0);
 
     //Flush - data cache
     //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
