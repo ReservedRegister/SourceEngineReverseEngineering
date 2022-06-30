@@ -137,6 +137,20 @@ uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
     return new_ref;
 }
 
+uint32_t OperatorNewArrayHook(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)malloc(size);
+    uint32_t newRef = (uint32_t)malloc(size*2.0);
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
+    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
+
+    /*void* returnAddr = __builtin_return_address(0);
+    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new_array");
+    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+
+    return newRef;
+}
+
 uint32_t Hooks::EmptyCall()
 {
     return 0;
@@ -167,6 +181,10 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     //InvalidateMdlCache
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
     pDynamicOneArgFunc(0);
+
+    //FlushAll (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BD60);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -370,14 +388,29 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)ReallocHook);
+    rootconsole->ConsolePrint("patching new[]()");
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00540820), (void*)OperatorNewArrayHook);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000A7C70), (void*)OperatorNewArrayHook);
+    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)(materialsystem_srv + 0x00031230), (void*)OperatorNewArrayHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0002B4E0), (void*)OperatorNewArrayHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x00027A40), (void*)OperatorNewArrayHook);
 }
 
 void HookFunctionsWithCpp()
