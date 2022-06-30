@@ -6,14 +6,23 @@ SMEXT_LINK(&g_BmsUtils);
 struct link_map *engine_srv_lm;
 struct link_map *server_srv_lm;
 struct link_map *materialsystem_srv_lm;
+struct link_map *vphysics_srv_lm;
+struct link_map *dedicated_srv_lm;
+struct link_map *datacache_srv_lm;
 
 uint32_t engine_srv;
 uint32_t server_srv;
 uint32_t materialsystem_srv;
+uint32_t vphysics_srv;
+uint32_t dedicated_srv;
+uint32_t datacache_srv;
 
 uint32_t engine_srv_size;
 uint32_t server_srv_size;
 uint32_t materialsystem_srv_size;
+uint32_t vphysics_srv_size;
+uint32_t dedicated_srv_size;
+uint32_t datacache_srv_size;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -29,22 +38,37 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     char server_srv_fullpath[max_path_length];
     char engine_srv_fullpath[max_path_length];
     char materialsystem_srv_fullpath[max_path_length];
+    char vphysics_srv_fullpath[max_path_length];
+    char dedicated_srv_fullpath[max_path_length];
+    char datacache_srv_fullpath[max_path_length];
 
     snprintf(server_srv_fullpath, max_path_length, "%s/bms/bin/server_srv.so", root_dir);
     snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
     snprintf(materialsystem_srv_fullpath, max_path_length, "%s/bin/materialsystem_srv.so", root_dir);
+    snprintf(vphysics_srv_fullpath, max_path_length, "%s/bin/vphysics_srv.so", root_dir);
+    snprintf(dedicated_srv_fullpath, max_path_length, "%s/bin/dedicated_srv.so", root_dir);
+    snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
 
     engine_srv_lm = (struct link_map*)(dlopen(engine_srv_fullpath, RTLD_NOW));
     server_srv_lm = (struct link_map*)(dlopen(server_srv_fullpath, RTLD_NOW));
     materialsystem_srv_lm = (struct link_map*)(dlopen(materialsystem_srv_fullpath, RTLD_NOW));
+    vphysics_srv_lm = (struct link_map*)(dlopen(vphysics_srv_fullpath, RTLD_NOW));
+    dedicated_srv_lm = (struct link_map*)(dlopen(dedicated_srv_fullpath, RTLD_NOW));
+    datacache_srv_lm = (struct link_map*)(dlopen(datacache_srv_fullpath, RTLD_NOW));
 
     engine_srv_size = 0x2C2000;
     server_srv_size = 0xFD7000;
     materialsystem_srv_size = 0x167000;
+    vphysics_srv_size = 0x1B4000;
+    dedicated_srv_size = 0x251000;
+    datacache_srv_size = 0x7B000;
 
     engine_srv = engine_srv_lm->l_addr;
     server_srv = server_srv_lm->l_addr;
     materialsystem_srv = materialsystem_srv_lm->l_addr;
+    vphysics_srv = vphysics_srv_lm->l_addr;
+    dedicated_srv = dedicated_srv_lm->l_addr;
+    datacache_srv = datacache_srv_lm->l_addr;
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -72,7 +96,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.115+8;
+    uint32_t enlarged_size = nitems*2.0;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -89,7 +113,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.115+8);
+    uint32_t newRef = (uint32_t)malloc(size*2.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -103,7 +127,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.115+8);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*2.0);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
