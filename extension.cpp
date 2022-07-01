@@ -341,11 +341,11 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     Hooks::CleanupDeleteListHook();
     Hooks::CleanupDeleteListHook();
 
-    //enable_custom_deletion = false;
+    enable_custom_deletion = false;
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
-    //enable_custom_deletion = true;
+    enable_custom_deletion = true;
 
     Hooks::CleanupDeleteListHook();
     Hooks::CleanupDeleteListHook();
