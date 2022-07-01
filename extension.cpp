@@ -186,6 +186,10 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BD60);
     pDynamicOneArgFunc(server_srv + 0x01014880);
 
+    //flush particles
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00BE7650);
+    pDynamicOneArgFunc(server_srv + 0x018DF7C0);
+
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
