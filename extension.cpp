@@ -299,11 +299,13 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     Hooks::CleanupDeleteListHook();
+    Hooks::CleanupDeleteListHook();
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
+    Hooks::CleanupDeleteListHook();
     Hooks::CleanupDeleteListHook();
 
     //PreSystems
@@ -311,11 +313,13 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook();
+    Hooks::CleanupDeleteListHook();
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
+    Hooks::CleanupDeleteListHook();
     Hooks::CleanupDeleteListHook();
 
     //UpdateClientData
@@ -323,21 +327,27 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook();
+    Hooks::CleanupDeleteListHook();
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook();
+    Hooks::CleanupDeleteListHook();
 
     SimulatePlayers();
 
     Hooks::CleanupDeleteListHook();
+    Hooks::CleanupDeleteListHook();
 
+    //enable_custom_deletion = false;
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
+    //enable_custom_deletion = true;
 
+    Hooks::CleanupDeleteListHook();
     Hooks::CleanupDeleteListHook();
     return 0;
 }
