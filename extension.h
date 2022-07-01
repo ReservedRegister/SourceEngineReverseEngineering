@@ -34,6 +34,15 @@ typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_
 typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
+ValueList AllocateValuesList();
+Value* CreateNewValue(void* valueInput);
+void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex);
+bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex);
+bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex);
+void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
+
+void SimulatePlayers();
+void ApplySingleHooks();
 void AllowWriteToMappedMemory();
 void RestoreMemoryProtections();
 void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
@@ -42,6 +51,7 @@ void HookFunctionsWithCpp();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
+uint32_t GetCBaseEntity(uint32_t EHandle);
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
@@ -95,6 +105,11 @@ class Hooks
 public:
 	static uint32_t EmptyCall();
 	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t GameFrameHook(uint32_t arg0);
+	static uint32_t Util_RemoveHook(uint32_t arg0);
+	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t CleanupDeleteListHook();
+	static uint32_t PhysSimEnt(uint32_t arg0);
 };
 
 /**

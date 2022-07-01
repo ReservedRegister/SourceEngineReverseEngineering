@@ -28,9 +28,24 @@ uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
+pthread_mutex_t value_list_lock;
+
+bool enable_custom_deletion;
+uint32_t CGlobalEntityList;
+ValueList deleteListCustom;
+ValueList secondDeleteListCustom;
+
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
     AllowWriteToMappedMemory();
+
+    int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
+
+    if(pthread_init_one != 0)
+    {
+        rootconsole->ConsolePrint("\nMutex init for lists thread safeness has failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -70,6 +85,11 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     dedicated_srv = dedicated_srv_lm->l_addr;
     datacache_srv = datacache_srv_lm->l_addr;
 
+    enable_custom_deletion = false;
+    CGlobalEntityList = server_srv + 0x018711E0;
+    deleteListCustom = AllocateValuesList();
+    secondDeleteListCustom = AllocateValuesList();
+
     PopulateHookExclusionLists();
     HookFunctionsWithC();
     return true;
@@ -77,10 +97,20 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 
 void BmsUtils::SDK_OnAllLoaded()
 {
+    ApplySingleHooks();
     HookFunctionsWithCpp();
     RestoreMemoryProtections();
     DisableCacheCvars();
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+}
+
+void ApplySingleHooks()
+{
+    uint32_t offset = 0;
+
+    uint32_t hook_game_frame_delete_list = server_srv + 0x00944FAF;
+    offset = (uint32_t)g_BmsUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
+    *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 }
 
 void DisableCacheCvars()
@@ -151,9 +181,198 @@ uint32_t OperatorNewArrayHook(uint32_t size)
     return newRef;
 }
 
+uint32_t GetCBaseEntity(uint32_t EHandle)
+{
+    uint32_t shift_right = EHandle >> 0x0D;
+    uint32_t disassembly = EHandle & 0x1FFF;
+    disassembly = disassembly << 0x4;
+    disassembly = CGlobalEntityList + disassembly;
+
+    if( ((*(uint32_t*)(disassembly+0x08))) == shift_right)
+    {
+        uint32_t CBaseEntity = *(uint32_t*)(disassembly+0x04);
+        return CBaseEntity;
+    }
+
+    return 0;
+}
+
 uint32_t Hooks::EmptyCall()
 {
     return 0;
+}
+
+uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    enable_custom_deletion = false;
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t Hooks::CleanupDeleteListHook()
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(enable_custom_deletion)
+    {
+        while(pthread_mutex_trylock(&value_list_lock) != 0);
+        Value* aValue = *deleteListCustom;
+
+        while(aValue)
+        {
+            Value* detachedValue = aValue->nextVal;
+
+            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)((uint32_t)aValue->value))   );
+            uint32_t realObject = pDynamicOneArgFunc((uint32_t)aValue->value);
+
+            //Make snapshot of list for safe execution
+            Value* carryOvertoSafeList = CreateNewValue((void*)(  aValue->value  ));
+            InsertToValuesList(secondDeleteListCustom, carryOvertoSafeList, false, true, false);
+
+            free(aValue);
+            aValue = detachedValue;
+        }
+
+        *deleteListCustom = NULL;
+        pthread_mutex_unlock(&value_list_lock);
+
+        Value* dValue = *secondDeleteListCustom;
+
+        while(dValue)
+        {
+            Value* detachedValue = dValue->nextVal;
+
+            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)((uint32_t)dValue->value))   );
+            uint32_t realObject = pDynamicOneArgFunc((uint32_t)dValue->value);
+            //uint32_t refHandle = *(uint32_t*)(realObject+0x334);
+
+            char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
+            rootconsole->ConsolePrint("[CustomDeletion] removed %s", clsname);
+
+            //UTIL_Remove
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            pDynamicOneArgFunc((uint32_t)dValue->value);
+
+            //CleanupDeleteList
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+            pDynamicOneArgFunc(0);
+
+            free(dValue);
+            dValue = detachedValue;
+        }
+
+        *secondDeleteListCustom = NULL;
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    return pDynamicOneArgFunc(0);
+}
+
+uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    if(arg0 == 0) return 0;
+
+    if(enable_custom_deletion)
+    {
+        //pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)(arg0))   );
+        //uint32_t realObject = pDynamicOneArgFunc(arg0);
+        //uint32_t refHandle = *(uint32_t*)(realObject+0x334);
+
+        rootconsole->ConsolePrint("Added valid ent to kill! [%X]", arg0);
+        Value* newDeleteEnt = CreateNewValue((void*)(  arg0  ));
+        InsertToValuesList(deleteListCustom, newDeleteEnt, false, true, false);
+
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t Hooks::GameFrameHook(uint32_t arg0)
+{
+    enable_custom_deletion = true;
+    pOneArgProt pDynamicOneArgFunc;
+
+    Hooks::CleanupDeleteListHook();
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc(arg0);
+
+    Hooks::CleanupDeleteListHook();
+
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook();
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook();
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook();
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook();
+
+    SimulatePlayers();
+
+    Hooks::CleanupDeleteListHook();
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook();
+    return 0;
+}
+
+void SimulatePlayers()
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    //FindEntityByClassname
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+    uint32_t ent = 0;
+    
+    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    {
+        Hooks::CleanupDeleteListHook();
+
+        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
+        pDynamicOneArgFunc(ent);
+
+        Hooks::CleanupDeleteListHook();
+    }
+}
+
+uint32_t Hooks::PhysSimEnt(uint32_t arg0)
+{
+    char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+    //rootconsole->ConsolePrint("simulating [%s]", clsname);
+
+    if(strcmp(clsname, "player") == 0)
+    {
+        return 0;
+    }
+
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
@@ -420,9 +639,165 @@ void HookFunctionsWithC()
 void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), g_BmsUtils.getCppAddr(Hooks::CleanupDeleteListHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), g_BmsUtils.getCppAddr(Hooks::Util_RemoveHook));
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), g_BmsUtils.getCppAddr(Hooks::HostChangelevelHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), g_BmsUtils.getCppAddr(Hooks::PhysSimEnt));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006BD6F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7AC00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CAA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
 void* BmsUtils::getCppAddr(auto classAddr)
 {
     return (void*&)classAddr;
+}
+
+ValueList AllocateValuesList()
+{
+    ValueList list = (ValueList) malloc(sizeof(ValueList));
+    *list = NULL;
+    return list;
+}
+
+Value* CreateNewValue(void* valueInput)
+{
+    Value* val = (Value*) malloc(sizeof(Value));
+
+    val->value = valueInput;
+    val->nextVal = NULL;
+    return val;
+}
+
+void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+
+    if(!list || !*list)
+    {
+        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        return;
+    }
+    
+    Value* aValue = *list;
+
+    while(aValue)
+    {
+        Value* detachedValue = aValue->nextVal;
+        if(free_val) free(aValue->value);
+        free(aValue);
+        aValue = detachedValue;
+    }
+
+    *list = NULL;
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+}
+
+bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+
+    Value* aValue = *list;
+
+    while(aValue)
+    {
+        if((uint32_t)aValue->value == (uint32_t)searchVal)
+        {
+            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            return true;
+        }
+        
+        aValue = aValue->nextVal;
+    }
+
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    return false;
+}
+
+bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+
+    Value* aValue = *list;
+
+    if(aValue == NULL)
+    {
+        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        return false;
+    }
+
+    //search at the start of the list
+    if(((uint32_t)aValue->value) == ((uint32_t)searchVal))
+    {
+        Value* detachedValue = aValue->nextVal;
+        free(*list);
+        *list = detachedValue;
+        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        return true;
+    }
+
+    //search the rest of the list
+    while(aValue->nextVal)
+    {
+        if(((uint32_t)aValue->nextVal->value) == ((uint32_t)searchVal))
+        {
+            Value* detachedValue = aValue->nextVal->nextVal;
+
+            free(aValue->nextVal);
+            aValue->nextVal = detachedValue;
+            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            return true;
+        }
+
+        aValue = aValue->nextVal;
+    }
+
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    return false;
+}
+
+void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+
+    if(duplicate_chk)
+    {
+        Value* aValue = *list;
+
+        while(aValue)
+        {
+            if((uint32_t)aValue->value == (uint32_t)head->value)
+            {
+                if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+                return;
+            }
+        
+            aValue = aValue->nextVal;
+        }
+    }
+
+    if(tail)
+    {
+        Value* aValue = *list;
+
+        while(aValue)
+        {
+            if(aValue->nextVal == NULL)
+            {
+                aValue->nextVal = head;
+                if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+                return;
+            }
+
+            aValue = aValue->nextVal;
+        }
+    }
+
+    head->nextVal = *list;
+    *list = head;
+
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
 }
