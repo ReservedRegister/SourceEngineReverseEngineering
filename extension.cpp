@@ -29,11 +29,8 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
 pthread_mutex_t value_list_lock;
-
-bool enable_custom_deletion;
+bool disable_delete_list;
 uint32_t CGlobalEntityList;
-ValueList deleteListCustom;
-ValueList secondDeleteListCustom;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -85,10 +82,8 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     dedicated_srv = dedicated_srv_lm->l_addr;
     datacache_srv = datacache_srv_lm->l_addr;
 
-    enable_custom_deletion = false;
+    disable_delete_list = false;
     CGlobalEntityList = server_srv + 0x018711E0;
-    deleteListCustom = AllocateValuesList();
-    secondDeleteListCustom = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -204,7 +199,6 @@ uint32_t Hooks::EmptyCall()
 
 uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    enable_custom_deletion = false;
     pThreeArgProt pDynamicThreeArgFunc;
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
@@ -214,58 +208,7 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 uint32_t Hooks::CleanupDeleteListHook()
 {
     pOneArgProt pDynamicOneArgFunc;
-
-    if(enable_custom_deletion)
-    {
-        while(pthread_mutex_trylock(&value_list_lock) != 0);
-        Value* aValue = *deleteListCustom;
-
-        while(aValue)
-        {
-            Value* detachedValue = aValue->nextVal;
-
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)((uint32_t)aValue->value))   );
-            uint32_t realObject = pDynamicOneArgFunc((uint32_t)aValue->value);
-
-            //Make snapshot of list for safe execution
-            Value* carryOvertoSafeList = CreateNewValue((void*)(  aValue->value  ));
-            InsertToValuesList(secondDeleteListCustom, carryOvertoSafeList, false, true, false);
-
-            free(aValue);
-            aValue = detachedValue;
-        }
-
-        *deleteListCustom = NULL;
-        pthread_mutex_unlock(&value_list_lock);
-
-        Value* dValue = *secondDeleteListCustom;
-
-        while(dValue)
-        {
-            Value* detachedValue = dValue->nextVal;
-
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)((uint32_t)dValue->value))   );
-            uint32_t realObject = pDynamicOneArgFunc((uint32_t)dValue->value);
-            //uint32_t refHandle = *(uint32_t*)(realObject+0x334);
-
-            char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
-            rootconsole->ConsolePrint("[CustomDeletion] removed %s", clsname);
-
-            //UTIL_Remove
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            pDynamicOneArgFunc((uint32_t)dValue->value);
-
-            //CleanupDeleteList
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-            pDynamicOneArgFunc(0);
-
-            free(dValue);
-            dValue = detachedValue;
-        }
-
-        *secondDeleteListCustom = NULL;
-        return 0;
-    }
+    if(disable_delete_list) return 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     return pDynamicOneArgFunc(0);
@@ -276,79 +219,41 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     if(arg0 == 0) return 0;
 
-    if(enable_custom_deletion)
-    {
-        //pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)(arg0))   );
-        //uint32_t realObject = pDynamicOneArgFunc(arg0);
-        //uint32_t refHandle = *(uint32_t*)(realObject+0x334);
-
-        rootconsole->ConsolePrint("Added valid ent to kill! [%X]", arg0);
-        Value* newDeleteEnt = CreateNewValue((void*)(  arg0  ));
-        InsertToValuesList(deleteListCustom, newDeleteEnt, false, true, false);
-
-        return 0;
-    }
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
-    enable_custom_deletion = true;
     pOneArgProt pDynamicOneArgFunc;
-
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
-
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
-    pDynamicOneArgFunc(arg0);
-
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
+    disable_delete_list = true;
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
-
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc(arg0);
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
-
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
-
     SimulatePlayers();
 
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
-
-    enable_custom_deletion = false;
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
-    enable_custom_deletion = true;
-
-    Hooks::CleanupDeleteListHook();
-    Hooks::CleanupDeleteListHook();
+    disable_delete_list = false;
     return 0;
 }
 
