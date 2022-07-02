@@ -295,6 +295,7 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked 4\n\n");
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
 
     //UnloadAllModels
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0013AE80);
@@ -323,6 +324,14 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     //flush particles
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00BE7650);
     pDynamicOneArgFunc(server_srv + 0x018DF7C0);
+
+    //flush datacache
+    pDynamicThreeArgFunc = (pThreeArgProt)(datacache_srv + 0x00028550);
+    pDynamicThreeArgFunc(datacache_srv + 0x0007C0C0, (uint32_t)false, (uint32_t)false);
+
+    //flush mdlcache
+    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x00031850);
+    pDynamicTwoArgFunc(datacache_srv + 0x0007C2E0, (uint32_t)MDLCACHE_FLUSH_ALL);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
