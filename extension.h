@@ -110,6 +110,7 @@ public:
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook();
 	static uint32_t PhysSimEnt(uint32_t arg0);
+	static uint32_t PhysCleanup();
 };
 
 /**

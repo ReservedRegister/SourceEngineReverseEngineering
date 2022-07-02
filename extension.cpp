@@ -219,6 +219,15 @@ uint32_t Hooks::CleanupDeleteListHook()
     return pDynamicOneArgFunc(0);
 }
 
+uint32_t Hooks::PhysCleanup()
+{
+    pOneArgProt pDynamicOneArgFunc;
+    if(disable_delete_list) return 0;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
+    return pDynamicOneArgFunc(0);
+}
+
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -636,7 +645,7 @@ void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), g_BmsUtils.getCppAddr(Hooks::CleanupDeleteListHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), g_BmsUtils.getCppAddr(Hooks::PhysCleanup));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A65620), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), g_BmsUtils.getCppAddr(Hooks::Util_RemoveHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), g_BmsUtils.getCppAddr(Hooks::HostChangelevelHook));

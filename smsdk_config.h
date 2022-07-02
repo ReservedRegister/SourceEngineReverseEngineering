@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"BlackMesaUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension that aims to resolve errors and aim in reversing the black mesa dedicated server"
-#define SMEXT_CONF_VERSION		"3.0"
+#define SMEXT_CONF_VERSION		"3.1"
 #define SMEXT_CONF_AUTHOR		"Nobody"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"BlackMesaUtils"
