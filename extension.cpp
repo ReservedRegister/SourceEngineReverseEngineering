@@ -29,6 +29,7 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
 pthread_mutex_t value_list_lock;
+bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
 
@@ -83,6 +84,7 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     datacache_srv = datacache_srv_lm->l_addr;
 
     disable_delete_list = false;
+    isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
 
     PopulateHookExclusionLists();
@@ -201,6 +203,9 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
+    disable_delete_list = false;
+    isTicking = false;
+
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
@@ -219,6 +224,26 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     if(arg0 == 0) return 0;
 
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)(arg0))   );
+    uint32_t realObject = pDynamicOneArgFunc(arg0);
+    uint32_t refHandle = *(uint32_t*)(realObject+0x334);
+
+    char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
+
+    if(isTicking)
+    {
+        if(strcmp(clsname, "player_ragdoll") == 0
+        || strcmp(clsname, "misc_dead_hev") == 0
+        || strcmp(clsname, "prop_ragdoll") == 0)
+        {
+            rootconsole->ConsolePrint("cancelled [%s]", clsname);
+            return 0;
+        }
+    }
+
+
+    rootconsole->ConsolePrint("removed: [%s]", clsname);
+
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -227,38 +252,71 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     disable_delete_list = true;
+    isTicking = true;
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
 
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
     SimulatePlayers();
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
-    disable_delete_list = false;
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
 void SimulatePlayers()
 {
+    pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
     //FindEntityByClassname
@@ -267,17 +325,22 @@ void SimulatePlayers()
     
     while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
-        Hooks::CleanupDeleteListHook();
+        //CleanupDeleteList
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+        pDynamicOneArgFunc(0);
 
-        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
         pDynamicOneArgFunc(ent);
 
-        Hooks::CleanupDeleteListHook();
+        //CleanupDeleteList
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+        pDynamicOneArgFunc(0);
     }
 }
 
 uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 {
+    pOneArgProt pDynamicOneArgFunc;
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     //rootconsole->ConsolePrint("simulating [%s]", clsname);
 
@@ -286,8 +349,17 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         return 0;
     }
 
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
-    return pDynamicOneArgFunc(arg0);
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+    return returnVal;
 }
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
@@ -564,6 +636,8 @@ void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), g_BmsUtils.getCppAddr(Hooks::CleanupDeleteListHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A65620), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), g_BmsUtils.getCppAddr(Hooks::Util_RemoveHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), g_BmsUtils.getCppAddr(Hooks::HostChangelevelHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), g_BmsUtils.getCppAddr(Hooks::PhysSimEnt));
