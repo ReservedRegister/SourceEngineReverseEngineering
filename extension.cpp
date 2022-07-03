@@ -245,8 +245,7 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     {
         if(strcmp(clsname, "player_ragdoll") == 0
         || strcmp(clsname, "prop_ragdoll") == 0
-        || strcmp(clsname, "prop_physics") == 0
-        || strcmp(clsname, "prop_dynamic") == 0)
+        || strcmp(clsname, "prop_physics") == 0)
         {
             rootconsole->ConsolePrint("stopped [%s]!", clsname);
             return 0;
