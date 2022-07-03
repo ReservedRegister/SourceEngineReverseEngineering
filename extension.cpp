@@ -273,65 +273,11 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
-    pDynamicOneArgFunc(arg0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    SimulatePlayers();
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-
     //FindEntityByClassname
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-    uint32_t ent = 0;
     
+    uint32_t ent = 0;
+
     while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         uint32_t refHandleOne = *(uint32_t*)(ent+0x334);
@@ -345,6 +291,18 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
             pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
             pDynamicOneArgFunc(ent+0x14);
         }
+    }
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
+    ent = 0;
+    
+    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        uint32_t refHandleOne = *(uint32_t*)(ent+0x334);
+        char* clsname = (char*)(*(uint32_t*)(ent+0x64));
 
         if(IsInValuesList(customDeleteList, (void*)refHandleOne, false))
         {
@@ -358,7 +316,36 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
             RemoveFromValuesList(customDeleteList, (void*)refHandleOne, false);
         }
     }
-    
+
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc(arg0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
+
+    SimulatePlayers();
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -373,16 +360,8 @@ void SimulatePlayers()
     
     while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
-        //CleanupDeleteList
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-        pDynamicOneArgFunc(0);
-
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
         pDynamicOneArgFunc(ent);
-
-        //CleanupDeleteList
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-        pDynamicOneArgFunc(0);
     }
 }
 
