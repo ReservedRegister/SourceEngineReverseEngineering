@@ -32,6 +32,7 @@ pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
+ValueList customDeleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -86,6 +87,7 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
+    customDeleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -241,17 +243,19 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 
     if(isTicking)
     {
-        if(strcmp(clsname, "player_ragdoll") == 0
-        || strcmp(clsname, "misc_dead_hev") == 0
-        || strcmp(clsname, "prop_ragdoll") == 0)
+        if(strcmp(clsname, "player_ragdoll") == 0)
         {
-            rootconsole->ConsolePrint("cancelled [%s]", clsname);
+            rootconsole->ConsolePrint("stopped player_ragdoll!");
             return 0;
         }
+        
+        Value* eHandleSave = CreateNewValue((void*)refHandle);
+        InsertToValuesList(customDeleteList, eHandleSave, false, true, false);
+        return 0;
     }
 
 
-    rootconsole->ConsolePrint("removed: [%s]", clsname);
+    //rootconsole->ConsolePrint("removed: [%s]", clsname);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
@@ -260,6 +264,8 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
+
     disable_delete_list = true;
     isTicking = true;
 
@@ -320,6 +326,39 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
+
+
+    //FindEntityByClassname
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+    uint32_t ent = 0;
+    
+    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        uint32_t refHandleOne = *(uint32_t*)(ent+0x334);
+        char* clsname = (char*)(*(uint32_t*)(ent+0x64));
+
+        if(strcasestr(clsname, "ragdoll") != NULL)
+        {
+            rootconsole->ConsolePrint("deleted ragdolls!!!!!!!!!!!!!!");
+
+            //UTIL_Remove
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            pDynamicOneArgFunc(ent+0x14);
+        }
+
+        if(IsInValuesList(customDeleteList, (void*)refHandleOne, false))
+        {
+            char* clsname = (char*)(*(uint32_t*)(ent+0x64));
+            rootconsole->ConsolePrint("[GameFrame] delete ent [%s]", clsname);
+            
+            //UTIL_Remove
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            pDynamicOneArgFunc(ent+0x14);
+
+            RemoveFromValuesList(customDeleteList, (void*)refHandleOne, false);
+        }
+    }
+    
     return 0;
 }
 
@@ -358,16 +397,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         return 0;
     }
 
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
     return returnVal;
 }
 
