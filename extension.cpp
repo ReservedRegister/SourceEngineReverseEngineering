@@ -32,7 +32,6 @@ pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
-ValueList customDeleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -87,7 +86,6 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
-    customDeleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -241,22 +239,21 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 
     char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
 
+    //rootconsole->ConsolePrint("removed: [%s] [%X]", clsname, refHandle);
+
     if(isTicking)
     {
-        if(strcmp(clsname, "player_ragdoll") == 0)
+        if(strcmp(clsname, "player_ragdoll") == 0
+        || strcmp(clsname, "prop_ragdoll") == 0
+        || strcmp(clsname, "prop_physics") == 0
+        || strcmp(clsname, "prop_dynamic") == 0)
         {
-            rootconsole->ConsolePrint("stopped player_ragdoll!");
+            rootconsole->ConsolePrint("stopped [%s]!", clsname);
             return 0;
         }
-        
-        Value* eHandleSave = CreateNewValue((void*)refHandle);
-        InsertToValuesList(customDeleteList, eHandleSave, false, true, false);
-        return 0;
     }
 
-
     //rootconsole->ConsolePrint("removed: [%s]", clsname);
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -272,50 +269,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
-
-    //FindEntityByClassname
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-    
-    uint32_t ent = 0;
-
-    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        uint32_t refHandleOne = *(uint32_t*)(ent+0x334);
-        char* clsname = (char*)(*(uint32_t*)(ent+0x64));
-
-        if(strcasestr(clsname, "ragdoll") != NULL)
-        {
-            rootconsole->ConsolePrint("deleted ragdolls!!!!!!!!!!!!!!");
-
-            //UTIL_Remove
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            pDynamicOneArgFunc(ent+0x14);
-        }
-    }
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    ent = 0;
-    
-    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        uint32_t refHandleOne = *(uint32_t*)(ent+0x334);
-        char* clsname = (char*)(*(uint32_t*)(ent+0x64));
-
-        if(IsInValuesList(customDeleteList, (void*)refHandleOne, false))
-        {
-            char* clsname = (char*)(*(uint32_t*)(ent+0x64));
-            rootconsole->ConsolePrint("[GameFrame] delete ent [%s]", clsname);
-            
-            //UTIL_Remove
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            pDynamicOneArgFunc(ent+0x14);
-
-            RemoveFromValuesList(customDeleteList, (void*)refHandleOne, false);
-        }
-    }
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
@@ -337,32 +290,28 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
 
-    SimulatePlayers();
-
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
     return 0;
 }
 
-void SimulatePlayers()
+uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt pDynamicOneArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
-    //FindEntityByClassname
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-    uint32_t ent = 0;
-    
-    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    if(isTicking)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
-        pDynamicOneArgFunc(ent);
+        if(strcmp((char*)arg0, "player_ragdoll") == 0
+        || strcmp((char*)arg0, "prop_physics") == 0)
+        {
+            rootconsole->ConsolePrint("cancelled creation [%s]", arg0);
+            return 0;
+        }
     }
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::PhysSimEnt(uint32_t arg0)
@@ -371,11 +320,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     //rootconsole->ConsolePrint("simulating [%s]", clsname);
 
-    if(strcmp(clsname, "player") == 0)
-    {
-        return 0;
-    }
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     return returnVal;
@@ -383,7 +327,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 {
-    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked 4\n\n");
+    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked 5\n\n");
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
@@ -417,12 +361,12 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     pDynamicOneArgFunc(server_srv + 0x018DF7C0);
 
     //flush datacache
-    pDynamicThreeArgFunc = (pThreeArgProt)(datacache_srv + 0x00028550);
-    pDynamicThreeArgFunc(datacache_srv + 0x0007C0C0, (uint32_t)false, (uint32_t)false);
+    //pDynamicThreeArgFunc = (pThreeArgProt)(datacache_srv + 0x00028550);
+    //pDynamicThreeArgFunc(datacache_srv + 0x0007C0C0, (uint32_t)false, (uint32_t)false);
 
     //flush mdlcache
-    pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x00031850);
-    pDynamicTwoArgFunc(datacache_srv + 0x0007C2E0, (uint32_t)MDLCACHE_FLUSH_ALL);
+    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x00031850);
+    //pDynamicTwoArgFunc(datacache_srv + 0x0007C2E0, (uint32_t)MDLCACHE_FLUSH_ALL);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -653,6 +597,7 @@ void HookFunctionsWithC()
 
 void HookFunctionsWithCpp()
 {
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), g_BmsUtils.getCppAddr(Hooks::CreateEntityByNameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), g_BmsUtils.getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), g_BmsUtils.getCppAddr(Hooks::PhysCleanup));
@@ -666,6 +611,12 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CAA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+
+
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A85ED0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
 void* BmsUtils::getCppAddr(auto classAddr)
@@ -774,6 +725,23 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
 
     if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
     return false;
+}
+
+int ValueListItems(ValueList list, bool lock_mutex)
+{
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+
+    Value* aValue = *list;
+    int counter = 0;
+
+    while(aValue)
+    {
+        counter++;
+        aValue = aValue->nextVal;
+    }
+
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    return counter;
 }
 
 void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)

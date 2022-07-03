@@ -40,8 +40,8 @@ void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex);
 bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex);
 bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex);
 void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
+int ValueListItems(ValueList list, bool lock_mutex);
 
-void SimulatePlayers();
 void ApplySingleHooks();
 void AllowWriteToMappedMemory();
 void RestoreMemoryProtections();
@@ -105,6 +105,7 @@ class Hooks
 public:
 	static uint32_t EmptyCall();
 	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t GameFrameHook(uint32_t arg0);
 	static uint32_t Util_RemoveHook(uint32_t arg0);
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
