@@ -294,10 +294,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -623,6 +619,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A85ED0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007947B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
