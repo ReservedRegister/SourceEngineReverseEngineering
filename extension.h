@@ -39,7 +39,7 @@ Value* CreateNewValue(void* valueInput);
 void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex);
 bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex);
 bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex);
-void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
+bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
 int ValueListItems(ValueList list, bool lock_mutex);
 
 void ApplySingleHooks();
@@ -112,6 +112,7 @@ public:
 	static uint32_t CleanupDeleteListHook();
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t PhysCleanup();
+	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 };
 
 /**

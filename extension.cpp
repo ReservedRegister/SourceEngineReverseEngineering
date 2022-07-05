@@ -34,6 +34,7 @@ bool disable_delete_list;
 uint32_t CGlobalEntityList;
 uint32_t scheduled_entity;
 uint32_t queue_amount;
+uint32_t frames;
 ValueList deleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
@@ -91,6 +92,7 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     CGlobalEntityList = server_srv + 0x018711E0;
     scheduled_entity = 0;
     queue_amount = 0;
+    frames = 0;
     deleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
@@ -242,14 +244,11 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)(arg0))   );
     uint32_t realObject = pDynamicOneArgFunc(arg0);
     uint32_t refHandle = *(uint32_t*)(realObject+0x334);
-
     char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
-
-    //rootconsole->ConsolePrint("removed: [%s] [%X]", clsname, refHandle);
 
     if(isTicking)
     {
-        if(queue_amount > 100)
+        if(queue_amount > 300)
         {
             rootconsole->ConsolePrint("Queue deletion limit reached!");
             pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -257,8 +256,7 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
         }
 
         Value* delEnt = CreateNewValue((void*)refHandle);
-        InsertToValuesList(deleteList, delEnt, true, true, false);
-        queue_amount++;
+        if(InsertToValuesList(deleteList, delEnt, true, true, false)) queue_amount++;
         return 0;
     }
 
@@ -273,43 +271,53 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     disable_delete_list = true;
     isTicking = true;
+    frames++;
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    Value* firstHandle = *deleteList;
-
-    if(firstHandle)
+    if(frames > 5)
     {
-        Value* nextHandle = firstHandle->nextVal;
-        scheduled_entity = (uint32_t)(firstHandle->value);
-        free(*deleteList);
-        *deleteList = nextHandle;
-        queue_amount--;
+        Value* firstHandle = *deleteList;
 
-        uint32_t object = GetCBaseEntity(scheduled_entity);
-
-        if(object)
+        if(firstHandle)
         {
-            char* clsname = (char*)(*(uint32_t*)(object+0x64));
-            rootconsole->ConsolePrint("Removed: [%s]", clsname);
-            
-            //UTIL_Remove
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            pDynamicOneArgFunc(object+0x14);
+            Value* nextHandle = firstHandle->nextVal;
+            scheduled_entity = (uint32_t)(firstHandle->value);
+            free(*deleteList);
+            *deleteList = nextHandle;
+            queue_amount--;
+
+            uint32_t object = GetCBaseEntity(scheduled_entity);
+
+            if(object)
+            {
+                char* clsname = (char*)(*(uint32_t*)(object+0x64));
+                rootconsole->ConsolePrint("Removed: [%s]", clsname);
+                
+                //UTIL_Remove
+                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+                pDynamicOneArgFunc(object+0x14);
+            }
+
+            scheduled_entity = 0;
         }
 
-        scheduled_entity = 0;
+        frames = 0;
     }
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc(arg0);
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
     pDynamicOneArgFunc(0);
-    
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
-    pDynamicOneArgFunc(arg0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
@@ -346,11 +354,38 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+    uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+    if(IsInValuesList(deleteList, (void*)refHandle, false)) return 0;
+
     //rootconsole->ConsolePrint("simulating [%s]", clsname);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     return returnVal;
+}
+
+uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
+{
+    //arg2 and arg3 = CBaseEntity
+    pSixArgProt pDynamicSixArgFunc;
+
+    uint32_t refHandle_one = *(uint32_t*)(arg0+0x334);
+    uint32_t refHandle_two = 0;
+    uint32_t refHandle_three = 0;
+
+    if(arg2) refHandle_two = *(uint32_t*)(arg2+0x334);
+    if(arg3) refHandle_three = *(uint32_t*)(arg3+0x334);
+
+    bool chk_one = IsInValuesList(deleteList, (void*)refHandle_one, false);
+    bool chk_two = IsInValuesList(deleteList, (void*)refHandle_two, false);
+    bool chk_three = IsInValuesList(deleteList, (void*)refHandle_three, false);
+
+    if(chk_one) return 0;
+    if(refHandle_two && chk_two) return 0;
+    if(refHandle_three && chk_three) return 0;
+
+    pDynamicSixArgFunc = (pSixArgProt)(server_srv + 0x00644C00);
+    return pDynamicSixArgFunc(arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
@@ -645,7 +680,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007947B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), g_BmsUtils.getCppAddr(Hooks::AcceptInputHook));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
@@ -774,7 +809,7 @@ int ValueListItems(ValueList list, bool lock_mutex)
     return counter;
 }
 
-void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)
+bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)
 {
     if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
 
@@ -787,7 +822,7 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
             if((uint32_t)aValue->value == (uint32_t)head->value)
             {
                 if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
-                return;
+                return false;
             }
         
             aValue = aValue->nextVal;
@@ -804,7 +839,7 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
             {
                 aValue->nextVal = head;
                 if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
-                return;
+                return true;
             }
 
             aValue = aValue->nextVal;
@@ -815,4 +850,5 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
     *list = head;
 
     if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    return true;
 }
