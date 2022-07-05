@@ -32,6 +32,9 @@ pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
+uint32_t scheduled_entity;
+uint32_t queue_amount;
+ValueList deleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -86,6 +89,9 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
+    scheduled_entity = 0;
+    queue_amount = 0;
+    deleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -108,10 +114,6 @@ void ApplySingleHooks()
     uint32_t hook_game_frame_delete_list = server_srv + 0x00944FAF;
     offset = (uint32_t)g_BmsUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
-
-    uint32_t hook_clean_phys = server_srv + 0x00A658DD;
-    offset = (uint32_t)g_BmsUtils.getCppAddr(Hooks::EmptyCall) - hook_clean_phys - 5;
-    *(uint32_t*)(hook_clean_phys+1) = offset;
 }
 
 void DisableCacheCvars()
@@ -247,14 +249,19 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 
     if(isTicking)
     {
-        if(strcmp(clsname, "player_ragdoll") == 0)
+        if(queue_amount > 100)
         {
-            rootconsole->ConsolePrint("stopped [%s]!", clsname);
-            return 0;
+            rootconsole->ConsolePrint("Queue deletion limit reached!");
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            return pDynamicOneArgFunc(arg0); 
         }
+
+        Value* delEnt = CreateNewValue((void*)refHandle);
+        InsertToValuesList(deleteList, delEnt, true, true, false);
+        queue_amount++;
+        return 0;
     }
 
-    //rootconsole->ConsolePrint("removed: [%s]", clsname);
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -271,9 +278,42 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
-    pDynamicOneArgFunc(arg0);
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
+
+    Value* firstHandle = *deleteList;
+
+    if(firstHandle)
+    {
+        Value* nextHandle = firstHandle->nextVal;
+        scheduled_entity = (uint32_t)(firstHandle->value);
+        free(*deleteList);
+        *deleteList = nextHandle;
+        queue_amount--;
+
+        uint32_t object = GetCBaseEntity(scheduled_entity);
+
+        if(object)
+        {
+            char* clsname = (char*)(*(uint32_t*)(object+0x64));
+            rootconsole->ConsolePrint("Removed: [%s]", clsname);
+            
+            //UTIL_Remove
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            pDynamicOneArgFunc(object+0x14);
+        }
+
+        scheduled_entity = 0;
+    }
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
@@ -286,13 +326,17 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
+    
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc(arg0);
 
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
 
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
     return 0;
 }
@@ -303,13 +347,7 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 
     if(isTicking)
     {
-        if(strcmp((char*)arg0, "player_ragdoll") == 0
-        || strcmp((char*)arg0, "prop_physics") == 0
-        || strcmp((char*)arg0, "prop_dynamic") == 0)
-        {
-            rootconsole->ConsolePrint("cancelled creation [%s]", arg0);
-            return 0;
-        }
+
     }
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
@@ -618,9 +656,9 @@ void HookFunctionsWithCpp()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A85ED0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007947B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007947B0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CA00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
 void* BmsUtils::getCppAddr(auto classAddr)
