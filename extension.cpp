@@ -32,10 +32,12 @@ pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
-uint32_t scheduled_entity;
-uint32_t queue_amount;
+uint32_t* queue_amount_fast;
+uint32_t* queue_amount_slow;
 uint32_t frames;
+uint32_t slow_frames;
 ValueList deleteList;
+ValueList slowDeleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -90,10 +92,14 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
-    scheduled_entity = 0;
-    queue_amount = 0;
+    queue_amount_fast = (uint32_t*)malloc(sizeof(int*));
+    queue_amount_slow = (uint32_t*)malloc(sizeof(int*));
+    *queue_amount_fast = 0;
+    *queue_amount_slow = 0;
     frames = 0;
+    slow_frames = 0;
     deleteList = AllocateValuesList();
+    slowDeleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -248,7 +254,9 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 
     if(isTicking)
     {
-        if(queue_amount > 300)
+        if(strcmp(clsname, "logic_auto") == 0) return 0;
+
+        if(*queue_amount_fast > 300)
         {
             rootconsole->ConsolePrint("Queue deletion limit reached!");
             pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -256,12 +264,46 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
         }
 
         Value* delEnt = CreateNewValue((void*)refHandle);
-        if(InsertToValuesList(deleteList, delEnt, true, true, false)) queue_amount++;
+        if(InsertToValuesList(deleteList, delEnt, true, true, false))
+        {
+            *queue_amount_fast = *queue_amount_fast + 1;
+        }
+        
         return 0;
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
+}
+
+bool RemoveFirstEntity(ValueList passedInDeleteList, uint32_t* queue_amountPassedIn)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    Value* firstHandle = *passedInDeleteList;
+
+    if(firstHandle)
+    {
+        Value* nextHandle = firstHandle->nextVal;
+        uint32_t scheduled_entity = (uint32_t)(firstHandle->value);
+        free(*passedInDeleteList);
+        *passedInDeleteList = nextHandle;
+        *queue_amountPassedIn = *queue_amountPassedIn - 1;
+
+        uint32_t object = GetCBaseEntity(scheduled_entity);
+
+        if(object)
+        {
+            char* clsname = (char*)(*(uint32_t*)(object+0x64));
+            rootconsole->ConsolePrint("Removed: [%s]", clsname);
+            
+            //UTIL_Remove
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            pDynamicOneArgFunc(object+0x14);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 uint32_t Hooks::GameFrameHook(uint32_t arg0)
@@ -272,40 +314,23 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     disable_delete_list = true;
     isTicking = true;
     frames++;
+    //slow_frames++;
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    if(frames > 5)
+    if(frames > 10)
     {
-        Value* firstHandle = *deleteList;
-
-        if(firstHandle)
-        {
-            Value* nextHandle = firstHandle->nextVal;
-            scheduled_entity = (uint32_t)(firstHandle->value);
-            free(*deleteList);
-            *deleteList = nextHandle;
-            queue_amount--;
-
-            uint32_t object = GetCBaseEntity(scheduled_entity);
-
-            if(object)
-            {
-                char* clsname = (char*)(*(uint32_t*)(object+0x64));
-                rootconsole->ConsolePrint("Removed: [%s]", clsname);
-                
-                //UTIL_Remove
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-                pDynamicOneArgFunc(object+0x14);
-            }
-
-            scheduled_entity = 0;
-        }
-
+        RemoveFirstEntity(deleteList, queue_amount_fast);
         frames = 0;
     }
+
+    /*if(slow_frames > 500)
+    {
+        RemoveFirstEntity(slowDeleteList, queue_amount_slow);
+        slow_frames = 0;
+    }*/
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
@@ -380,9 +405,41 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
     bool chk_two = IsInValuesList(deleteList, (void*)refHandle_two, false);
     bool chk_three = IsInValuesList(deleteList, (void*)refHandle_three, false);
 
-    if(chk_one) return 0;
-    if(refHandle_two && chk_two) return 0;
-    if(refHandle_three && chk_three) return 0;
+    if(chk_one)
+    {
+        char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+        rootconsole->ConsolePrint("Input Disabled: [%s] [%s]", arg1, clsname);
+        //RemoveFromValuesList(deleteList, (void*)refHandle_one, false);
+        /*Value* delEnt = CreateNewValue((void*)refHandle_one);
+        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
+        *queue_amount_slow = *queue_amount_slow + 1;
+        slow_frames = 0;*/
+        return 0;
+    }
+
+    if(refHandle_two && chk_two)
+    {
+        char* clsname =  (char*) ( *(uint32_t*)(arg2+0x64) );
+        rootconsole->ConsolePrint("Input Disabled: [%s] [%s]", arg1, clsname);
+        //RemoveFromValuesList(deleteList, (void*)refHandle_two, false);
+        /*Value* delEnt = CreateNewValue((void*)refHandle_two);
+        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
+        *queue_amount_slow = *queue_amount_slow + 1;
+        slow_frames = 0;*/
+        return 0;
+    }
+
+    if(refHandle_three && chk_three)
+    {
+        char* clsname =  (char*) ( *(uint32_t*)(arg3+0x64) );
+        rootconsole->ConsolePrint("Input Disabled: [%s] [%s]", arg1, clsname);
+        //RemoveFromValuesList(deleteList, (void*)refHandle_three, false);
+        /*Value* delEnt = CreateNewValue((void*)refHandle_three);
+        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
+        *queue_amount_slow = *queue_amount_slow + 1;
+        slow_frames = 0;*/
+        return 0;
+    }
 
     pDynamicSixArgFunc = (pSixArgProt)(server_srv + 0x00644C00);
     return pDynamicSixArgFunc(arg0, arg1, arg2, arg3, arg4, arg5);
