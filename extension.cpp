@@ -342,6 +342,10 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
+
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
