@@ -33,6 +33,7 @@ typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);
@@ -52,6 +53,7 @@ void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 uint32_t GetCBaseEntity(uint32_t EHandle);
+bool RemoveFirstEntity(ValueList passedInDeleteList);
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
@@ -114,6 +116,7 @@ public:
 	static uint32_t PhysCleanup();
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
+	static uint32_t InputBreakNExplodeHook(uint32_t arg0);
 };
 
 /**

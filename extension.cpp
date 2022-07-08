@@ -32,12 +32,8 @@ pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
-uint32_t* queue_amount_fast;
-uint32_t* queue_amount_slow;
 uint32_t frames;
-uint32_t slow_frames;
 ValueList deleteList;
-ValueList slowDeleteList;
 
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -92,14 +88,8 @@ bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
-    queue_amount_fast = (uint32_t*)malloc(sizeof(int*));
-    queue_amount_slow = (uint32_t*)malloc(sizeof(int*));
-    *(uint32_t*)(queue_amount_fast) = 0;
-    *(uint32_t*)(queue_amount_slow) = 0;
     frames = 0;
-    slow_frames = 0;
     deleteList = AllocateValuesList();
-    slowDeleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
     HookFunctionsWithC();
@@ -251,39 +241,28 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     uint32_t realObject = pDynamicOneArgFunc(arg0);
     uint32_t refHandle = *(uint32_t*)(realObject+0x334);
     char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
-    uint32_t actual_object = GetCBaseEntity(refHandle);
-
-    if(actual_object)
-    {
-        //MakeDormant
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006426B0);
-        pDynamicOneArgFunc(actual_object);
-    }
 
     if(isTicking)
     {
-        /*rootconsole->ConsolePrint("amount: %d", *(uint32_t*)(queue_amount_fast));
+        uint32_t actual_object = GetCBaseEntity(refHandle);
 
-        if(*(uint32_t*)(queue_amount_fast) > 300)
+        if(actual_object)
         {
-            rootconsole->ConsolePrint("Queue deletion limit reached!");
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            return pDynamicOneArgFunc(arg0); 
+            //MakeDormant
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006426B0);
+            pDynamicOneArgFunc(actual_object);
         }
 
         Value* delEnt = CreateNewValue((void*)refHandle);
         InsertToValuesList(deleteList, delEnt, true, true, false);
-        
-        uint32_t current_val = *(uint32_t*)(queue_amount_fast);
-        *(uint32_t*)(queue_amount_fast) = current_val + 1;
-        return 0;*/
+        return 0;
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
     return pDynamicOneArgFunc(arg0);
 }
 
-bool RemoveFirstEntity(ValueList passedInDeleteList, uint32_t* queue_amountPassedIn)
+bool RemoveFirstEntity(ValueList passedInDeleteList)
 {
     pOneArgProt pDynamicOneArgFunc;
     Value* firstHandle = *passedInDeleteList;
@@ -305,9 +284,6 @@ bool RemoveFirstEntity(ValueList passedInDeleteList, uint32_t* queue_amountPasse
             //UTIL_Remove
             pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
             pDynamicOneArgFunc(object+0x14);
-
-            uint32_t current_val = *(uint32_t*)(queue_amountPassedIn);
-            *(uint32_t*)(queue_amountPassedIn) = current_val - 1;
             return true;
         }
     }
@@ -322,24 +298,21 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     disable_delete_list = true;
     isTicking = true;
-    //frames++;
-    //slow_frames++;
+    frames++;
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    /*if(frames > 10)
+    if(frames > 10)
     {
-        RemoveFirstEntity(deleteList, queue_amount_fast);
+        RemoveFirstEntity(deleteList);
         frames = 0;
-    }*/
+    }
 
-    /*if(slow_frames > 500)
-    {
-        RemoveFirstEntity(slowDeleteList, queue_amount_slow);
-        slow_frames = 0;
-    }*/
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
@@ -367,12 +340,42 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     return 0;
 }
 
+uint32_t Hooks::InputBreakNExplodeHook(uint32_t arg0)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pOneArgProt pDynamicOneArgFunc;
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+    uint32_t ent_counter = 0;
+    uint32_t ent = 0;
+    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"env_explosion")) != 0) ent_counter++;
+
+    if(ent_counter >= 100)
+    {
+        rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008B7530);
+    return pDynamicOneArgFunc(arg0);
+}
 uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
 
     if(isTicking)
     {
+        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+        uint32_t ent_counter = 0;
+        uint32_t ent = 0;
+        while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0) ent_counter++;
+
+        if(ent_counter >= 4032)
+        {
+            rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
+            return 0;
+        }
+
         rootconsole->ConsolePrint("Created: %s", arg0);
     }
 
@@ -386,8 +389,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
 
-    //if(IsInValuesList(deleteList, (void*)refHandle, false)) return 0;
-    //rootconsole->ConsolePrint("simulating [%s]", clsna0x00A65620me);
+    if(IsInValuesList(deleteList, (void*)refHandle, false)) return 0;
+    //rootconsole->ConsolePrint("simulating [%s]", clsname);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
@@ -396,9 +399,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
 uint32_t Hooks::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
-    return pDynamicTwoArgFunc(arg0, (uint32_t)0xFFFFFFFF);
+    return Hooks::CreateEntityByNameHook(arg0, (uint32_t)0xFFFFFFFF);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
@@ -421,11 +422,6 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
     {
         char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
         rootconsole->ConsolePrint("arg0 Input Disabled: [%s] [%s]", arg1, clsname);
-        //RemoveFromValuesList(deleteList, (void*)refHandle_one, false);
-        /*Value* delEnt = CreateNewValue((void*)refHandle_one);
-        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
-        *queue_amount_slow = *queue_amount_slow + 1;
-        slow_frames = 0;*/
         return 0;
     }
 
@@ -433,25 +429,14 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
     {
         char* clsname =  (char*) ( *(uint32_t*)(arg2+0x64) );
         rootconsole->ConsolePrint("arg2 Input Disabled: [%s] [%s]", arg1, clsname);
-        //RemoveFromValuesList(deleteList, (void*)refHandle_two, false);
-        /*Value* delEnt = CreateNewValue((void*)refHandle_two);
-        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
-        *queue_amount_slow = *queue_amount_slow + 1;
-        slow_frames = 0;*/
         return 0;
     }
 
-    /*if(refHandle_three && chk_three)
+    if(refHandle_three && chk_three)
     {
         char* clsname =  (char*) ( *(uint32_t*)(arg3+0x64) );
         rootconsole->ConsolePrint("arg3 Input Disabled: [%s] [%s]", arg1, clsname);
-        //RemoveFromValuesList(deleteList, (void*)refHandle_three, false);
-        Value* delEnt = CreateNewValue((void*)refHandle_three);
-        InsertToValuesList(slowDeleteList, delEnt, true, true, false);
-        *queue_amount_slow = *queue_amount_slow + 1;
-        slow_frames = 0;
-        return 0;
-    }*/
+    }
 
     pDynamicSixArgFunc = (pSixArgProt)(server_srv + 0x00644C00);
     return pDynamicSixArgFunc(arg0, arg1, arg2, arg3, arg4, arg5);
@@ -750,7 +735,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), g_BmsUtils.getCppAddr(Hooks::AcceptInputHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B7530), g_BmsUtils.getCppAddr(Hooks::InputBreakNExplodeHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00ADE0F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
