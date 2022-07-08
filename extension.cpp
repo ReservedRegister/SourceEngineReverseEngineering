@@ -262,9 +262,9 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
             pDynamicOneArgFunc(actual_object);
         }
 
-        Value* delEnt = CreateNewValue((void*)refHandle);
+        /*Value* delEnt = CreateNewValue((void*)refHandle);
         InsertToValuesList(deleteList, delEnt, true, true, false);
-        return 0;
+        return 0;*/
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -307,21 +307,17 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     disable_delete_list = true;
     isTicking = true;
-    frames++;
+    //frames++;
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     pDynamicOneArgFunc(0);
 
-    if(frames > 10)
+    /*if(frames > 10)
     {
         RemoveFirstEntity(deleteList);
         frames = 0;
-    }
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
+    }*/
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
@@ -335,16 +331,16 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
     return 0;
 }
@@ -356,7 +352,7 @@ uint32_t Hooks::InputBreakNExplodeHook(uint32_t arg0)
 
     if(isTicking)
     {
-        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+        /*pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
         uint32_t ent_counter = 0;
         uint32_t ent = 0;
         while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"env_explosion")) != 0) ent_counter++;
@@ -365,7 +361,7 @@ uint32_t Hooks::InputBreakNExplodeHook(uint32_t arg0)
         {
             rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
             return 0;
-        }
+        }*/
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008B7530);
@@ -378,7 +374,7 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 
     if(isTicking)
     {
-        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+        /*pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
         uint32_t ent_counter = 0;
         uint32_t ent = 0;
         while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0) ent_counter++;
@@ -387,7 +383,7 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
         {
             rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
             return 0;
-        }
+        }*/
 
         rootconsole->ConsolePrint("Created: %s", arg0);
     }
@@ -402,7 +398,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
 
-    if(IsInValuesList(deleteList, (void*)refHandle, false)) return 0;
+    //if(IsInValuesList(deleteList, (void*)refHandle, false)) return 0;
     //rootconsole->ConsolePrint("simulating [%s]", clsname);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
@@ -760,8 +756,8 @@ void HookFunctionsWithCpp()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), g_BmsUtils.getCppAddr(Hooks::AcceptInputHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B7530), g_BmsUtils.getCppAddr(Hooks::InputBreakNExplodeHook));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), g_BmsUtils.getCppAddr(Hooks::AcceptInputHook));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B7530), g_BmsUtils.getCppAddr(Hooks::InputBreakNExplodeHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00ADE0F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
 
