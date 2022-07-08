@@ -112,6 +112,15 @@ void ApplySingleHooks()
     uint32_t hook_game_frame_delete_list = server_srv + 0x00944FAF;
     offset = (uint32_t)g_BmsUtils.getCppAddr(Hooks::GameFrameHook) - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
+
+    uint32_t panim_crash_fix_two = server_srv + 0x0052098D;
+    *(uint8_t*)(panim_crash_fix_two) = 0xE9;
+    *(uint32_t*)(panim_crash_fix_two+1) = 0x1D6;
+
+    uint32_t delete_panim_call = server_srv + 0x00520803;
+    memset((void*)delete_panim_call, 0x90, 5);
+    *(uint8_t*)(delete_panim_call) = 0x31;
+    *(uint8_t*)(delete_panim_call+1) = 0xC0;
 }
 
 void DisableCacheCvars()
@@ -427,22 +436,32 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(chk_one)
     {
-        char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
-        rootconsole->ConsolePrint("arg0 Input Disabled: [%s] [%s]", arg1, clsname);
-        return 0;
+        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
+        {
+            char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+            rootconsole->ConsolePrint("arg0 Input Disabled: [%s] [%s]", arg1, clsname);
+            return 0;
+        }
     }
 
     if(refHandle_two && chk_two)
     {
-        char* clsname =  (char*) ( *(uint32_t*)(arg2+0x64) );
-        rootconsole->ConsolePrint("arg2 Input Disabled: [%s] [%s]", arg1, clsname);
-        return 0;
+        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
+        {
+            char* clsname =  (char*) ( *(uint32_t*)(arg2+0x64) );
+            rootconsole->ConsolePrint("arg2 Input Disabled: [%s] [%s]", arg1, clsname);
+            return 0;
+        }
     }
 
     if(refHandle_three && chk_three)
     {
-        char* clsname =  (char*) ( *(uint32_t*)(arg3+0x64) );
-        rootconsole->ConsolePrint("arg3 Input Disabled: [%s] [%s]", arg1, clsname);
+        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
+        {
+            char* clsname =  (char*) ( *(uint32_t*)(arg3+0x64) );
+            rootconsole->ConsolePrint("arg3 Input Disabled: [%s] [%s]", arg1, clsname);
+            return 0;
+        }
     }
 
     pDynamicSixArgFunc = (pSixArgProt)(server_srv + 0x00644C00);
@@ -741,7 +760,7 @@ void HookFunctionsWithCpp()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A83F60), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A840E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), g_BmsUtils.getCppAddr(Hooks::AcceptInputHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B7530), g_BmsUtils.getCppAddr(Hooks::InputBreakNExplodeHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00ADE0F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 }
