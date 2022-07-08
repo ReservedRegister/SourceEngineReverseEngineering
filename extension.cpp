@@ -344,15 +344,19 @@ uint32_t Hooks::InputBreakNExplodeHook(uint32_t arg0)
 {
     pThreeArgProt pDynamicThreeArgFunc;
     pOneArgProt pDynamicOneArgFunc;
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-    uint32_t ent_counter = 0;
-    uint32_t ent = 0;
-    while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"env_explosion")) != 0) ent_counter++;
 
-    if(ent_counter >= 100)
+    if(isTicking)
     {
-        rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
-        return 0;
+        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
+        uint32_t ent_counter = 0;
+        uint32_t ent = 0;
+        while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"env_explosion")) != 0) ent_counter++;
+
+        if(ent_counter >= 150)
+        {
+            rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
+            return 0;
+        }
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008B7530);
@@ -399,7 +403,10 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
 uint32_t Hooks::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
-    return Hooks::CreateEntityByNameHook(arg0, (uint32_t)0xFFFFFFFF);
+    pFourArgProt pDynamicFourArgFunc;
+    if(isTicking) return Hooks::CreateEntityByNameHook(arg0, (uint32_t)0xFFFFFFFF);
+    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00648E90);
+    return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
