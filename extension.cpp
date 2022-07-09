@@ -117,15 +117,11 @@ void ApplySingleHooks()
     *(uint8_t*)(panim_crash_fix_two) = 0xE9;
     *(uint32_t*)(panim_crash_fix_two+1) = 0x1D6;
 
-    uint32_t delete_panim_call = server_srv + 0x00520803;
-    memset((void*)delete_panim_call, 0x90, 5);
-    *(uint8_t*)(delete_panim_call) = 0x31;
-    *(uint8_t*)(delete_panim_call+1) = 0xC0;
+    uint32_t delete_panim_call = server_srv + 0x0053CF11;
+    *(uint8_t*)(delete_panim_call) = 0xEB;
 
-    uint32_t delete_panim_call_two = server_srv + 0x00520F93;
-    memset((void*)delete_panim_call_two, 0x90, 5);
-    *(uint8_t*)(delete_panim_call_two) = 0x31;
-    *(uint8_t*)(delete_panim_call_two+1) = 0xC0;
+    uint32_t delete_panim_call_two = server_srv + 0x0053CFC5;
+    memset((void*)delete_panim_call_two, 0x90, 2);
 }
 
 void DisableCacheCvars()
