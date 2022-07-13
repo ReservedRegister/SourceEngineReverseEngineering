@@ -339,7 +339,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
 
     PopulateHookExclusionLists();
-    HookFunctionsWithC();
     return true;
 }
 
@@ -362,10 +361,9 @@ void SynergyUtils::SDK_OnAllLoaded()
     PatchDropships();
     PatchOthers();
 
+    HookFunctionsWithC();
     HookFunctionsWithCpp();
-
     RestoreMemoryProtections();
-
     DisableCacheCvars();
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
 }
