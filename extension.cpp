@@ -139,6 +139,7 @@ bool protect_player;
 bool restore_delay;
 bool restore_delay_lock;
 bool disable_delete_list;
+bool isTicking;
 int frames;
 uint32_t weapon_substitute;
 uint32_t global_map_ents;
@@ -173,6 +174,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restoring = false;
     protect_player = false;
     frames = 0;
+    isTicking = false;
     restore_delay = false;
     restore_delay_lock = false;
     disable_delete_list = false;
@@ -1310,8 +1312,8 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 
     if(chk_ref)
     {
-        if(IsEntityMarkedForDeletion(chk_ref))
-            return 0;
+        //if(IsEntityMarkedForDeletion(chk_ref))
+        //    return 0;
         
         char* classname = (char*) ( *(uint32_t*)(chk_ref+0x68) );
 
@@ -1321,8 +1323,8 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
             return 0;
         }
 
-        Value* new_deleted_entity = CreateNewValue((void*)m_refHandle);
-        InsertToValuesList(entityDeleteList, new_deleted_entity, false, true, false);
+        //Value* new_deleted_entity = CreateNewValue((void*)m_refHandle);
+        //InsertToValuesList(entityDeleteList, new_deleted_entity, false, true, false);
 
         pKillEntityDirectFunc(chk_ref);
     }
@@ -1335,7 +1337,7 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     if(disable_delete_list) return 0;
-    DeleteAllValuesInList(entityDeleteList, false, false);
+    //DeleteAllValuesInList(entityDeleteList, false, false);
     
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
     return pDynamicOneArgFunc(arg0);
@@ -2001,6 +2003,8 @@ void UpdateGlobalListGlobals()
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
+    isTicking = true;
+    pOneArgProt pDynamicOneArgFunc;
     Hooks::CleanupDeleteListHook(0);
 
     if(savegame && !savegame_lock)
@@ -2033,9 +2037,15 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     frames++;
 
     if(restore_delay) return 0;
-    pOneArgProt pDynamicOneArgFunc;
-
     Hooks::CleanupDeleteListHook(0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
@@ -2049,37 +2059,12 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
-
-    SimulatePlayers();
-
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
     
     UpdateGlobalListGlobals();
     return 0;
-}
-
-void SimulatePlayers()
-{
-    uint32_t ent = 0;
-    
-    while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
-    {
-        Hooks::CleanupDeleteListHook(0);
-
-        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A311D0);
-        pDynamicOneArgFunc(ent);
-
-        Hooks::CleanupDeleteListHook(0);
-    }
 }
 
 void SaveLinkedList(ValueList leakList)
@@ -2687,7 +2672,7 @@ void PatchOthers()
     //memset((void*)patch_location_four, 0x90, length_four);
     //*(uint16_t*)(patch_location_four) = 0xC031;
     
-    *(uint32_t*)(patch_location_four) = (uint32_t)CreateEntityByNameHook;
+    //*(uint32_t*)(patch_location_four) = (uint32_t)CreateEntityByNameHook;
 
     //*(uint32_t*)(patch_location_four) = (uint32_t)phook_53D20FPtr;
 
@@ -3298,9 +3283,13 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 {
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x68) );
 
-    if(strcmp(clsname, "player") == 0)
+    if(strcmp(clsname, "player") != 0)
     {
-        return 0;
+        if(Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"player") == 0)
+        {
+            //dont simulate entity other than player when there are no active players!
+            return 0;
+        }
     }
     
     disable_delete_list = true;
@@ -3597,12 +3586,15 @@ uint32_t DoorCycleResolve(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t 
 
 uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 {
-    if(strcmp((char*)arg1, "prop_vehicle_mp") == 0)
+    pTwoArgProt pDynamicTwoArgFunc;
+    
+    if(strcmp((char*)arg0, "prop_vehicle_mp") == 0)
     {
         return CreateEntityCallFunc(arg0, (uint32_t)"prop_vehicle_jeep");
     }
 
-    return CreateEntityCallFunc(arg0, arg1);
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AFCA0);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t FixManhackCrash(uint32_t arg0)
@@ -3805,11 +3797,28 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
 
-    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pOneArgProt pDynamicOneArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
+    uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
+
+    //lock mdl cache because thats what latest sdk2013 black mesa code does
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
+    pDynamicOneArgFunc(main_engine_global);
+
+
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
     pDynamicThreeArgFunc(arg0, 1, 1);
 
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
-    return pDynamicOneArgFunc(arg0);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+
+
+    //unlock
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
+    pDynamicOneArgFunc(main_engine_global);
+    return returnVal;
 }
 
 uint32_t Hooks::GivePlayerWeaponsHook(uint32_t arg0)
@@ -3857,7 +3866,7 @@ uint32_t Hooks::FindEntityByHandle(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
     uint32_t object = pDynamicTwoArgFunc(arg0, arg1);
 
-    if(!IsEntityMarkedForDeletion(object))
+    /*if(!IsEntityMarkedForDeletion(object))
         return object;
     else
     {
@@ -3866,7 +3875,9 @@ uint32_t Hooks::FindEntityByHandle(uint32_t arg0, uint32_t arg1)
         uint32_t next_object = pDynamicTwoArgFunc(arg0, object);
         while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicTwoArgFunc(arg0, next_object);
         return next_object;
-    }
+    }*/
+
+    return object;
 }
 
 uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -3874,7 +3885,7 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
     pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x006B2740);
     uint32_t object = pDynamicThreeArgFunc(arg0, arg1, arg2);
 
-    if(!IsEntityMarkedForDeletion(object))
+    /*if(!IsEntityMarkedForDeletion(object))
         return object;
     else
     {
@@ -3883,7 +3894,9 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
         uint32_t next_object = pDynamicThreeArgFunc(arg0, object, arg2);
         while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicThreeArgFunc(arg0, next_object, arg2);
         return next_object;
-    }
+    }*/
+
+    return object;
 }
 
 uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
@@ -3891,7 +3904,7 @@ uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, ui
     pSevenArgProt pDynamicSevenArgFunc = (pSevenArgProt)(server_srv + 0x006B2CA0);
     uint32_t object = pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
 
-    if(!IsEntityMarkedForDeletion(object))
+    /*if(!IsEntityMarkedForDeletion(object))
         return object;
     else
     {
@@ -3900,7 +3913,9 @@ uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, ui
         uint32_t next_object = pDynamicSevenArgFunc(arg0, object, arg2, arg3, arg4, arg5, arg6);
         while(IsEntityMarkedForDeletion(next_object)) next_object = pDynamicSevenArgFunc(arg0, next_object, arg2, arg3, arg4, arg5, arg6);
         return next_object;
-    }
+    }*/
+
+    return object;
 }
 
 uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
@@ -4252,6 +4267,7 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
 uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
+    isTicking = false;
     transition = false;
     
     *(uint8_t*)(*(uint32_t*)(server_srv + 0x00FA0CF0)) = 0;
@@ -4553,8 +4569,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), g_SynUtils.getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), g_SynUtils.getCppAddr(Hooks::PlayerSpawnDirectHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), g_SynUtils.getCppAddr(Hooks::GivePlayerWeaponsHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2120), g_SynUtils.getCppAddr(Hooks::WeaponGetHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B58C0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B8F90), (void*)(server_srv + 0x00A657F0));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), g_SynUtils.getCppAddr(Hooks::FindEntityByHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), g_SynUtils.getCppAddr(Hooks::FindEntityByClassnameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), g_SynUtils.getCppAddr(Hooks::FindEntityByName));
@@ -4577,7 +4592,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3120), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), g_SynUtils.getCppAddr(Hooks::LevelChangeSafeHook));
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x00064470), g_SynUtils.getCppAddr(Hooks::ReadExHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AFCA0), (void*)CreateEntityByNameHook);
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A5A1F0), g_SynUtils.getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), g_SynUtils.getCppAddr(Hooks::EmptyCall));

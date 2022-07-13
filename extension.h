@@ -116,7 +116,6 @@ void HookHostChangelevel();
 void PatchOthers();
 void HookFunctionsWithC();
 void HookFunctionsWithCpp();
-void SimulatePlayers();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
