@@ -275,7 +275,7 @@ public:
 class SynergyUtils : public SDKExtension
 {
 public:
-	void* getCppAddr(auto classAddr);
+	static void* getCppAddr(auto classAddr);
 
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.
