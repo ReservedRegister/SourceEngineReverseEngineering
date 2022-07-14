@@ -333,21 +333,41 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         frames = 0;
     }*/
 
+    //FlushAllUnlocked (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
+
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
+
+    //FlushAllUnlocked (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
     pDynamicOneArgFunc(0);
 
+    //FlushAllUnlocked (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
+
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
+    //FlushAllUnlocked (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
+
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
+
+    //FlushAllUnlocked (bone cache)
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    pDynamicOneArgFunc(server_srv + 0x01014880);
     return 0;
 }
 
@@ -764,6 +784,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004EC1A0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
