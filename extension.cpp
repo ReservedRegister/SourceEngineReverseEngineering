@@ -376,7 +376,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,0x0073CDFC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B48,10
+        0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B48,10,0x00739AF1,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -2081,7 +2081,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     isTicking = true;
     pOneArgProt pDynamicOneArgFunc;
-    Hooks::CleanupDeleteListHook(0);
 
     if(savegame && !savegame_lock)
     {
@@ -2090,7 +2089,13 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     }
     else if(savegame && savegame_lock && frames >= 20)
     {
-        if(!restoring) SaveGameSafe(false);
+        if(!restoring)
+        {
+            Hooks::CleanupDeleteListHook(0);
+            SaveGameSafe(false);
+            Hooks::CleanupDeleteListHook(0);
+        }
+        
         savegame = false;
         savegame_lock = false;
     }
@@ -2114,15 +2119,16 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     kill_frames++;
 
     if(restore_delay) return 0;
-    Hooks::CleanupDeleteListHook(0);
 
     if(kill_frames > 10)
     {
         while(KillAllSafely());
+    }
+    else if(kill_frames > 20)
+    {
+        Hooks::CleanupDeleteListHook(0);
         kill_frames = 0;
     }
-
-    Hooks::CleanupDeleteListHook(0);
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
