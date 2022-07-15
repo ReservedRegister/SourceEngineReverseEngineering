@@ -141,6 +141,7 @@ bool restore_delay_lock;
 bool disable_delete_list;
 bool isTicking;
 int frames;
+int kill_frames;
 uint32_t weapon_substitute;
 uint32_t global_map_ents;
 uint32_t vpk_free_elements;
@@ -174,6 +175,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restoring = false;
     protect_player = false;
     frames = 0;
+    kill_frames = 0;
     isTicking = false;
     restore_delay = false;
     restore_delay_lock = false;
@@ -413,9 +415,9 @@ void PatchRestoring()
     *(uint8_t*)(exploit_patch_one) = 0xE9;
     *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
 
-    uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
+    /*uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
     *(uint8_t*)(player_think_patch_one) = 0xE9;
-    *(uint32_t*)(player_think_patch_one+1) = 0xD1;
+    *(uint32_t*)(player_think_patch_one+1) = 0xD1;*/
 
     uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
@@ -1321,8 +1323,13 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
             return 0;
         }
 
-        //Value* new_deleted_entity = CreateNewValue((void*)m_refHandle);
-        //InsertToValuesList(entityDeleteList, new_deleted_entity, false, true, false);
+        if(isTicking)
+        {
+            //rootconsole->ConsolePrint("Added for deletion [%s]", classname);
+            Value* new_deleted_entity = CreateNewValue((void*)m_refHandle);
+            InsertToValuesList(entityDeleteList, new_deleted_entity, true, true, false);
+            return 0;
+        }
 
         pKillEntityDirectFunc(chk_ref);
     }
@@ -1532,7 +1539,7 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*1.115+8;
+    uint32_t enlarged_size = nitems*1.115;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
@@ -1549,7 +1556,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.115+8);
+    uint32_t newRef = (uint32_t)malloc(size*1.115);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1563,7 +1570,7 @@ uint32_t MallocHook(uint32_t size)
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.115+8);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*3.5);
 
     /*void* returnAddr = __builtin_return_address(0);
     RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
@@ -1590,7 +1597,7 @@ uint32_t OperatorNewHook(uint32_t size)
 uint32_t OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*1.115+8);
+    uint32_t newRef = (uint32_t)malloc(size*1.115);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1962,6 +1969,7 @@ uint32_t SaveGameSafe(bool use_internal_savename)
 
 uint32_t FrameLockHook(uint32_t arg0)
 {
+    while(KillAllSafely());
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
     Hooks::CleanupDeleteListHook(0);
@@ -1999,6 +2007,76 @@ void UpdateGlobalListGlobals()
     *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018) = count_valid_ents;
 }
 
+bool KillAllSafely()
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    Value* entDelHandle = *entityDeleteList;
+    ValueList safeDeleteList = AllocateValuesList();
+
+    while(entDelHandle)
+    {
+        Value* detachedValue = entDelHandle->nextVal;
+
+        Value* savecurrentEnt = CreateNewValue((void*)entDelHandle->value);
+        InsertToValuesList(safeDeleteList, savecurrentEnt, true, true, false);
+
+        free(entDelHandle);
+        entDelHandle = detachedValue;
+    }
+
+    *entityDeleteList = 0;
+
+    Value* snapEnt = *safeDeleteList;
+
+    while(snapEnt)
+    {
+        uint32_t kill_object = GetCBaseEntity((uint32_t)snapEnt->value);
+        Value* detachedValue = snapEnt->nextVal;
+
+        if(kill_object)
+        {
+            char* classname = (char*) ( *(uint32_t*)(kill_object+0x68) );
+            rootconsole->ConsolePrint("Killing [%s]", classname);
+            pKillEntityDirectFunc(kill_object);
+
+            //KillNow
+            //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64630);
+            //pDynamicOneArgFunc(kill_object);
+            
+            /*//IsMarkedForDeletion
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
+            uint32_t isMarked = pDynamicOneArgFunc(kill_object+0x18);
+
+            if(!isMarked)
+            {
+                //MarkForDeletion
+                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7ED0);
+                pDynamicOneArgFunc(kill_object+0x18);
+
+                //AddToDeleteList
+                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
+                pDynamicTwoArgFunc(CGlobalEntityList, kill_object+0x18);
+
+                
+
+                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A1A500);
+                while(pDynamicOneArgFunc(0))
+                {
+                    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A1EDA0);
+                    pDynamicTwoArgFunc(server_srv + 0x01032900, kill_object+0x18);
+                }
+            }*/
+        }
+
+        free(snapEnt);
+        snapEnt = detachedValue;
+    }
+
+    free(safeDeleteList);
+    return *entityDeleteList;
+}
+
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     isTicking = true;
@@ -2033,8 +2111,17 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         frames = 0;
     
     frames++;
+    kill_frames++;
 
     if(restore_delay) return 0;
+    Hooks::CleanupDeleteListHook(0);
+
+    if(kill_frames > 50)
+    {
+        while(KillAllSafely());
+        kill_frames = 0;
+    }
+
     Hooks::CleanupDeleteListHook(0);
 
     //UpdateClientData
@@ -2060,8 +2147,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
-    
-    UpdateGlobalListGlobals();
     return 0;
 }
 
@@ -4394,6 +4479,17 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     return EndFunction(arg1, arg2, arg3);
 }
 
+uint32_t Hooks::HookInstaKill(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    char* classname = (char*)(*(uint32_t*)(arg0+0x68));
+    //rootconsole->ConsolePrint("Insta killed [%s]", classname);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64630);
+    return pDynamicOneArgFunc(arg0);
+}
+
 void HookFunctionsWithC()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
@@ -4574,6 +4670,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), SynergyUtils::getCppAddr(Hooks::FindEntityByName));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), SynergyUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), SynergyUtils::getCppAddr(Hooks::HookEntityDelete));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));

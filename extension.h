@@ -120,6 +120,7 @@ void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 bool IsEntityMarkedForDeletion(uint32_t refHandle);
+bool KillAllSafely();
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
@@ -266,6 +267,7 @@ public:
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 	static uint32_t FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t WeaponGetHook(uint32_t arg0);
+	static uint32_t HookInstaKill(uint32_t arg0);
 };
 
 /**
