@@ -2116,7 +2116,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     if(restore_delay) return 0;
     Hooks::CleanupDeleteListHook(0);
 
-    if(kill_frames > 50)
+    if(kill_frames > 10)
     {
         while(KillAllSafely());
         kill_frames = 0;
