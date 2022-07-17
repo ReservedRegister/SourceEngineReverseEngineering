@@ -4448,6 +4448,13 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     //rootconsole->ConsolePrint("Insta killed [%s]", classname);
     uint32_t refHandleInsta = *(uint32_t*)(arg0+0x350);
 
+    if(isTicking)
+    {
+        rootconsole->ConsolePrint("slow killed instead [%s]", classname);
+        pKillEntityDirectFunc(arg0);
+        return 0;
+    }
+
     //InstaKill
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64630);
     return pDynamicOneArgFunc(arg0);
