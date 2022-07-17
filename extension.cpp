@@ -1568,7 +1568,7 @@ uint32_t MallocHook(uint32_t size)
 
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
-    if(old_ptr && new_size <= 0) return old_ptr;
+    if(new_size < 0) return 0;
     else if(old_ptr == 0) malloc(new_size*10.0);
     uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*10.0);
 
