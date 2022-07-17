@@ -119,7 +119,6 @@ void HookFunctionsWithCpp();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
-bool IsEntityMarkedForDeletion(uint32_t refHandle);
 bool KillAllSafely();
 
 ValueList AllocateValuesList();
