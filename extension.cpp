@@ -255,7 +255,13 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     played_gametags_list = AllocateValuesList();
     entityDeleteList = AllocateValuesList();
 
-    Value* new_gametag = CreateNewValue(copy_val((void*)"hl2", 4));
+    pOneArgProt pDynamicOneArgFunc;
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
+    uint32_t currentTag = pDynamicOneArgFunc(server_srv + 0x00FE17E0);
+
+    //rootconsole->ConsolePrint("\n\n\nCURRENT TAG: %s", currentTag);
+
+    Value* new_gametag = CreateNewValue(copy_val((void*)currentTag, strlen((char*)currentTag)+1));
     InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
 
     sv = engine_srv + 0x00324580;
