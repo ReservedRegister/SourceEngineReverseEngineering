@@ -109,7 +109,6 @@ void HookSaveRestoreThree();
 void HookSavingOne();
 void HookSavingTwo();
 void HookEdtSystem();
-void PatchEdtSystem();
 void PatchDropships();
 void HookSpawnServer();
 void HookHostChangelevel();

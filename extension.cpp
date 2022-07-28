@@ -140,6 +140,7 @@ bool restore_delay;
 bool restore_delay_lock;
 bool disable_delete_list;
 bool isTicking;
+bool firstplayer_hasjoined;
 int frames;
 int kill_frames;
 uint32_t weapon_substitute;
@@ -357,7 +358,6 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookVpkSystem();
     PatchVpkSystem();
     HookEdtSystem();
-    //PatchEdtSystem();
     HookSpawnServer();
     HookHostChangelevel();
     PatchDropships();
@@ -376,7 +376,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,0x0073CDFC,5,
-        0x0096026E,5,0x00815EF0,5,0x0073C6D3,2,0x00739B4D,5,0x00739AF1,5,0x00A316F0,5
+        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00739B48,5,0x00A316F0,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -1332,7 +1332,11 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
             return 0;
         }
 
-        pKillEntityDirectFunc(chk_ref);
+        //Util_Remove(ServerNetworkable*)
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64480);
+        pDynamicOneArgFunc(chk_ref+0x18);
+
+        //pKillEntityDirectFunc(chk_ref);
     }
     else
         rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
@@ -2088,13 +2092,17 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
+    if(savegame && !savegame_lock)
+    {
+        frames = 0;
+        savegame_lock = true;
+    }
+    else if(savegame && savegame_lock && frames >= 20)
+    {
+        if(!restoring) SaveGameSafe(false);
+        savegame = false;
+        savegame_lock = false;
+    }
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
@@ -2112,17 +2120,13 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
 
-    if(savegame && !savegame_lock)
-    {
-        frames = 0;
-        savegame_lock = true;
-    }
-    else if(savegame && savegame_lock && frames >= 20)
-    {
-        if(!restoring) SaveGameSafe(false);
-        savegame = false;
-        savegame_lock = false;
-    }
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
     
     if(frames >= 500) frames = 0;
     return 0;
@@ -2597,19 +2601,6 @@ void HookEdtSystem()
     rootconsole->ConsolePrint("--------------------- EDT system hooked ---------------------");   
 }
 
-void PatchEdtSystem()
-{
-    int length = 5;
-
-    uint32_t start = server_srv + 0x0073C6CC;
-    uint32_t offset = (uint32_t)PreEdtLoad - start - 5;
-
-    *(uint8_t*)(start) = 0xE8;
-    *(uint32_t*)(start+1) = offset;
-
-    rootconsole->ConsolePrint("--------------------- EDT system patched ---------------------");   
-}
-
 void PatchDropships()
 {
     int length = 5;
@@ -2970,9 +2961,10 @@ uint32_t EdtSystemHookFunc(uint32_t arg1)
 
 uint32_t PreEdtLoad(uint32_t arg1, uint32_t arg2)
 {
-    uint32_t returnVal = pEdtLoadFunc(arg1, arg2);
-    ReleaseLeakedMemory(leakedResourcesEdtSystem, false, 0, 0, 100);
-    return returnVal;
+    //uint32_t returnVal = pEdtLoadFunc(arg1, arg2);
+    //ReleaseLeakedMemory(leakedResourcesEdtSystem, false, 0, 0, 100);
+    //return returnVal;
+    return 0;
 }
 
 uint32_t SaveRestoreMemManage()
@@ -3324,10 +3316,14 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x68) );
 
-    if(strcmp(clsname, "player") != 0)
+    if(strcmp(clsname, "player") != 0 && firstplayer_hasjoined)
     {
-        if(Hooks::FindEntityByClassnameHook(CGlobalEntityList, 0, (uint32_t)"player") == 0)
+        //EntityGetFunctionByEdict
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
+
+        if(pDynamicOneArgFunc((uint32_t)1) == 0)
         {
+            //rootconsole->ConsolePrint("Server hibernating!");
             //dont simulate entity other than player when there are no active players!
             return 0;
         }
@@ -3864,6 +3860,8 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     //unlock
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
     pDynamicOneArgFunc(main_engine_global);
+
+    firstplayer_hasjoined = true;
     return returnVal;
 }
 
@@ -4308,6 +4306,7 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
 uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
+    firstplayer_hasjoined = false;
     isTicking = false;
     transition = false;
     
@@ -4376,8 +4375,8 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     DisableCacheCvars();
 
     //Remove soundent forever
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
-    pDynamicOneArgFunc(0);
+    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
+    //pDynamicOneArgFunc(0);
 
     restoring = false;
     savegame = true;
@@ -4451,7 +4450,7 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     if(isTicking)
     {
         rootconsole->ConsolePrint("slow killed instead [%s]", classname);
-        pKillEntityDirectFunc(arg0);
+        Hooks::HookEntityDelete(arg0);
         return 0;
     }
 
@@ -4464,10 +4463,11 @@ void HookFunctionsWithC()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AFCA0), (void*)CreateEntityByNameHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), (void*)PreEdtLoad);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B8F90), (void*)(server_srv + 0x00A657F0));
 
 
-    rootconsole->ConsolePrint("patching calloc()");
+    /*rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
@@ -4500,7 +4500,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)ReallocHook);
-    /*rootconsole->ConsolePrint("patching free()");
+    rootconsole->ConsolePrint("patching free()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)free, (void*)FreeHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)free, (void*)FreeHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)free, (void*)FreeHook);
@@ -4523,7 +4523,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_addr, (void*)OperatorNewHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)OperatorNewHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)OperatorNewHook);*/
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)OperatorNewHook);
     rootconsole->ConsolePrint("patching operator new[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
@@ -4535,7 +4535,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)OperatorNewArrayHook);
-    /*rootconsole->ConsolePrint("patching operator delete");
+    rootconsole->ConsolePrint("patching operator delete");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
@@ -4545,7 +4545,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_addr, (void*)DeleteOperatorHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);*/
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
     rootconsole->ConsolePrint("patching operator delete[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
@@ -4556,7 +4556,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);*/
 
     /*rootconsole->ConsolePrint("patching memcpy()");
     HookFunctionInSharedObject(server_srv, server_srv_size, pMemcpyPtr, pMemcpyHookPtr);
@@ -4630,7 +4630,6 @@ void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), SynergyUtils::getCppAddr(Hooks::UnmountPaths));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), SynergyUtils::getCppAddr(Hooks::PlayerloadSavedHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), SynergyUtils::getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), SynergyUtils::getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), SynergyUtils::getCppAddr(Hooks::PlayerSpawnDirectHook));
@@ -4650,7 +4649,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F6910), SynergyUtils::getCppAddr(Hooks::HunterCrashFix));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), SynergyUtils::getCppAddr(Hooks::HunterCrashFixTwo));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A311D0), SynergyUtils::getCppAddr(Hooks::PhysSimEnt));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), SynergyUtils::getCppAddr(Hooks::EmptyCall));
