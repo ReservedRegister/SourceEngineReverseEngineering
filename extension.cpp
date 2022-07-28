@@ -470,11 +470,11 @@ void PatchRestoring()
     *(uint8_t*)(skip_end_clear_global_list) = 0xE9;
     *(uint32_t*)(skip_end_clear_global_list+1) = 0x47;*/
 
-    /*uint32_t save_system_skip = server_srv + 0x00AF3414;
+    uint32_t save_system_skip = server_srv + 0x00AF3412;
     *(uint8_t*)(save_system_skip) = 0xE9;
-    *(uint32_t*)(save_system_skip+1) = 0x165;
+    *(uint32_t*)(save_system_skip+1) = 0x167;
 
-    uint32_t lvl_shutdown_skip = server_srv + 0x00737DB9;
+    /*uint32_t lvl_shutdown_skip = server_srv + 0x00737DB9;
     *(uint8_t*)(lvl_shutdown_skip) = 0xE9;
     *(uint32_t*)(lvl_shutdown_skip+1) = 0xA7;*/
 
@@ -2936,7 +2936,6 @@ uint32_t SaveHookDirectMalloc(uint32_t size)
 
 uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size)
 {
-    new_size = new_size*3.0;
     uint32_t ref = (uint32_t)realloc((void*)old_ptr, new_size);
     rootconsole->ConsolePrint("realloc() [Save Hook] " HOOK_MSG " size: [%d]", ref, new_size);
 
@@ -4477,10 +4476,10 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
+    /*HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
