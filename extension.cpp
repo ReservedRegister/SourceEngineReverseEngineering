@@ -1565,7 +1565,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.115);
+    uint32_t newRef = (uint32_t)malloc(size*10.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
