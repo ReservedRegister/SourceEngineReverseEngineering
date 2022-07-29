@@ -382,7 +382,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,0x0073CDFC,5,
-        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00739B48,5,0x00A316F0,5
+        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00739B48,5,0x00A316F0,5,0x00739AF1,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -4464,6 +4464,17 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
+uint32_t Hooks::SV_FrameHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    Hooks::CleanupDeleteListHook(0);
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    Hooks::CleanupDeleteListHook(0);
+    return returnVal;
+}
+
 void HookFunctionsWithC()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
@@ -4662,6 +4673,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3120), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), SynergyUtils::getCppAddr(Hooks::LevelChangeSafeHook));
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), SynergyUtils::getCppAddr(Hooks::SV_FrameHook));
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A5A1F0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), SynergyUtils::getCppAddr(Hooks::EmptyCall));
