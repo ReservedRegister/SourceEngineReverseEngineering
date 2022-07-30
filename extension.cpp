@@ -3326,12 +3326,22 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         //EntityGetFunctionByEdict
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
 
-        if(pDynamicOneArgFunc((uint32_t)1) == 0)
+        bool anyplayer_exists = false;
+        uint32_t global_var = *(uint32_t*)(server_srv + 0x010121E0);
+        uint32_t maxPlayers = *(uint32_t*)(global_var+0x14);
+
+        //rootconsole->ConsolePrint("maxPlayers: %d", maxPlayers);
+
+        for(uint32_t i = 1; i <= maxPlayers; i++)
         {
-            //rootconsole->ConsolePrint("Server hibernating!");
-            //dont simulate entity other than player when there are no active players!
-            return 0;
+            if(pDynamicOneArgFunc((uint32_t)i))
+            {
+                anyplayer_exists = true;
+                break;
+            }
         }
+
+        if(!anyplayer_exists) return 0;
     }
 
     //IsMarkedForDeletion
