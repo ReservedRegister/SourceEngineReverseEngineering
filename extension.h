@@ -267,6 +267,7 @@ public:
 	static uint32_t WeaponGetHook(uint32_t arg0);
 	static uint32_t HookInstaKill(uint32_t arg0);
 	static uint32_t SV_FrameHook(uint32_t arg0);
+	static uint32_t FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 /**

@@ -382,7 +382,7 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,0x0073CDFC,5,
-        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00A316F0,5,0x00739AF1,5
+        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00A316F0,5,0x00739AF1,5,0x00739B48,5
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -4480,9 +4480,67 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 
     Hooks::CleanupDeleteListHook(0);
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    Hooks::CleanupDeleteListHook(0);
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pFourArgProt pDynamicFourArgFunc;
+
+    short sVar1;
+    uint32_t uVar2;
+    int iVar3;
+    uint32_t piVar4;
+
+    if(*(uint32_t*)(arg0 + 0x24) == 0 )
+    {
+        uVar2 = 1;
+        iVar3 = 0;
+    }
+    else
+    {
+        sVar1 = *(short*)( *(uint32_t*)(arg0 + 0x24) + 6);
+        uVar2 = 1 << ((uint8_t)sVar1 & 0x1F);
+        iVar3 = ((uint32_t)(int)sVar1 >> 5) << 2;
+    }
+
+    if( ( *(uint32_t*) (*(uint32_t*)(arg1 + 0x2008) + iVar3) & uVar2  ) == 0  )
+    {
+        arg2 = arg2 & 0xFF;
+
+        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0076B680);
+        pDynamicFourArgFunc(arg0, arg1, arg2, arg2);
+
+        if(0 < *(uint32_t*)(arg0 + 0x10C0))
+        {
+            iVar3 = 0;
+            
+            do
+            {
+                uVar2 = *(uint32_t*)(arg0 + 0x10AC + iVar3 * 4);
+                piVar4 = GetCBaseEntity(uVar2);
+
+                iVar3 = iVar3 + 1;
+
+                if(piVar4)
+                {
+                    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)(piVar4))+0x54));
+                    pDynamicThreeArgFunc(piVar4, arg1, arg2);
+
+                    //rootconsole->ConsolePrint("NEW FUNC HOOK WORKED!");
+                }
+                else
+                {
+                    rootconsole->ConsolePrint(EXT_PREFIX "BaseEntity null crash fixed!");
+                }
+
+            }
+            while(iVar3 < *(int*)(arg0 + 0x10C0));
+        }
+    }
+
+    return 0;
 }
 
 void HookFunctionsWithC()
@@ -4506,7 +4564,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
-    /*HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
@@ -4515,7 +4573,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)MallocHook);
-    rootconsole->ConsolePrint("patching realloc()");
+    /*rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)ReallocHook);
@@ -4684,6 +4742,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), SynergyUtils::getCppAddr(Hooks::LevelChangeSafeHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), SynergyUtils::getCppAddr(Hooks::SV_FrameHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), SynergyUtils::getCppAddr(Hooks::FixBaseEntityNullCrash));
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A5A1F0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), SynergyUtils::getCppAddr(Hooks::EmptyCall));
