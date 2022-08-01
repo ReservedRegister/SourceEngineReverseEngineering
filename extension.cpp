@@ -480,9 +480,9 @@ void PatchRestoring()
     *(uint8_t*)(save_system_skip) = 0xE9;
     *(uint32_t*)(save_system_skip+1) = 0x167;
 
-    /*uint32_t lvl_shutdown_skip = server_srv + 0x00737DB9;
+    uint32_t lvl_shutdown_skip = server_srv + 0x00737DA9;
     *(uint8_t*)(lvl_shutdown_skip) = 0xE9;
-    *(uint32_t*)(lvl_shutdown_skip+1) = 0xA7;*/
+    *(uint32_t*)(lvl_shutdown_skip+1) = 0xC4;
 
     /*uint32_t transition_system_patch_one = server_srv + 0x00AF470F;
     *(uint8_t*)(transition_system_patch_one) = 0xE9;
@@ -4563,7 +4563,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
