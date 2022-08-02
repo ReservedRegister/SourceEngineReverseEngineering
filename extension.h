@@ -118,7 +118,6 @@ void HookFunctionsWithCpp();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
-bool KillAllSafely();
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
@@ -190,7 +189,6 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t DropshipsHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0);
-uint32_t bf_readNetworkHook(uint32_t arg0, uint32_t arg1);
 uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size);
 
 
@@ -248,7 +246,6 @@ public:
 	static uint32_t GameFrameHook(uint8_t simulating);
 	static uint32_t HookEntityDelete(uint32_t arg0);
 	static uint32_t SaveOverride(uint32_t arg1);
-	static uint32_t NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t HunterCrashFix(uint32_t arg0);
 	static uint32_t HunterCrashFixTwo(uint32_t arg0);
 	static uint32_t BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);

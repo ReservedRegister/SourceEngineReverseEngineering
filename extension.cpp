@@ -57,7 +57,6 @@ uint32_t MainTransitionCallAddr;
 uint32_t CreateEntityByNameAddr;
 uint32_t SaveGameStateAddr;
 uint32_t TransitionRestoreMainCallOrigAddr;
-uint32_t KillEntityDirectCallAddr;
 uint32_t VehicleRollermineFunctionAddr;
 uint32_t OrigSaveCallAddr;
 uint32_t OriginalTriggerMovedAddr;
@@ -78,7 +77,6 @@ uint32_t ReconnectClientsAddr;
 uint32_t PlayerLoadOrigAddr;
 uint32_t VpkReloadAddr;
 
-pOneArgProt pKillEntityDirectFunc;
 pTwoArgProt pEdtLoadFunc;
 pThreeArgProt pHostChangelevelFunc;
 pThreeArgProt pFlushFunc;
@@ -285,7 +283,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     CreateEntityByNameAddr = server_srv + 0x009AFCA0;
     SaveGameStateAddr = server_srv + 0x00AF3990;
     TransitionRestoreMainCallOrigAddr = server_srv + 0x00AF46C0;
-    KillEntityDirectCallAddr = server_srv + 0x00B64500;
     VehicleRollermineFunctionAddr = server_srv + 0x00654970;
     OrigSaveCallAddr = server_srv + 0x00AF33F0;
     OriginalTriggerMovedAddr = engine_srv + 0x001D8FD0;
@@ -319,7 +316,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     CreateEntityByName = (pTwoArgProt)CreateEntityByNameAddr;
     SaveGameState = (pThreeArgProt)SaveGameStateAddr;
     pTransitionRestoreMainCall = (pFourArgProt)TransitionRestoreMainCallOrigAddr;
-    pKillEntityDirectFunc = (pOneArgProt)KillEntityDirectCallAddr;
     pCallVehicleRollermineFunction = (pOneArgProt)VehicleRollermineFunctionAddr;
     pCallOrigSaveFunction = (pOneArgProt)OrigSaveCallAddr;
     pCallOriginalTriggerMoved = (pTwoArgProt)OriginalTriggerMovedAddr;
@@ -1341,8 +1337,6 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
         //Util_Remove(ServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64480);
         pDynamicOneArgFunc(chk_ref+0x18);
-
-        //pKillEntityDirectFunc(chk_ref);
     }
     else
         rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
@@ -2006,76 +2000,6 @@ void UpdateGlobalListGlobals()
         
     while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"*")) != 0) count_valid_ents++;
     *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018) = count_valid_ents;
-}
-
-bool KillAllSafely()
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    Value* entDelHandle = *entityDeleteList;
-    ValueList safeDeleteList = AllocateValuesList();
-
-    while(entDelHandle)
-    {
-        Value* detachedValue = entDelHandle->nextVal;
-
-        Value* savecurrentEnt = CreateNewValue((void*)entDelHandle->value);
-        InsertToValuesList(safeDeleteList, savecurrentEnt, true, true, false);
-
-        free(entDelHandle);
-        entDelHandle = detachedValue;
-    }
-
-    *entityDeleteList = 0;
-
-    Value* snapEnt = *safeDeleteList;
-
-    while(snapEnt)
-    {
-        uint32_t kill_object = GetCBaseEntity((uint32_t)snapEnt->value);
-        Value* detachedValue = snapEnt->nextVal;
-
-        if(kill_object)
-        {
-            char* classname = (char*) ( *(uint32_t*)(kill_object+0x68) );
-            rootconsole->ConsolePrint("Killing [%s]", classname);
-            pKillEntityDirectFunc(kill_object);
-
-            //KillNow
-            //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B64630);
-            //pDynamicOneArgFunc(kill_object);
-            
-            /*//IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-            uint32_t isMarked = pDynamicOneArgFunc(kill_object+0x18);
-
-            if(!isMarked)
-            {
-                //MarkForDeletion
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7ED0);
-                pDynamicOneArgFunc(kill_object+0x18);
-
-                //AddToDeleteList
-                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
-                pDynamicTwoArgFunc(CGlobalEntityList, kill_object+0x18);
-
-                
-
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A1A500);
-                while(pDynamicOneArgFunc(0))
-                {
-                    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A1EDA0);
-                    pDynamicTwoArgFunc(server_srv + 0x01032900, kill_object+0x18);
-                }
-            }*/
-        }
-
-        free(snapEnt);
-        snapEnt = detachedValue;
-    }
-
-    free(safeDeleteList);
-    return *entityDeleteList;
 }
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
@@ -3256,9 +3180,7 @@ uint32_t TransitionArgUpdateHookThree()
 
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    uint32_t alloc_size = arg0*3.0;
-    uint32_t ref = (uint32_t)malloc(alloc_size);
-    
+    uint32_t ref = (uint32_t)malloc(arg0);
     rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
@@ -3669,21 +3591,6 @@ uint32_t FixManhackCrash(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t bf_readNetworkHook(uint32_t eax, uint32_t edx)
-{
-    uint32_t ecx = *(uint32_t*)(eax+8);
-
-    *(uint32_t*)(eax+0xC) = ecx;
-    *(uint8_t*)(eax+0x10) = 1;
-
-    if(edx)
-    {
-        *(uint32_t*)(edx) = 0;
-    }
-
-    return 0;
-}
-
 uint32_t FixTransitionCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     if(arg0 > (uint32_t)0xFFFF)
@@ -3857,20 +3764,16 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
+    
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pDynamicThreeArgFunc(arg0, 1, 1);
 
     //lock mdl cache because thats what latest sdk2013 black mesa code does
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
     pDynamicOneArgFunc(main_engine_global);
 
-
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    pDynamicThreeArgFunc(arg0, 1, 1);
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-
 
     //unlock
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
@@ -4053,11 +3956,6 @@ uint32_t Hooks::HunterCrashFixTwo(uint32_t arg0)
     }
 
     rootconsole->ConsolePrint(EXT_PREFIX "Player did not exist!");
-    return 0;
-}
-
-uint32_t Hooks::NET_BufferToBufferDecompress_Patch(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
     return 0;
 }
 
@@ -4478,9 +4376,11 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    Hooks::CleanupDeleteListHook(0);
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    Hooks::CleanupDeleteListHook(0);
+    return returnVal;
 }
 
 uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -4563,16 +4463,20 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
+
+    //Notes: tried server_srv,
+
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)MallocHook);
+
     /*rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
