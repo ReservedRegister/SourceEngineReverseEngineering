@@ -142,7 +142,6 @@ bool firstplayer_hasjoined;
 int frames;
 int kill_frames;
 uint32_t weapon_substitute;
-uint32_t global_map_ents;
 uint32_t vpk_free_elements;
 
 void* delete_operator_array_addr;
@@ -179,7 +178,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restore_delay = false;
     restore_delay_lock = false;
     disable_delete_list = false;
-    global_map_ents = 0;
     weapon_substitute = 0;
     vpk_free_elements = 0;
 
@@ -397,30 +395,6 @@ void PatchRestoring()
 
     uint32_t offset = 0;
 
-    /*uint32_t spawn_patch_one = server_srv + 0x0098FFF9;
-    memset((void*)spawn_patch_one, 0x90, 0x15);
-
-    *(uint8_t*)(spawn_patch_one) = 0x89;
-    *(uint8_t*)(spawn_patch_one+1) = 0x1C;
-    *(uint8_t*)(spawn_patch_one+2) = 0x24;
-
-    spawn_patch_one = server_srv + (0x0098FFF9+3);
-    offset = (uint32_t)pPlayerSpawnDirectHookPtr - spawn_patch_one - 5;
-    *(uint8_t*)(spawn_patch_one) = 0xE8;
-    *(uint32_t*)(spawn_patch_one+1) = offset;
-
-    spawn_patch_one = server_srv + (0x0098FFF9+8);
-    *(uint8_t*)(spawn_patch_one) = 0xE9;
-    *(uint32_t*)(spawn_patch_one+1) = 0x17F;*/
-
-    /*uint32_t exploit_patch_one = engine_srv + 0x0016A9B0;
-    *(uint8_t*)(exploit_patch_one) = 0xE9;
-    *(uint32_t*)(exploit_patch_one+1) = -0x258;*/
-
-    /*uint32_t player_think_patch_one = server_srv + 0x00A62D6A;
-    *(uint8_t*)(player_think_patch_one) = 0xE9;
-    *(uint32_t*)(player_think_patch_one+1) = 0xD1;*/
-
     uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
     *(uint32_t*)(player_think_patch_two+1) = 0xC8;
@@ -480,76 +454,17 @@ void PatchRestoring()
     *(uint8_t*)(lvl_shutdown_skip) = 0xE9;
     *(uint32_t*)(lvl_shutdown_skip+1) = 0xC4;
 
-    /*uint32_t transition_system_patch_one = server_srv + 0x00AF470F;
-    *(uint8_t*)(transition_system_patch_one) = 0xE9;
-    *(uint32_t*)(transition_system_patch_one+1) = 0x6C;*/
-
-    /*uint32_t transition_system_patch_two = server_srv + 0x00AF4B11;
-    *(uint8_t*)(transition_system_patch_two) = 0xE9;
-    *(uint32_t*)(transition_system_patch_two+1) = -0x208;
-
-    uint32_t transition_system_patch_three = server_srv + 0x00AF47B2;
-    *(uint8_t*)(transition_system_patch_three) = 0xE9;
-    *(uint32_t*)(transition_system_patch_three+1) = 0x179;
-
-    uint32_t transition_system_patch_four = server_srv + 0x00AF4856;
-    *(uint8_t*)(transition_system_patch_four) = 0xE9;
-    *(uint32_t*)(transition_system_patch_four+1) = 0xB3;*/
-
     /*uint32_t save_system_patch_one = server_srv + 0x00AF3410;
     *(uint8_t*)(save_system_patch_one) = 0xE9;
     *(uint32_t*)(save_system_patch_one+1) = 0x169;*/
 
-    /*uint32_t transition_savefile_load_patch = server_srv + 0x00AF493D;
-    offset = (uint32_t)SavegameInitialLoad - transition_savefile_load_patch - 5;
-    *(uint32_t*)(transition_savefile_load_patch+1) = offset;
-
-    uint32_t transition_call_patch_one = server_srv + 0x00AF4A42;
-    offset = (uint32_t)TransitionArgUpdateHook - transition_call_patch_one - 5;
-    *(uint32_t*)(transition_call_patch_one+1) = offset;
-
-    uint32_t transition_call_patch_two = server_srv + 0x00AF4994;
-    offset = (uint32_t)TransitionArgUpdateHookTwo - transition_call_patch_two - 5;
-    *(uint32_t*)(transition_call_patch_two+1) = offset;
-
-    uint32_t transition_call_patch_three = server_srv + 0x00AF47A5;
-    offset = (uint32_t)TransitionArgUpdateHookThree - transition_call_patch_three - 5;
-    *(uint32_t*)(transition_call_patch_three+1) = offset;*/
-
-    uint32_t remove_evidence_of_call = server_srv + 0x00CACE94;
-    *(uint32_t*)(remove_evidence_of_call) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v2 = server_srv + 0x00CACE60;
-    *(uint32_t*)(remove_evidence_of_call_v2) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v3 = server_srv + 0x00CACE74;
-    *(uint32_t*)(remove_evidence_of_call_v3) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v4 = server_srv + 0x00CACE78;
-    *(uint32_t*)(remove_evidence_of_call_v4) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v5 = server_srv + 0x00CACE6C;
-    *(uint32_t*)(remove_evidence_of_call_v5) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v6 = server_srv + 0x00CACE80;
-    *(uint32_t*)(remove_evidence_of_call_v6) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v7 = server_srv + 0x00CACE84;
-    *(uint32_t*)(remove_evidence_of_call_v7) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v8 = server_srv + 0x00CACE88;
-    *(uint32_t*)(remove_evidence_of_call_v8) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t remove_evidence_of_call_v9 = server_srv + 0x00CACE70;
-    *(uint32_t*)(remove_evidence_of_call_v9) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-    uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
+    /*uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
     *(uint8_t*)(player_restore_full_remove) = 0xE9;
     *(uint32_t*)(player_restore_full_remove+1) = 0x89;
 
     uint32_t remove_player_file_restoring = server_srv + 0x00AF4E79;
     memset((void*)remove_player_file_restoring, 0x90, 5);
-    *(uint16_t*)(remove_player_file_restoring) = 0xC031;
+    *(uint16_t*)(remove_player_file_restoring) = 0xC031;*/
 
     /*uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
     *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;*/
@@ -590,31 +505,6 @@ void PatchRestoring()
     uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
     offset = (uint32_t)SynergyUtils::getCppAddr(Hooks::WeaponGetHook) - weapon_hook_one - 5;
     *(uint32_t*)(weapon_hook_one+1) = offset;
-
-    /*uint32_t main_spawn_call_jmp_one = server_srv + 0x0099265B;
-    ChangeMemoryProtections(main_spawn_call_jmp_one, 5);
-    *(uint8_t*)(main_spawn_call_jmp_one) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_one+1) = 0x80;
-    RestoreMemoryProtections(main_spawn_call_jmp_one, 5);
-
-    uint32_t main_spawn_call_jmp_two = server_srv + 0x00992834;
-    ChangeMemoryProtections(main_spawn_call_jmp_two, 5);
-    *(uint8_t*)(main_spawn_call_jmp_two) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_two+1) = 0x127;
-    RestoreMemoryProtections(main_spawn_call_jmp_two, 5);
-
-    uint32_t main_spawn_call_jmp_three = server_srv + 0x0099279A;
-    ChangeMemoryProtections(main_spawn_call_jmp_three, 5);
-    *(uint8_t*)(main_spawn_call_jmp_three) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_three+1) = 0x20;
-    RestoreMemoryProtections(main_spawn_call_jmp_three, 5);
-
-    uint32_t main_spawn_call_jmp_four = server_srv + 0x009925B6;
-    ChangeMemoryProtections(main_spawn_call_jmp_four, 5);
-    *(uint8_t*)(main_spawn_call_jmp_four) = 0xE9;
-    *(uint32_t*)(main_spawn_call_jmp_four+1) = 0x20;
-    RestoreMemoryProtections(main_spawn_call_jmp_four, 5);*/
-
 
     uint32_t JMP_DIRECT = server_srv + 0x004AE682;
     *(uint8_t*)(JMP_DIRECT) = 0xE9;
@@ -699,67 +589,6 @@ void PatchRestoring()
     //Disable Achievement restoring
     uint32_t disable_achievement_restoring = server_srv + 0x00C17584;
     *(uint32_t*)(disable_achievement_restoring) = (uint32_t)SynergyUtils::getCppAddr(Hooks::EmptyCall);
-
-
-
-
-    /*uint32_t restore_location_patches[128] = 
-    {
-        0x004ABE3F+1,0x004AE201+1,0x004AE66D+1,0x004AE6E6+1,0x004AEE98+1,0x00AF225C+1,0x00AF2279+2,0x00AF22F7+1,
-        0x00AF319D+1,0x00AF41D8+1,0x00AF4284+1,0x004AA44B+1,0x004AA49B+2,0x004AA559+2,0x004ADE61+1,0x004AF0A5+1,
-        0x004AF238+1,0x004AF28B+2,0x004AF423+3,0x004AF556+1,0x00AF2477+1,0x004AD1EB+2,0x004A98E3+2,0x004A9E23+2,
-        0x004AA043+2,0x004AA2A3+2,0x004ABAD3+2,0x004ABD33+2,0x004A9537+2,0x004AE96B+2
-    };
-
-    for(int i = 0; i < 128; i++)
-    {
-        if(restore_location_patches[i] == 0)
-            continue;
-
-        uint32_t address = server_srv + restore_location_patches[i];
-
-        ChangeMemoryProtections(address, 1);
-        *(uint8_t*)(address) = 0x38;
-        RestoreMemoryProtections(address, 1);
-        rootconsole->ConsolePrint("Patching restore address: [%X]", restore_location_patches[i]);
-    }
-
-    //0x004AA4F8
-    //0x004ADEEA
-    //0x004AF2E8
-
-    uint32_t other_patch_location_one = server_srv + 0x004AF2E8;
-    ChangeMemoryProtections(other_patch_location_one, 10);
-    memset((void*)other_patch_location_one, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_one, 10);
-
-    uint32_t other_patch_location_two = server_srv + 0x004ADEEA;
-    ChangeMemoryProtections(other_patch_location_two, 10);
-    memset((void*)other_patch_location_two, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_two, 10);
-
-    uint32_t other_patch_location_three = server_srv + 0x004AA4F8;
-    ChangeMemoryProtections(other_patch_location_three, 10);
-    memset((void*)other_patch_location_three, 0x90, 7);
-    RestoreMemoryProtections(other_patch_location_three, 10);*/
-
-    /*uint32_t patch_0x38_offset[128] = 
-    {
-        0x004AE3DE,0x004AE325
-    };
-
-    for(int i = 0; i < 128; i++)
-    {
-        if(patch_0x38_offset[i] == 0)
-            continue;
-
-        uint32_t address = server_srv + patch_0x38_offset[i];
-
-        ChangeMemoryProtections(address, 3);
-        memset((void*)address, 0x90, 3);
-        RestoreMemoryProtections(address, 3);
-        rootconsole->ConsolePrint("Patching restore address: [%X]", patch_0x38_offset[i]);
-    }*/
 }
 
 uint32_t GetFileSize(char* file_name)
@@ -1983,25 +1812,6 @@ uint32_t FrameLockHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::ReadExHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
-{
-    //rootconsole->ConsolePrint("size: [%d] destSize: [%d]", arg3, arg2);
-    
-    pFiveArgProt pDynamicFiveArgFunc = (pFiveArgProt)(dedicated_srv + 0x00064470);
-    return pDynamicFiveArgFunc(arg0, arg1, arg3, arg3, arg4);
-}
-
-void UpdateGlobalListGlobals()
-{
-    Hooks::CleanupDeleteListHook(0);
-    
-    uint32_t ent = 0;
-    uint32_t count_valid_ents = 0;
-        
-    while((ent = Hooks::FindEntityByClassnameHook(CGlobalEntityList, ent, (uint32_t)"*")) != 0) count_valid_ents++;
-    *(uint32_t*)(server_srv + 0x00FF8740 + 0x10018) = count_valid_ents;
-}
-
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     isTicking = true;
@@ -2820,37 +2630,6 @@ void PatchOthers()
     rootconsole->ConsolePrint("--------------------- Other save system parts patched ---------------------");
 }
 
-uint32_t RestoreSystemPatch(uint32_t arg0)
-{
-    uint32_t clsname = *(uint32_t*)(arg0+0x20);
-    //rootconsole->ConsolePrint("Restoring ent with clsname: [%s]", clsname);
-    uint32_t newEnt = CreateEntityByName(clsname, (uint32_t)0xFFFFFFFF);
-    return newEnt;
-}
-
-uint32_t RestoreSystemPatchStart(uint32_t arg0)
-{
-    // 1 = did not fail and jumps
-    // 0 = failed and does not jump
-
-    uint32_t chk_one = *(uint32_t*)(arg0+0x18);
-    uint32_t chk_two = *(uint32_t*)(arg0+0x1C);
-    uint8_t chk_three = *(uint8_t*)(arg0+0x1F);
-
-    if(  !( (chk_one == 0) || ((chk_two & 0x40000000) != 0)  ) )
-    {
-        if((chk_three & 0x40) == 0)
-        {
-            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF29F0);
-            uint8_t allowEntRestore = pDynamicOneArgFunc(*(uint32_t*)(arg0+0x20));
-
-            if(allowEntRestore) return 1;
-        }
-    }
-    
-    return 0;
-}
-
 uint32_t SaveHookDirectMalloc(uint32_t size)
 {
     uint32_t new_size = size*3.0;
@@ -3161,23 +2940,6 @@ uint32_t RestoreOverride()
     return 0;
 }
 
-uint32_t TransitionArgUpdateHook(uint32_t arg0, uint32_t arg1)
-{
-    return strcmp((char*)((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x131), (char*)arg1);
-}
-
-uint32_t TransitionArgUpdateHookTwo(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AF2370);
-    return pDynamicThreeArgFunc(arg0, arg1, ((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x131));
-}
-
-uint32_t TransitionArgUpdateHookThree()
-{
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00738250);
-    return pDynamicOneArgFunc(0);
-}
-
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
     uint32_t ref = (uint32_t)malloc(arg0);
@@ -3278,97 +3040,17 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t TransitionEntsHook(uint32_t arg0, uint32_t arg1)
-{
-    uint32_t total_ents = *(uint32_t*)(arg0+0x574);
-    uint32_t restore_buffer = *(uint32_t*)(arg0+0x578);
-
-    uint32_t buffer_offset = 0;
-    uint32_t ent_counter = 0;
-
-    rootconsole->ConsolePrint("total_ents: [%d]", total_ents);
-
-    while((int32_t)total_ents > (int32_t)ent_counter)
-    {
-        restore_buffer = *(uint32_t*)(arg0+0x578);
-        restore_buffer = restore_buffer+buffer_offset;
-
-        uint32_t _0x18_offset = *(uint32_t*)(restore_buffer+0x18);
-        *(uint32_t*)(restore_buffer+0x10) = 0xFFFFFFFF;
-
-        if(_0x18_offset)
-        {
-            uint32_t _0x4_offset = *(uint32_t*)(restore_buffer+0x4);
-
-            if(_0x4_offset)
-            {
-                uint32_t clsname = *(uint32_t*)(restore_buffer+0x20);
-
-                if(clsname)
-                {
-                    uint32_t _0x1C_check = *(uint32_t*)(restore_buffer+0x1C);
-
-                    if((uint8_t)arg1 == (uint8_t)_0x1C_check)
-                    {
-                        if(strcmp((char*)clsname, "player") == 0)
-                        {
-                            ent_counter++;
-                            buffer_offset = buffer_offset+0x3C;
-                            continue;
-                        }
-
-                        uint32_t newEnt = CreateEntityByName(clsname, (uint32_t)0xFFFFFFFF);
-
-                        if(newEnt)
-                        {
-                            uint32_t newEntDeref = *(uint32_t*)(newEnt);
-                            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(newEntDeref+0x0C));
-                            uint32_t returnVal = pDynamicOneArgFunc(newEnt);
-
-                            rootconsole->ConsolePrint(EXT_PREFIX "Transitioning [%s]", clsname);
-                            *(uint32_t*)(restore_buffer+0x10) = *(uint32_t*)returnVal;
-                        }
-                    }
-                }
-            }
-        }
-
-        ent_counter++;
-        buffer_offset = buffer_offset+0x3C;
-    }
-
-    return 0;
-}
-
 uint32_t MainTransitionRestore(uint32_t arg1, uint32_t arg2)
 {
-    //uint32_t ents = *(uint32_t*)(SaveGameBuffer+0x574);
-
-    //*(uint32_t*)(arg1+0x574) = *(uint32_t*)(SaveGameBuffer+0x574);
-    //*(uint32_t*)(arg1+0x578) = *(uint32_t*)(SaveGameBuffer+0x578);
-    
-    //uint32_t less = ents / 1.40;
-    //rootconsole->ConsolePrint("SAVEGAMEBUFFER: Restore ents: [%d]", ents);
-    //*(uint32_t*)(arg1+0x574) = less;
     return MainTransitionCall(arg1, arg2);
-    //return 0;
 }
 
 uint32_t TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2)
 {
-    /*if(strcasestr((char*)arg1, "env_") != NULL)
-    {
-        rootconsole->ConsolePrint("Prevented entity transition: [%s]", arg1);
-        return 0;
-    }*/
-
     rootconsole->ConsolePrint(EXT_PREFIX "Restoring %s", arg1);
 
     uint32_t object = (uint32_t)CreateEntityByName(arg1, arg2);
     uint32_t ref = *(uint32_t*)(object+0x350);
-
-    /*Value* savedEntity = CreateNewValue((void*)ref);
-    InsertToValuesList(entityList, savedEntity);*/
 
     return object;
 }
@@ -3875,37 +3557,10 @@ uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, ui
     return object;
 }
 
-uint32_t SavegameInitialLoad(uint32_t arg0, uint32_t arg1)
-{
-    //get transition file name
-    uint32_t savegame_name = (*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x131;
-    rootconsole->ConsolePrint("Loading transition file %s", savegame_name);
-    return pRestoreFileCallFunc(arg0, savegame_name);
-}
-
 uint32_t Hooks::UnmountPaths(uint32_t arg0)
 {
-    //Hooks::CleanupDeleteListHook(0);
-
-    //rootconsole->ConsolePrint("Flushing model cache!");
-    //UnloadUnreferencedModels(g_ModelLoader);
-
-    //scene_flush direct call
-    //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
-    //pDynamicOneArgFunc(0);
-
-    //Hooks::CleanupDeleteListHook(0);
-    
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
     return pDynamicOneArgFunc(arg0);
-}
-
-uint32_t Hooks::LevelInitHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    //SAVE REFERENCE BECAUSE ITS NEEDED FOR EDTREBUILD arg2
-    global_map_ents = arg2;
-    rootconsole->ConsolePrint("####Updated global map ents!#####");
-    return 0;
 }
 
 uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
