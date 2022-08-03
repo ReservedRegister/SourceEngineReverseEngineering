@@ -1805,10 +1805,16 @@ uint32_t FrameLockHook(uint32_t arg0)
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
 
+    pOneArgProt pDynamicOneArgFunc;
+
+    //InvalidateEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
+    pDynamicOneArgFunc(server_srv + 0x00FF3020);
+
     SaveGameSafe(true);
     InactivateClients(sv);
 
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
+    pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -4119,14 +4125,14 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
 
-    //Notes: tried server_srv,
+    //Notes: tried server_srv, dedicated_srv
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
-    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)MallocHook);
@@ -4303,7 +4309,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), SynergyUtils::getCppAddr(Hooks::SV_FrameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), SynergyUtils::getCppAddr(Hooks::FixBaseEntityNullCrash));
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A5A1F0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03BF0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), SynergyUtils::getCppAddr(Hooks::EmptyCall));
 }
 
