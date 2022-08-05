@@ -118,6 +118,7 @@ void HookFunctionsWithCpp();
 void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
+void DequeuePlayerDeaths();
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
@@ -261,6 +262,7 @@ public:
 	static uint32_t HookInstaKill(uint32_t arg0);
 	static uint32_t SV_FrameHook(uint32_t arg0);
 	static uint32_t FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t PlayerDeathHook(uint32_t arg0);
 };
 
 /**

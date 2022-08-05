@@ -123,6 +123,7 @@ ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
 ValueList played_gametags_list;
 ValueList entityDeleteList;
+ValueList playerDeathQueue;
 
 MallocRefList mallocAllocations;
 PlayerSaveList playerSaveList;
@@ -250,6 +251,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     playerSaveList = AllocatePlayerSaveList();
     played_gametags_list = AllocateValuesList();
     entityDeleteList = AllocateValuesList();
+    playerDeathQueue = AllocateValuesList();
 
     pOneArgProt pDynamicOneArgFunc;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
@@ -1849,6 +1851,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
         savegame = false;
         savegame_lock = false;
     }
+
+    DequeuePlayerDeaths();
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
@@ -4010,6 +4014,50 @@ uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     return EndFunction(arg1, arg2, arg3);
 }
 
+void DequeuePlayerDeaths()
+{
+    pOneArgProt pDynamicOneArgFunc;
+    uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
+    
+    if(pthread_mutex_trylock(&value_list_lock) != 0) return;
+    
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
+    pDynamicOneArgFunc(main_engine_global);
+    
+    Value* playerRef = *playerDeathQueue;
+
+    while(playerRef)
+    {
+        Value* nextVal = playerRef->nextVal;
+        uint32_t plr_object = GetCBaseEntity((uint32_t)playerRef->value);
+
+        if(plr_object)
+        {
+            rootconsole->ConsolePrint("Dequeued a player!");
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0098D1A0);
+            pDynamicOneArgFunc(plr_object);
+        }
+
+        free(playerRef);
+        playerRef = nextVal;
+    }
+
+    *playerDeathQueue = NULL;
+
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
+    pDynamicOneArgFunc(main_engine_global);
+
+    pthread_mutex_unlock(&value_list_lock);
+}
+
+uint32_t Hooks::PlayerDeathHook(uint32_t arg0)
+{
+    uint32_t refHandle = *(uint32_t*)(arg0+0x350);
+    Value* newPlayer = CreateNewValue((void*)refHandle);
+    InsertToValuesList(playerDeathQueue, newPlayer, false, true, true);
+    return 0;
+}
+
 uint32_t Hooks::HookInstaKill(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -4310,7 +4358,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), SynergyUtils::getCppAddr(Hooks::FixBaseEntityNullCrash));
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03BF0), SynergyUtils::getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003C2250), SynergyUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098D1A0), SynergyUtils::getCppAddr(Hooks::PlayerDeathHook));
 }
 
 void* SynergyUtils::getCppAddr(auto classAddr)
