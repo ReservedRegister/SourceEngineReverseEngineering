@@ -3333,6 +3333,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     DisableCacheCvars();
 
+    PurgeLeakList(packed_ent_refs, engine_srv + 0x00179E10, "packed_ent");
+    PurgeLeakList(proxy_refs, engine_srv + 0x00179F30, "proxy");
+    PurgeLeakList(int_int_refs, engine_srv + 0x000B5150, "int_int");
+
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
@@ -3961,10 +3965,6 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     //Remove soundent forever
     //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
     //pDynamicOneArgFunc(0);
-
-    PurgeLeakList(packed_ent_refs, engine_srv + 0x00179E10, "packed_ent");
-    PurgeLeakList(proxy_refs, engine_srv + 0x00179F30, "proxy");
-    PurgeLeakList(int_int_refs, engine_srv + 0x000B5150, "int_int");
 
     restoring = false;
     savegame = true;
