@@ -124,6 +124,9 @@ ValueList antiCycleListDoors;
 ValueList played_gametags_list;
 ValueList entityDeleteList;
 ValueList playerDeathQueue;
+ValueList int_int_refs;
+ValueList proxy_refs;
+ValueList packed_ent_refs;
 
 MallocRefList mallocAllocations;
 PlayerSaveList playerSaveList;
@@ -252,6 +255,9 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     played_gametags_list = AllocateValuesList();
     entityDeleteList = AllocateValuesList();
     playerDeathQueue = AllocateValuesList();
+    int_int_refs = AllocateValuesList();
+    proxy_refs = AllocateValuesList();
+    packed_ent_refs = AllocateValuesList();
 
     pOneArgProt pDynamicOneArgFunc;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
@@ -1085,7 +1091,7 @@ int MallocRefListSize(MallocRefList list, bool lock_mutex)
 
 int ValueListItems(ValueList list, bool lock_mutex)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
 
     Value* aValue = *list;
     int counter = 0;
@@ -1096,7 +1102,7 @@ int ValueListItems(ValueList list, bool lock_mutex)
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
     return counter;
 }
 
@@ -3956,6 +3962,10 @@ uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
     //pDynamicOneArgFunc(0);
 
+    PurgeLeakList(packed_ent_refs, engine_srv + 0x00179E10, "packed_ent");
+    PurgeLeakList(proxy_refs, engine_srv + 0x00179F30, "proxy");
+    PurgeLeakList(int_int_refs, engine_srv + 0x000B5150, "int_int");
+
     restoring = false;
     savegame = true;
     return returnVal;
@@ -4152,8 +4162,101 @@ uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t ar
     return 0;
 }
 
+void PurgeLeakList(ValueList leakList, uint32_t purgeFunction, const char* purgeLabel)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    Value* leakItem = *leakList;
+
+    while(leakItem)
+    {
+        Value* nextRef = leakItem->nextVal;
+        rootconsole->ConsolePrint("Purged [%s] [%X]", purgeLabel, leakItem->value);
+
+        //Passed purge function
+        pDynamicOneArgFunc = (pOneArgProt)(purgeFunction);
+        pDynamicOneArgFunc((uint32_t)(leakItem->value));
+
+        free(leakItem);
+        leakItem = nextRef;
+    }
+
+    *leakList = NULL;
+}
+
+
+uint32_t CUtlMemGrow_proxy(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    Value* newRef = CreateNewValue((void*)arg0);
+    InsertToValuesList(proxy_refs, newRef, false, true, false);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x00179F70);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t CUtlMemPurge_proxy(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    RemoveFromValuesList(proxy_refs, (void*)arg0, false);
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179F30);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t CUtlMemGrow_int_int(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    Value* newRef = CreateNewValue((void*)arg0);
+    InsertToValuesList(int_int_refs, newRef, false, true, false);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x000B53C0);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t CUtlMemPurge_int_int(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    RemoveFromValuesList(int_int_refs, (void*)arg0, false);
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000B5150);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t PackedEntityContruct(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    Value* newRef = CreateNewValue((void*)arg0);
+    InsertToValuesList(packed_ent_refs, newRef, false, true, false);
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179C70);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t PackedEntityDestruct(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    RemoveFromValuesList(packed_ent_refs, (void*)arg0, false);
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179E10);
+    return pDynamicOneArgFunc(arg0);
+}
+
 void HookFunctionsWithC()
 {
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B53C0), (void*)CUtlMemGrow_int_int);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B5150), (void*)CUtlMemPurge_int_int);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F70), (void*)CUtlMemGrow_proxy);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F30), (void*)CUtlMemPurge_proxy);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179C70), (void*)PackedEntityContruct);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179E10), (void*)PackedEntityDestruct);
+
+
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AFCA0), (void*)CreateEntityByNameHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), (void*)PreEdtLoad);
@@ -4174,8 +4277,9 @@ void HookFunctionsWithC()
     rootconsole->ConsolePrint("patching malloc()");
 
     //Notes: tried server_srv, dedicated_srv, vphysics_srv
+    //Notes: fixed in engine_srv - hopefully last memory leak
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);

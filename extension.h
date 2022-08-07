@@ -145,6 +145,13 @@ MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool l
 int MallocRefListSize(MallocRefList list, bool lock_mutex);
 int ValueListItems(ValueList list, bool lock_mutex);
 void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex);
+void PurgeLeakList(ValueList leakList, uint32_t purgeFunction, const char* purgeLabel);
+uint32_t CUtlMemGrow_proxy(uint32_t arg0, uint32_t arg1);
+uint32_t CUtlMemPurge_proxy(uint32_t arg0);
+uint32_t CUtlMemGrow_int_int(uint32_t arg0, uint32_t arg1);
+uint32_t CUtlMemPurge_int_int(uint32_t arg0);
+uint32_t PackedEntityContruct(uint32_t arg0);
+uint32_t PackedEntityDestruct(uint32_t arg0);
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
