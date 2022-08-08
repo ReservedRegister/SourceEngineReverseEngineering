@@ -109,10 +109,6 @@ pOneArgProt InactivateClients;
 pOneArgProt ReconnectClients;
 pOneArgProt PlayerLoadOrig;
 
-
-pthread_mutex_t malloc_ref_lock;
-pthread_mutex_t value_list_lock;
-
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
@@ -156,18 +152,14 @@ void* new_operator_array_addr;
 
 void* strcpy_chk_addr;
 
+bool* player_death_lock;
+bool* int_int_lock;
+bool* proxy_lock;
+bool* packed_ent_lock;
+
 bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
     AllowWriteToMappedMemory();
-
-    int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
-    int pthread_init_two = pthread_mutex_init(&malloc_ref_lock, NULL);
-
-    if(pthread_init_one != 0 || pthread_init_two != 0)
-    {
-        rootconsole->ConsolePrint("\nMutex init for lists thread safeness has failed\n");
-        exit(EXIT_FAILURE);
-    }
 
     global_map = (char*) malloc(1024);
     last_map = (char*) malloc(1024);
@@ -182,8 +174,19 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     restore_delay = false;
     restore_delay_lock = false;
     disable_delete_list = false;
+    firstplayer_hasjoined = false;
     weapon_substitute = 0;
     vpk_free_elements = 0;
+
+    player_death_lock = (bool*)malloc(sizeof(bool*));
+    proxy_lock = (bool*)malloc(sizeof(bool*));
+    int_int_lock = (bool*)malloc(sizeof(bool*));
+    packed_ent_lock = (bool*)malloc(sizeof(bool*));
+
+    *player_death_lock = false;
+    *proxy_lock = false;
+    *int_int_lock = false;
+    *packed_ent_lock = false;
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -266,7 +269,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     //rootconsole->ConsolePrint("\n\n\nCURRENT TAG: %s", currentTag);
 
     Value* new_gametag = CreateNewValue(copy_val((void*)currentTag, strlen((char*)currentTag)+1));
-    InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
+    InsertToValuesList(played_gametags_list, new_gametag, NULL, false, true);
 
     sv = engine_srv + 0x00324580;
     g_ModelLoader = engine_srv + 0x00317380;
@@ -798,13 +801,17 @@ void InsertFieldToFieldList(FieldList list, Field* head)
     *list = head;
 }
 
-void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex)
+void DeleteAllValuesInList(ValueList list, bool* passed_lock, bool free_val)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     if(!list || !*list)
     {
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        if(passed_lock) *passed_lock = false;
         return;
     }
     
@@ -819,16 +826,20 @@ void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex)
     }
 
     *list = NULL;
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    if(passed_lock) *passed_lock = false;
 }
 
-void DeleteAllValuesInMallocRefList(MallocRefList list, bool lock_mutex)
+void DeleteAllValuesInMallocRefList(MallocRefList list, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     if(!list || !*list)
     {
-        if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+        if(passed_lock) *passed_lock = false;
         return;
     }
     
@@ -842,7 +853,7 @@ void DeleteAllValuesInMallocRefList(MallocRefList list, bool lock_mutex)
     }
 
     *list = NULL;
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
 }
 
 void* copy_val(void* val, size_t copy_size) {
@@ -854,9 +865,13 @@ void* copy_val(void* val, size_t copy_size) {
     return copy_ptr;
 }
 
-bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
+bool IsInValuesList(ValueList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     Value* aValue = *list;
 
@@ -864,26 +879,30 @@ bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
     {
         if((uint32_t)aValue->value == (uint32_t)searchVal)
         {
-            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            if(passed_lock) *passed_lock = false;
             return true;
         }
         
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    if(passed_lock) *passed_lock = false;
     return false;
 }
 
-bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
+bool RemoveFromValuesList(ValueList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     Value* aValue = *list;
 
     if(aValue == NULL)
     {
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        if(passed_lock) *passed_lock = false;
         return false;
     }
 
@@ -893,7 +912,7 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
         Value* detachedValue = aValue->nextVal;
         free(*list);
         *list = detachedValue;
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        if(passed_lock) *passed_lock = false;
         return true;
     }
 
@@ -906,20 +925,24 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
 
             free(aValue->nextVal);
             aValue->nextVal = detachedValue;
-            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            if(passed_lock) *passed_lock = false;
             return true;
         }
 
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    if(passed_lock) *passed_lock = false;
     return false;
 }
 
-void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)
+void InsertToValuesList(ValueList list, Value* head, bool* passed_lock, bool tail, bool duplicate_chk)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     if(duplicate_chk)
     {
@@ -929,7 +952,7 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
         {
             if((uint32_t)aValue->value == (uint32_t)head->value)
             {
-                if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+                if(passed_lock) *passed_lock = false;
                 return;
             }
         
@@ -946,6 +969,7 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
             if(aValue->nextVal == NULL)
             {
                 aValue->nextVal = head;
+                if(passed_lock) *passed_lock = false;
                 return;
             }
 
@@ -956,7 +980,7 @@ void InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
     head->nextVal = *list;
     *list = head;
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    if(passed_lock) *passed_lock = false;
 }
 
 void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head)
@@ -965,36 +989,44 @@ void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head)
     *list = head;
 }
 
-bool IsInMallocRefList(MallocRefList list, void* searchVal, bool lock_mutex)
+bool IsInMallocRefList(MallocRefList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
-    
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
+
     MallocRef* aValue = *list;
 
     while(aValue)
     {
         if((uint32_t)aValue->ref == (uint32_t)searchVal)
         {
-            if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+            if(passed_lock) *passed_lock = false;
             return true;
         }
         
         aValue = aValue->nextRef;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
     return false;
 }
 
-uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool lock_mutex)
+uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
-    
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
+
     MallocRef* aValue = *list;
 
     if(aValue == NULL)
     {
-        if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+        if(passed_lock) *passed_lock = false;
         return -1;
     }
 
@@ -1005,7 +1037,7 @@ uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool lock_mute
         uint32_t itemSize = (uint32_t)aValue->ref_size;
         free(*list);
         *list = detachedValue;
-        if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+        if(passed_lock) *passed_lock = false;
         return 0;
     }
 
@@ -1019,20 +1051,24 @@ uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, bool lock_mute
             uint32_t itemSize = (uint32_t)aValue->nextRef->ref_size;
             free(aValue->nextRef);
             aValue->nextRef = detachedValue;
-            if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+            if(passed_lock) *passed_lock = false;
             return 0;
         }
 
         aValue = aValue->nextRef;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
     return -1;
 }
 
-MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, bool lock_mutex)
+MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     MallocRef* aValue = *list;
 
@@ -1040,20 +1076,24 @@ MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, bool lock_mut
     {
         if((uint32_t)aValue->ref == (uint32_t)searchVal)
         {
-            if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+            if(passed_lock) *passed_lock = false;
             return aValue;
         }
         
         aValue = aValue->nextRef;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
     return NULL;
 }
 
-MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool lock_mutex)
+MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     MallocRef* aValue = *list;
 
@@ -1061,20 +1101,24 @@ MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, bool l
     {
         if( (  (uint32_t)searchVal >= (uint32_t)aValue->ref  )  &&  ( (uint32_t)searchVal <= ((uint32_t)aValue->ref+(uint32_t)aValue->ref_size)  )  )
         {
-            if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+            if(passed_lock) *passed_lock = false;
             return aValue;
         }
         
         aValue = aValue->nextRef;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
     return NULL;
 }
 
-int MallocRefListSize(MallocRefList list, bool lock_mutex)
+int MallocRefListSize(MallocRefList list, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     MallocRef* aValue = *list;
     int counter = 0;
@@ -1085,13 +1129,17 @@ int MallocRefListSize(MallocRefList list, bool lock_mutex)
         aValue = aValue->nextRef;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
     return counter;
 }
 
-int ValueListItems(ValueList list, bool lock_mutex)
+int ValueListItems(ValueList list, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
 
     Value* aValue = *list;
     int counter = 0;
@@ -1102,14 +1150,18 @@ int ValueListItems(ValueList list, bool lock_mutex)
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    if(passed_lock) *passed_lock = false;
     return counter;
 }
 
-void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
+void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool* passed_lock)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&malloc_ref_lock) != 0);
-    
+    if(passed_lock)
+    {
+        while(*passed_lock);
+        *passed_lock = true;
+    }
+
     MallocRef* aValue = *list;
 
     while(aValue)
@@ -1120,7 +1172,7 @@ void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
             aValue->ref_size = head->ref_size;
             aValue->alloc_location = head->alloc_location;
             aValue->alloc_type = head->alloc_type;
-            if(lock_mutex) pthread_mutex_unlock(&malloc_ref_lock);
+            if(passed_lock) *passed_lock = false;
             return;
         }
         
@@ -1130,7 +1182,7 @@ void InsertToMallocRefList(MallocRefList list, MallocRef* head, bool lock_mutex)
     head->nextRef = *list;
     *list = head;
 
-    if(lock_mutex)  pthread_mutex_unlock(&malloc_ref_lock);
+    if(passed_lock) *passed_lock = false;
 }
 
 uint32_t Hooks::EmptyCall()
@@ -1222,7 +1274,7 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
                         
                     ValueList vals = AllocateValuesList();
                     Value* val1 = CreateNewValue(copy_val(&val, sizeof(float)));
-                    InsertToValuesList(vals, val1, false, false, false);
+                    InsertToValuesList(vals, val1, NULL, false, false);
 
                     void* fieldNameCpy = 0;
                     if(fieldName != 0) fieldNameCpy = copy_val((void*)fieldName, strlen((char*)fieldName)+1);
@@ -1260,7 +1312,7 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
                     ValueList vals = AllocateValuesList();
                     Value* val1 = CreateNewValue(copy_val(&val, sizeof(int)));
-                    InsertToValuesList(vals, val1, false, false, false);
+                    InsertToValuesList(vals, val1, NULL, false, false);
 
                     void* fieldNameCpy = 0;
                     if(fieldName != 0) fieldNameCpy = copy_val((void*)fieldName, strlen((char*)fieldName)+1);
@@ -1295,9 +1347,9 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
                     Value* val1 = CreateNewValue(copy_val(&first, sizeof(float)));
                     Value* val2 = CreateNewValue(copy_val(&second, sizeof(float)));
                     Value* val3 = CreateNewValue(copy_val(&third, sizeof(float)));
-                    InsertToValuesList(vals, val3, false, false, false);
-                    InsertToValuesList(vals, val2, false, false, false);
-                    InsertToValuesList(vals, val1, false, false, false);
+                    InsertToValuesList(vals, val3, NULL, false, false);
+                    InsertToValuesList(vals, val2, NULL, false, false);
+                    InsertToValuesList(vals, val1, NULL, false, false);
 
                     void* fieldNameCpy = 0;
                     if(fieldName != 0) fieldNameCpy = copy_val((void*)fieldName, strlen((char*)fieldName)+1);
@@ -1321,7 +1373,7 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
                     ValueList vals = AllocateValuesList();
                     Value* val1 = CreateNewValue(copy_val(&val, sizeof(char)));
-                    InsertToValuesList(vals, val1, false, false, false);
+                    InsertToValuesList(vals, val1, NULL, false, false);
 
                     void* fieldNameCpy = 0;
                     if(fieldName != 0) fieldNameCpy = copy_val((void*)fieldName, strlen((char*)fieldName)+1);
@@ -1342,7 +1394,7 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
                     ValueList vals = AllocateValuesList();
                     Value* val1 = CreateNewValue(copy_val(&val, sizeof(short)));
-                    InsertToValuesList(vals, val1, false, false, false);
+                    InsertToValuesList(vals, val1, NULL, false, false);
 
                     void* fieldNameCpy = 0;
                     if(fieldName != 0) fieldNameCpy = copy_val((void*)fieldName, strlen((char*)fieldName)+1);
@@ -1459,7 +1511,7 @@ uint32_t FreeHook(uint32_t ref_tofree)
 
     void* returnAddr = __builtin_return_address(0);
 
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, true);
+    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
 
     if(searchResult)
     {
@@ -1480,7 +1532,7 @@ uint32_t FreeHook(uint32_t ref_tofree)
             rootconsole->ConsolePrint("used free() - should be operator delete[] ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
         }
 
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, true);
+        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
         return 0;
     }
 
@@ -1499,7 +1551,7 @@ uint32_t DeleteOperatorHook(uint32_t ref_tofree)
 
     void* returnAddr = __builtin_return_address(0);
 
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, true);
+    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
 
     if(searchResult)
     {
@@ -1520,7 +1572,7 @@ uint32_t DeleteOperatorHook(uint32_t ref_tofree)
             rootconsole->ConsolePrint("used operator delete - should be operator delete[] ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
         }
 
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, true);
+        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
         return 0;
     }
 
@@ -1539,7 +1591,7 @@ uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree)
         
     void* returnAddr = __builtin_return_address(0);
 
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, true);
+    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
 
     if(searchResult)
     {
@@ -1560,7 +1612,7 @@ uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree)
             operator delete[] ((void*)ref_tofree);
         }
 
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, true);
+        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
         return 0;
     }
     
@@ -1571,7 +1623,7 @@ uint32_t DeleteOperatorArrayHook(uint32_t ref_tofree)
 
 uint32_t MemcpyHook(uint32_t dest, uint32_t src, uint32_t size)
 {
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, true);
+    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
 
     if(searchResult)
     {
@@ -1618,7 +1670,7 @@ uint32_t MemcpyHook(uint32_t dest, uint32_t src, uint32_t size)
 
 uint32_t MemsetHook(uint32_t dest, uint32_t byte, uint32_t size)
 {   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, true);
+    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
 
     if(searchResult)
     {
@@ -1659,7 +1711,7 @@ uint32_t MemsetHook(uint32_t dest, uint32_t byte, uint32_t size)
 
 uint32_t MemmoveHook(uint32_t dest, uint32_t src, uint32_t size)
 {   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, true);
+    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
 
     if(searchResult)
     {
@@ -1681,7 +1733,7 @@ uint32_t MemmoveHook(uint32_t dest, uint32_t src, uint32_t size)
 
 uint32_t StrncpyHook(uint32_t dest, uint32_t src, uint32_t size)
 {   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, true);
+    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
 
     if(searchResult)
     {
@@ -1709,7 +1761,7 @@ uint32_t StrncpyHook(uint32_t dest, uint32_t src, uint32_t size)
 
 uint32_t StrcpyHook(uint32_t dest, uint32_t src)
 {   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, true);
+    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
 
     if(searchResult)
     {
@@ -1986,7 +2038,7 @@ void RestoreLinkedLists()
         uint32_t parsedRef = strtoul(file_line, NULL, 16);
         Value* leak = CreateNewValue((void*)parsedRef);
         rootconsole->ConsolePrint("Restored leaked reference: [%X]", parsedRef);
-        InsertToValuesList(currentRestoreList, leak, false, true, false);
+        InsertToValuesList(currentRestoreList, leak, NULL, false, true);
     }
 
     free(file_line);
@@ -2031,7 +2083,7 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, 
     if((current_cap < allowed_cap) && !destroy)
         return 0;
 
-    int total_items = ValueListItems(leakList, false);
+    int total_items = ValueListItems(leakList, NULL);
     int free_total_items = (float)free_perc / 100.0 * total_items;
 
     int has_freed_items = 0;
@@ -2110,7 +2162,7 @@ void ReleasePlayerSavedList()
         {
             Field* detachedField = field->nextField;
 
-            DeleteAllValuesInList(field->fieldVals, true, false);
+            DeleteAllValuesInList(field->fieldVals, NULL, true);
             free(field->label);
             free(field->key);
             free(field->type);
@@ -2654,7 +2706,7 @@ uint32_t SaveHookDirectMalloc(uint32_t size)
     rootconsole->ConsolePrint("malloc() [Save/Restore Hook] " HOOK_MSG " size: [%d]", ref, new_size);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, true, true, false);
+    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, NULL, true, true);
 
     return ref;
 }
@@ -2664,10 +2716,10 @@ uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size)
     uint32_t ref = (uint32_t)realloc((void*)old_ptr, new_size);
     rootconsole->ConsolePrint("realloc() [Save Hook] " HOOK_MSG " size: [%d]", ref, new_size);
 
-    RemoveFromValuesList(leakedResourcesSaveRestoreSystem, (void*)old_ptr, false);
+    RemoveFromValuesList(leakedResourcesSaveRestoreSystem, (void*)old_ptr, NULL);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, true, true, false);
+    InsertToValuesList(leakedResourcesSaveRestoreSystem, leak, NULL, true, true);
 
     return ref;
 }
@@ -2678,7 +2730,7 @@ uint32_t EdtSystemHookFunc(uint32_t arg1)
     rootconsole->ConsolePrint("[EDT Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesEdtSystem, leak, true, true, false);
+    InsertToValuesList(leakedResourcesEdtSystem, leak, NULL, true, true);
 
     return ref;
 }
@@ -2738,7 +2790,7 @@ void CleanPlayerEnts(bool no_parent)
                         uint32_t refHandle = *(uint32_t*)(oldEnt+0x350);
 
                         Value* deleteEnt = CreateNewValue((void*)refHandle);
-                        InsertToValuesList(deleteList, deleteEnt, false, true, false);
+                        InsertToValuesList(deleteList, deleteEnt, NULL, false, true);
                         break;
                     }
                 }
@@ -2749,7 +2801,7 @@ void CleanPlayerEnts(bool no_parent)
                 uint32_t refHandle = *(uint32_t*)(oldEnt+0x350);
 
                 Value* deleteEnt = CreateNewValue((void*)refHandle);
-                InsertToValuesList(deleteList, deleteEnt, false, true, false);
+                InsertToValuesList(deleteList, deleteEnt, NULL, false, true);
             }
         }
     }
@@ -2962,7 +3014,7 @@ uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
     rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
-    InsertToValuesList(leakedResourcesVpkSystem, leak, true, true, false);
+    InsertToValuesList(leakedResourcesVpkSystem, leak, NULL, true, true);
 
     vpk_free_elements = vpk_free_elements + 1;
     return ref;
@@ -3227,16 +3279,16 @@ uint32_t DoorCycleResolve(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t 
 
     if(mainValue != 0xFFFFFFFF)
     {
-        if(IsInValuesList(antiCycleListDoors, (void*)mainValue, false))
+        if(IsInValuesList(antiCycleListDoors, (void*)mainValue, NULL))
         {
             rootconsole->ConsolePrint("Cycle was detected and prevented hang!");
-            DeleteAllValuesInList(antiCycleListDoors, false, false);
+            DeleteAllValuesInList(antiCycleListDoors, NULL, false);
             return pDoorFinalFunction(arg1, arg2, arg3, arg4, arg5);
         }
 
         //Save ref for cycle resolving
         Value* val_save = CreateNewValue((void*)mainValue);
-        InsertToValuesList(antiCycleListDoors, val_save, false, true, false);
+        InsertToValuesList(antiCycleListDoors, val_save, NULL, false, true);
 
         uint32_t aCheck = mainValue >> 0x0C;
 
@@ -3256,7 +3308,7 @@ uint32_t DoorCycleResolve(uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t 
         }
     }
 
-    DeleteAllValuesInList(antiCycleListDoors, false, false);
+    DeleteAllValuesInList(antiCycleListDoors, NULL, false);
     return pDoorFinalFunction(arg1, arg2, arg3, arg4, arg5);
 }
 
@@ -3319,7 +3371,7 @@ bool hasTagAlreadyLoadedBefore(uint32_t arg0)
     }
 
     Value* new_gametag = CreateNewValue(copy_val((void*)currentTag, strlen((char*)currentTag)+1));
-    InsertToValuesList(played_gametags_list, new_gametag, false, true, false);
+    InsertToValuesList(played_gametags_list, new_gametag, NULL, false, true);
     return false;
 }
 
@@ -3333,9 +3385,9 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     DisableCacheCvars();
 
-    PurgeLeakList(packed_ent_refs, engine_srv + 0x00179E10, "packed_ent");
-    PurgeLeakList(proxy_refs, engine_srv + 0x00179F30, "proxy");
-    PurgeLeakList(int_int_refs, engine_srv + 0x000B5150, "int_int");
+    PurgeLeakList(packed_ent_refs, packed_ent_lock, engine_srv + 0x00179E10, "packed_ent");
+    //PurgeLeakList(proxy_refs, proxy_lock, engine_srv + 0x00179F30, "proxy");
+    PurgeLeakList(int_int_refs, int_int_lock, engine_srv + 0x000B5150, "int_int");
 
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
@@ -4029,10 +4081,12 @@ void DequeuePlayerDeaths()
     pOneArgProt pDynamicOneArgFunc;
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
     
-    if(pthread_mutex_trylock(&value_list_lock) != 0) return;
-    
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
     pDynamicOneArgFunc(main_engine_global);
+
+    if(*player_death_lock) return;
+    *player_death_lock = true;
+
     
     Value* playerRef = *playerDeathQueue;
 
@@ -4054,17 +4108,18 @@ void DequeuePlayerDeaths()
 
     *playerDeathQueue = NULL;
 
+
+    *player_death_lock = false;
+
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
     pDynamicOneArgFunc(main_engine_global);
-
-    pthread_mutex_unlock(&value_list_lock);
 }
 
 uint32_t Hooks::PlayerDeathHook(uint32_t arg0)
 {
     uint32_t refHandle = *(uint32_t*)(arg0+0x350);
     Value* newPlayer = CreateNewValue((void*)refHandle);
-    InsertToValuesList(playerDeathQueue, newPlayer, false, true, true);
+    InsertToValuesList(playerDeathQueue, newPlayer, player_death_lock, false, true);
     return 0;
 }
 
@@ -4162,9 +4217,14 @@ uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t ar
     return 0;
 }
 
-void PurgeLeakList(ValueList leakList, uint32_t purgeFunction, const char* purgeLabel)
+void PurgeLeakList(ValueList leakList, bool* leakListLock, uint32_t purgeFunction, const char* purgeLabel)
 {
     pOneArgProt pDynamicOneArgFunc;
+
+    while(*leakListLock);
+    *leakListLock = true;
+    
+
     Value* leakItem = *leakList;
 
     while(leakItem)
@@ -4181,6 +4241,9 @@ void PurgeLeakList(ValueList leakList, uint32_t purgeFunction, const char* purge
     }
 
     *leakList = NULL;
+
+
+    *leakListLock = false;
 }
 
 
@@ -4189,7 +4252,7 @@ uint32_t CUtlMemGrow_proxy(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(proxy_refs, newRef, false, true, false);
+    InsertToValuesList(proxy_refs, newRef, proxy_lock, false, true);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x00179F70);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -4199,7 +4262,7 @@ uint32_t CUtlMemPurge_proxy(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    RemoveFromValuesList(proxy_refs, (void*)arg0, false);
+    RemoveFromValuesList(proxy_refs, (void*)arg0, proxy_lock);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179F30);
     return pDynamicOneArgFunc(arg0);
@@ -4210,7 +4273,7 @@ uint32_t CUtlMemGrow_int_int(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(int_int_refs, newRef, false, true, false);
+    InsertToValuesList(int_int_refs, newRef, int_int_lock, false, true);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x000B53C0);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -4220,7 +4283,7 @@ uint32_t CUtlMemPurge_int_int(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    RemoveFromValuesList(int_int_refs, (void*)arg0, false);
+    RemoveFromValuesList(int_int_refs, (void*)arg0, int_int_lock);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000B5150);
     return pDynamicOneArgFunc(arg0);
@@ -4231,7 +4294,7 @@ uint32_t PackedEntityContruct(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(packed_ent_refs, newRef, false, true, false);
+    InsertToValuesList(packed_ent_refs, newRef, packed_ent_lock, false, true);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179C70);
     return pDynamicOneArgFunc(arg0);
@@ -4241,7 +4304,7 @@ uint32_t PackedEntityDestruct(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    RemoveFromValuesList(packed_ent_refs, (void*)arg0, false);
+    RemoveFromValuesList(packed_ent_refs, (void*)arg0, packed_ent_lock);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179E10);
     return pDynamicOneArgFunc(arg0);
@@ -4251,8 +4314,8 @@ void HookFunctionsWithC()
 {
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B53C0), (void*)CUtlMemGrow_int_int);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B5150), (void*)CUtlMemPurge_int_int);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F70), (void*)CUtlMemGrow_proxy);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F30), (void*)CUtlMemPurge_proxy);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F70), (void*)CUtlMemGrow_proxy);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F30), (void*)CUtlMemPurge_proxy);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179C70), (void*)PackedEntityContruct);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179E10), (void*)PackedEntityDestruct);
 
