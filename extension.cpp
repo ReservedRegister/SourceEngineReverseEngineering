@@ -112,6 +112,7 @@ pOneArgProt PlayerLoadOrig;
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
+uint32_t packed_ent_refs[PACKED_ENT_MAXSIZE] = {};
 
 ValueList leakedResourcesSaveRestoreSystem;
 ValueList leakedResourcesVpkSystem;
@@ -122,8 +123,6 @@ ValueList entityDeleteList;
 ValueList playerDeathQueue;
 ValueList int_int_refs;
 ValueList proxy_refs;
-ValueList packed_ent_refs;
-ValueList packed_ent_scheduler;
 
 MallocRefList mallocAllocations;
 PlayerSaveList playerSaveList;
@@ -145,7 +144,7 @@ int frames;
 int kill_frames;
 uint32_t weapon_substitute;
 uint32_t vpk_free_elements;
-uint32_t packed_ent_scheduler_items;
+uint32_t packed_ent_counter;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -159,7 +158,6 @@ pthread_mutex_t player_death_lock;
 pthread_mutex_t int_int_lock;
 pthread_mutex_t proxy_lock;
 pthread_mutex_t packed_ent_lock;
-pthread_mutex_t packed_ent_scheduler_lock;
 
 bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -182,13 +180,12 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     ignore_packed_ent_removal = false;
     weapon_substitute = 0;
     vpk_free_elements = 0;
-    packed_ent_scheduler_items = 0;
+    packed_ent_counter = 0;
 
     pthread_mutex_init(&player_death_lock, NULL);
     pthread_mutex_init(&proxy_lock, NULL);
     pthread_mutex_init(&int_int_lock, NULL);
     pthread_mutex_init(&packed_ent_lock, NULL);
-    pthread_mutex_init(&packed_ent_scheduler_lock, NULL);
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -262,8 +259,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     playerDeathQueue = AllocateValuesList();
     int_int_refs = AllocateValuesList();
     proxy_refs = AllocateValuesList();
-    packed_ent_refs = AllocateValuesList();
-    packed_ent_scheduler = AllocateValuesList();
 
     pOneArgProt pDynamicOneArgFunc;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
@@ -381,40 +376,8 @@ void SynergyUtils::SDK_OnAllLoaded()
     HookFunctionsWithCpp();
     RestoreMemoryProtections();
     DisableCacheCvars();
-
-    pthread_t packedEntWorker;
-    pthread_create(&packedEntWorker, NULL, PackedEntWorkerCallback, NULL);
+    
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
-}
-
-void* PackedEntWorkerCallback(void* arg)
-{
-    while(true)
-    {
-        if(pthread_mutex_lock(&packed_ent_scheduler_lock) == 0)
-        {
-            Value* itemRemove = *packed_ent_scheduler;
-
-            if(itemRemove)
-            {
-                Value* nextRemoveItem = itemRemove->nextVal;
-
-                if(pthread_mutex_lock(&packed_ent_lock) == 0)
-                {
-                    RemoveFromValuesList(packed_ent_refs, itemRemove->value, NULL);
-                    pthread_mutex_unlock(&packed_ent_lock);
-                
-                    *packed_ent_scheduler = nextRemoveItem;
-                    free(itemRemove);
-                    packed_ent_scheduler_items--;
-                }
-            }
-
-            pthread_mutex_unlock(&packed_ent_scheduler_lock);
-        }
-    }
-
-    pthread_exit(NULL);
 }
 
 void PatchRestoring()
@@ -3373,12 +3336,31 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
     DisableCacheCvars();
 
-    PurgeLeakList(packed_ent_refs, &packed_ent_lock, engine_srv + 0x00179E10, "packed_ent");
-    //PurgeLeakList(proxy_refs, proxy_lock, engine_srv + 0x00179F30, "proxy");
-    PurgeLeakList(int_int_refs, &int_int_lock, engine_srv + 0x000B5150, "int_int");
-
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
+
+    while(pthread_mutex_trylock(&packed_ent_lock) != 0);
+
+    for(int i = 0; i < PACKED_ENT_MAXSIZE; i++)
+    {
+        if(packed_ent_refs[i] != 0)
+        {
+            ignore_packed_ent_removal = true;
+            //Custom purge function
+            pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001A6070);
+            pDynamicTwoArgFunc(*(uint32_t*)(engine_srv + 0x002BEF30), packed_ent_refs[i]);
+            ignore_packed_ent_removal = false;
+
+            rootconsole->ConsolePrint("Removed packed_ent [%X]", packed_ent_refs[i]);
+            packed_ent_refs[i] = 0;
+            packed_ent_counter--;
+        }
+    }
+
+    pthread_mutex_unlock(&packed_ent_lock);
+
+    //PurgeLeakList(proxy_refs, proxy_lock, engine_srv + 0x00179F30, "proxy");
+    PurgeLeakList(int_int_refs, &int_int_lock, engine_srv + 0x000B5150, "int_int");
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
     pDynamicOneArgFunc(arg0);
@@ -4204,20 +4186,11 @@ uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t ar
     return 0;
 }
 
-bool isPackedEntWorkerFinished()
-{
-    while(pthread_mutex_trylock(&packed_ent_scheduler_lock) != 0);
-    uint32_t packed_ent_scheduler_items_snapshot = packed_ent_scheduler_items;
-    pthread_mutex_unlock(&packed_ent_scheduler_lock);
-    return packed_ent_scheduler_items_snapshot == 0;
-}
-
 void PurgeLeakList(ValueList leakList, pthread_mutex_t* leakListLock, uint32_t purgeFunction, const char* purgeLabel)
 {
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    while(!isPackedEntWorkerFinished());
     while(pthread_mutex_trylock(leakListLock) != 0);
     
 
@@ -4227,20 +4200,9 @@ void PurgeLeakList(ValueList leakList, pthread_mutex_t* leakListLock, uint32_t p
     {
         Value* nextRef = leakItem->nextVal;
 
-        if(leakList == packed_ent_refs)
-        {
-            ignore_packed_ent_removal = true;
-            //Custom purge function
-            pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001A6070);
-            pDynamicTwoArgFunc(*(uint32_t*)(engine_srv + 0x002BEF30), (uint32_t)(leakItem->value));
-            ignore_packed_ent_removal = false;
-        }
-        else
-        {
-            //Passed purge function
-            pDynamicOneArgFunc = (pOneArgProt)(purgeFunction);
-            pDynamicOneArgFunc((uint32_t)(leakItem->value));
-        }
+        //Passed purge function
+        pDynamicOneArgFunc = (pOneArgProt)(purgeFunction);
+        pDynamicOneArgFunc((uint32_t)(leakItem->value));
 
         rootconsole->ConsolePrint("Purged [%s] [%X]", purgeLabel, leakItem->value);
 
@@ -4301,8 +4263,25 @@ uint32_t PackedEntityContruct(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(packed_ent_refs, newRef, &packed_ent_lock, false, false);
+    while(pthread_mutex_trylock(&packed_ent_lock) != 0);
+
+    if(packed_ent_counter >= PACKED_ENT_MAXSIZE)
+    {
+        rootconsole->ConsolePrint("Reached packed_ent array limit server is now crashing!");
+        exit(1);
+    }
+
+    for(int i = 0; i < PACKED_ENT_MAXSIZE; i++)
+    {
+        if(packed_ent_refs[i] == 0)
+        {
+            packed_ent_refs[i] = arg0;
+            packed_ent_counter++;
+            break;
+        }
+    }
+
+    pthread_mutex_unlock(&packed_ent_lock);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179C70);
     return pDynamicOneArgFunc(arg0);
@@ -4314,14 +4293,19 @@ uint32_t PackedEntityDestruct(uint32_t arg0)
 
     if(!ignore_packed_ent_removal)
     {
-        while(pthread_mutex_trylock(&packed_ent_scheduler_lock) != 0);
+        while(pthread_mutex_trylock(&packed_ent_lock) != 0);
 
-        Value* newRef = CreateNewValue((void*)arg0);
-        InsertToValuesList(packed_ent_scheduler, newRef, NULL, false, false);
+        for(int i = 0; i < PACKED_ENT_MAXSIZE; i++)
+        {
+            if(packed_ent_refs[i] == arg0)
+            {
+                packed_ent_refs[i] = 0;
+                packed_ent_counter--;
+                break;
+            }
+        }
 
-        packed_ent_scheduler_items++;
-
-        pthread_mutex_unlock(&packed_ent_scheduler_lock);
+        pthread_mutex_unlock(&packed_ent_lock);
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x00179E10);
