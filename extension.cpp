@@ -3413,10 +3413,13 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
     pDynamicOneArgFunc(arg0);
 
+    //scene_flush direct call
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    pDynamicOneArgFunc(0);
 
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
+    //Reload model sounds cache
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
+    pDynamicOneArgFunc(arg0);
 
     //Flush materials
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
@@ -3430,17 +3433,13 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
     pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
 
-    //scene_flush direct call
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
-    pDynamicOneArgFunc(0);
-
-    //Reload model sounds cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
-    pDynamicOneArgFunc(arg0);
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //Invalidate mdl cache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
+    //pDynamicOneArgFunc(0);
 
     //Flush - data cache
     //uint32_t freed_bytes = pFlushFunc((uint32_t)g_DataCache, (uint32_t)false, (uint32_t)false);
