@@ -1863,10 +1863,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     DequeuePlayerDeaths();
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
-
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
     pDynamicOneArgFunc(0);
@@ -1874,6 +1870,10 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
@@ -2871,7 +2871,7 @@ void RestorePlayers()
 
 
         rootconsole->ConsolePrint("Failed to restore player giving weapons...");
-        GivePlayerWeapons(playerEnt, true);
+        GivePlayerWeapons(playerEnt, false);
     }
 
     rootconsole->ConsolePrint("Finished restoring players!");
@@ -2961,7 +2961,7 @@ uint32_t RestoreOverride()
 
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    uint32_t ref = (uint32_t)malloc(arg0);
+    uint32_t ref = (uint32_t)malloc(arg0*10.0);
     rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
