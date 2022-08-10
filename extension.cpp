@@ -407,16 +407,15 @@ void* PackedEntWorkerCallback(void* arg)
             
             *packed_ent_scheduler = nextRemoveItem;
             free(itemRemove);
-
-            packed_ent_scheduler_items--;
         }
-
-        pthread_mutex_unlock(&packed_ent_scheduler_lock);
 
         if(removeValue)
         {
             RemoveFromValuesList(packed_ent_refs, removeValue, &packed_ent_lock);
+            packed_ent_scheduler_items--;
         }
+
+        pthread_mutex_unlock(&packed_ent_scheduler_lock);
     }
 
     pthread_exit(NULL);
