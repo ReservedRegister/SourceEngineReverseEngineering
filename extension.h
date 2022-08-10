@@ -198,6 +198,8 @@ uint32_t DropshipsHook(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3);
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0);
 uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size);
+uint32_t SimulationPatchOne(uint32_t arg0);
+uint32_t SimulationPatchTwo(uint32_t arg0, uint32_t arg1);
 
 
 /**

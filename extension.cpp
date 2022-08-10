@@ -4039,6 +4039,38 @@ uint32_t DropshipsHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     return PopulatePoseParameters(arg1, arg2, arg3);
 }
 
+uint32_t SimulationPatchOne(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(object)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00844EC0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    return 0;
+}
+
+uint32_t SimulationPatchTwo(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x44);
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(object)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0058BC50);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    return 0;
+}
+
 uint32_t CallLater(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     OldFunction(arg1);
@@ -4325,6 +4357,9 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AFCA0), (void*)CreateEntityByNameHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), (void*)PreEdtLoad);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007B8F90), (void*)(server_srv + 0x00A657F0));
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)SimulationPatchOne);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)SimulationPatchTwo);
 
 
     /*rootconsole->ConsolePrint("patching calloc()");
