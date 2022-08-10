@@ -3,7 +3,7 @@
 
 #include "sdktools.h"
 
-#define PACKED_ENT_MAXSIZE 5120
+#define PACKED_ENT_MAXSIZE 15360
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 #define EXT_PREFIX "[SynergyUtils] "
 
