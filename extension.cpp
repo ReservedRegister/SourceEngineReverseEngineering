@@ -4260,7 +4260,7 @@ uint32_t CUtlMemGrow_proxy(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(proxy_refs, newRef, &proxy_lock, false, true);
+    InsertToValuesList(proxy_refs, newRef, &proxy_lock, false, false);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x00179F70);
     return pDynamicTwoArgFunc(arg0, arg1);
@@ -4281,7 +4281,7 @@ uint32_t CUtlMemGrow_int_int(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     Value* newRef = CreateNewValue((void*)arg0);
-    InsertToValuesList(int_int_refs, newRef, &int_int_lock, false, true);
+    InsertToValuesList(int_int_refs, newRef, &int_int_lock, false, false);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x000B53C0);
     return pDynamicTwoArgFunc(arg0, arg1);
