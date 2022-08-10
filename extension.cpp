@@ -389,33 +389,29 @@ void SynergyUtils::SDK_OnAllLoaded()
 
 void* PackedEntWorkerCallback(void* arg)
 {
-    void* removeValue = NULL;
-
     while(true)
     {
-        usleep(500);
-        removeValue = NULL;
-
-        while(pthread_mutex_trylock(&packed_ent_scheduler_lock) != 0);
-
-        Value* itemRemove = *packed_ent_scheduler;
-
-        if(itemRemove)
+        if(pthread_mutex_lock(&packed_ent_scheduler_lock) == 0)
         {
-            Value* nextRemoveItem = itemRemove->nextVal;
-            removeValue = itemRemove->value;
-            
-            *packed_ent_scheduler = nextRemoveItem;
-            free(itemRemove);
-        }
+            Value* itemRemove = *packed_ent_scheduler;
 
-        if(removeValue)
-        {
-            RemoveFromValuesList(packed_ent_refs, removeValue, &packed_ent_lock);
-            packed_ent_scheduler_items--;
-        }
+            if(itemRemove)
+            {
+                Value* nextRemoveItem = itemRemove->nextVal;
 
-        pthread_mutex_unlock(&packed_ent_scheduler_lock);
+                if(pthread_mutex_lock(&packed_ent_lock) == 0)
+                {
+                    RemoveFromValuesList(packed_ent_refs, itemRemove->value, NULL);
+                    pthread_mutex_unlock(&packed_ent_lock);
+                
+                    *packed_ent_scheduler = nextRemoveItem;
+                    free(itemRemove);
+                    packed_ent_scheduler_items--;
+                }
+            }
+
+            pthread_mutex_unlock(&packed_ent_scheduler_lock);
+        }
     }
 
     pthread_exit(NULL);
@@ -4321,8 +4317,7 @@ uint32_t PackedEntityDestruct(uint32_t arg0)
         while(pthread_mutex_trylock(&packed_ent_scheduler_lock) != 0);
 
         Value* newRef = CreateNewValue((void*)arg0);
-        newRef->nextVal = *packed_ent_scheduler;
-        *packed_ent_scheduler = newRef;
+        InsertToValuesList(packed_ent_scheduler, newRef, NULL, false, false);
 
         packed_ent_scheduler_items++;
 
