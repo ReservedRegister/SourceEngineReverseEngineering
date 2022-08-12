@@ -1838,7 +1838,7 @@ void ReleaseLeakedPackedEntities()
 
     for(int i = 0; i < 2048; i++)
     {
-        rootconsole->ConsolePrint("trying [%d] ent", i);
+        //rootconsole->ConsolePrint("trying [%d] ent", i);
         uint32_t computed_ref = *(uint32_t*)(snapManager+(i+0x18)*4+8);
 
         if(computed_ref != 0)
