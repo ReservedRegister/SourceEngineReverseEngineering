@@ -3380,7 +3380,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pthread_mutex_unlock(&packed_ent_lock);*/
 
     //PurgeLeakList(proxy_refs, proxy_lock, engine_srv + 0x00179F30, "proxy");
-    PurgeLeakList(int_int_refs, &int_int_lock, engine_srv + 0x000B5150, "int_int");
+    //PurgeLeakList(int_int_refs, &int_int_lock, engine_srv + 0x000B5150, "int_int");
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
     pDynamicOneArgFunc(arg0);
@@ -4365,8 +4365,8 @@ uint32_t PackedEntityDestruct(uint32_t arg0)
 
 void HookFunctionsWithC()
 {
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B53C0), (void*)CUtlMemGrow_int_int);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B5150), (void*)CUtlMemPurge_int_int);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B53C0), (void*)CUtlMemGrow_int_int);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B5150), (void*)CUtlMemPurge_int_int);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F70), (void*)CUtlMemGrow_proxy);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F30), (void*)CUtlMemPurge_proxy);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179C70), (void*)PackedEntityContruct);
