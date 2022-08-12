@@ -1845,6 +1845,8 @@ void ReleaseLeakedPackedEntities()
         {
             pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001A6070);
             pDynamicTwoArgFunc(snapManager, computed_ref);
+
+            *(uint32_t*)(snapManager+(i+0x18)*4+8) = 0;
         }
     }
 }
