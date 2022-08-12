@@ -1825,8 +1825,28 @@ uint32_t FrameLockHook(uint32_t arg0)
     SaveGameSafe(true);
     InactivateClients(sv);
 
+    ReleaseLeakedPackedEntities();
+
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
+}
+
+void ReleaseLeakedPackedEntities()
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+    uint32_t snapManager = *(uint32_t*)(engine_srv + 0x002BEF30);
+
+    for(int i = 0; i < 2048; i++)
+    {
+        rootconsole->ConsolePrint("trying [%d] ent", i);
+        uint32_t computed_ref = *(uint32_t*)(snapManager+(i+0x18)*4+8);
+
+        if(computed_ref != 0)
+        {
+            pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001A6070);
+            pDynamicTwoArgFunc(snapManager, computed_ref);
+        }
+    }
 }
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
@@ -3339,7 +3359,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    while(pthread_mutex_trylock(&packed_ent_lock) != 0);
+    /*while(pthread_mutex_trylock(&packed_ent_lock) != 0);
 
     for(int i = 0; i < PACKED_ENT_MAXSIZE; i++)
     {
@@ -3357,7 +3377,7 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
         }
     }
 
-    pthread_mutex_unlock(&packed_ent_lock);
+    pthread_mutex_unlock(&packed_ent_lock);*/
 
     //PurgeLeakList(proxy_refs, proxy_lock, engine_srv + 0x00179F30, "proxy");
     PurgeLeakList(int_int_refs, &int_int_lock, engine_srv + 0x000B5150, "int_int");
@@ -4349,8 +4369,8 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000B5150), (void*)CUtlMemPurge_int_int);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F70), (void*)CUtlMemGrow_proxy);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179F30), (void*)CUtlMemPurge_proxy);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179C70), (void*)PackedEntityContruct);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179E10), (void*)PackedEntityDestruct);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179C70), (void*)PackedEntityContruct);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x00179E10), (void*)PackedEntityDestruct);
 
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF24F0), (void*)SaveRestoreMemManage);
