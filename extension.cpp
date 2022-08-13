@@ -385,7 +385,7 @@ void PatchRestoring()
     uint32_t nop_patch_list[128] = 
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
-        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x00AF44A5,5,0x0073CDFC,5,
+        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x0073CDFC,5,
         0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00A316F0,5,0x00739AF1,5,0x00739B48,5
     };
 
@@ -1825,8 +1825,6 @@ uint32_t FrameLockHook(uint32_t arg0)
     SaveGameSafe(true);
     InactivateClients(sv);
 
-    ReleaseLeakedPackedEntities();
-
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
 }
@@ -1835,6 +1833,8 @@ void ReleaseLeakedPackedEntities()
 {
     pTwoArgProt pDynamicTwoArgFunc;
     uint32_t snapManager = *(uint32_t*)(engine_srv + 0x002BEF30);
+
+    int freed_leaks = 0;
 
     for(int i = 0; i < 2048; i++)
     {
@@ -1847,8 +1847,11 @@ void ReleaseLeakedPackedEntities()
             pDynamicTwoArgFunc(snapManager, computed_ref);
 
             *(uint32_t*)(snapManager+(i+0x18)*4+8) = 0;
+            freed_leaks++;
         }
     }
+
+    rootconsole->ConsolePrint("Purged [%d] packed ents!", freed_leaks);
 }
 
 uint32_t Hooks::GameFrameHook(uint8_t simulating)
@@ -1870,18 +1873,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     }
 
     if(restore_delay) return 0;
-
-    if(savegame && !savegame_lock)
-    {
-        frames = 0;
-        savegame_lock = true;
-    }
-    else if(savegame && savegame_lock && frames >= 20)
-    {
-        if(!restoring) SaveGameSafe(false);
-        savegame = false;
-        savegame_lock = false;
-    }
 
     DequeuePlayerDeaths();
 
@@ -2909,6 +2900,9 @@ uint32_t RestoreOverride()
     rootconsole->ConsolePrint("Clearing entities!");
     protect_player = true;
 
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
+    pDynamicOneArgFunc(server_srv + 0x00FF3020);
+
     *(uint8_t*)(server_srv + 0x00FF8740 + 0x10020) = 1;
 
     uint32_t mainEnt = 0;
@@ -2933,9 +2927,6 @@ uint32_t RestoreOverride()
     }
 
     Hooks::CleanupDeleteListHook(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-    pDynamicOneArgFunc(server_srv + 0x00FF3020);
 
     // SIM END
 
@@ -2967,13 +2958,17 @@ uint32_t RestoreOverride()
     pDynamicOneArgFunc(0);
 
     AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)"autosave", 0);
-    RestorePlayers();
 
     *(uint8_t*)(server_srv + 0x01012130) = 1;
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
     pDynamicOneArgFunc(0);
 
+    RestorePlayers();
+
+    *(uint8_t*)(server_srv + 0x01012130) = 1;
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
+    pDynamicOneArgFunc(0);
+    
     *(uint8_t*)((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x130) = 0;
     
     protect_player = false;
@@ -3008,6 +3003,16 @@ uint32_t Hooks::SavegameInternalFunction(uint32_t arg0)
 {
     //SavePlayers();
     return pCallOrigSaveFunction(arg0);
+}
+
+uint32_t LevelChangedHookFrameSnaps(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    ReleaseLeakedPackedEntities();
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001A5FB0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
@@ -4103,13 +4108,12 @@ void DequeuePlayerDeaths()
 {
     pOneArgProt pDynamicOneArgFunc;
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
-    
-    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
-    pDynamicOneArgFunc(main_engine_global);
 
     if(pthread_mutex_lock(&player_death_lock) != 0) return;
 
-    
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
+    pDynamicOneArgFunc(main_engine_global);
+
     Value* playerRef = *playerDeathQueue;
 
     while(playerRef)
@@ -4130,11 +4134,10 @@ void DequeuePlayerDeaths()
 
     *playerDeathQueue = NULL;
 
-
-    pthread_mutex_unlock(&player_death_lock);
-
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x68 )  );
     pDynamicOneArgFunc(main_engine_global);
+
+    pthread_mutex_unlock(&player_death_lock);
 }
 
 uint32_t Hooks::PlayerDeathHook(uint32_t arg0)
@@ -4172,11 +4175,22 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
     Hooks::CleanupDeleteListHook(0);
-    return returnVal;
+
+    if(savegame && !savegame_lock)
+    {
+        frames = 0;
+        savegame_lock = true;
+    }
+    else if(savegame && savegame_lock && frames >= 20)
+    {
+        if(!restoring) SaveGameSafe(false);
+        savegame = false;
+        savegame_lock = false;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -4382,6 +4396,7 @@ void HookFunctionsWithC()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)SimulationPatchOne);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)SimulationPatchTwo);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001A5FB0), (void*)LevelChangedHookFrameSnaps);
 
 
     /*rootconsole->ConsolePrint("patching calloc()");
@@ -4561,7 +4576,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), SynergyUtils::getCppAddr(Hooks::FindEntityByName));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), SynergyUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), SynergyUtils::getCppAddr(Hooks::HookEntityDelete));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
