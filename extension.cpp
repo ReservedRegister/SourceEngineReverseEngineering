@@ -1889,8 +1889,10 @@ uint32_t FrameLockHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint(EXT_PREFIX "Saving game for transition!");
     restoring = false;
+    isTicking = false;
 
     pOneArgProt pDynamicOneArgFunc;
+    Hooks::CleanupDeleteListHook(0);
 
     //InvalidateEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
@@ -4021,7 +4023,6 @@ uint32_t SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 uint32_t HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     firstplayer_hasjoined = false;
-    isTicking = false;
     transition = false;
     
     *(uint8_t*)(*(uint32_t*)(server_srv + 0x00FA0CF0)) = 0;
