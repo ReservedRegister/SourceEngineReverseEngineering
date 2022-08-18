@@ -4458,6 +4458,13 @@ uint32_t HookAddToDeleteList(uint32_t arg0, uint32_t arg1)
 uint32_t AiHintNpcCombinePatch(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
+    
+    if(arg1 == 0)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00566CA0);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+    
     uint32_t refHandle = *(uint32_t*)(arg1+0x350);
     uint32_t object = GetCBaseEntity(refHandle);
 
