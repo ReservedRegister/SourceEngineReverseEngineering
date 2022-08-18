@@ -1194,7 +1194,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(!isTicking)
+    /*if(!isTicking)
     {
         while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
 
@@ -1259,9 +1259,11 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
         }
 
         kill_frames = 0;
-    }
+    }*/
 
-    return 0;
+    //CleanupDeleteList
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
+    return pDynamicOneArgFunc(arg0);
 }
 
 FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_offset, uint32_t deep, FieldList fieldList)
@@ -1472,7 +1474,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
+    uint32_t newRef = (uint32_t)malloc(size*4.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1891,11 +1893,12 @@ uint32_t FrameLockHook(uint32_t arg0)
     isTicking = false;
 
     pOneArgProt pDynamicOneArgFunc;
-    Hooks::CleanupDeleteListHook(0);
 
     //InvalidateEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
     pDynamicOneArgFunc(server_srv + 0x00FF3020);
+
+    Hooks::CleanupDeleteListHook(0);
 
     SaveGameSafe(true);
     InactivateClients(sv);
@@ -4279,7 +4282,9 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
-    return pDynamicOneArgFunc(arg0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    Hooks::CleanupDeleteListHook(0);
+    return returnVal;
 }
 
 uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -4538,7 +4543,7 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)SimulationPatchOne);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)SimulationPatchTwo);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001A5FB0), (void*)LevelChangedHookFrameSnaps);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B23F0), (void*)HookAddToDeleteList);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B23F0), (void*)HookAddToDeleteList);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00566CA0), (void*)AiHintNpcCombinePatch);
 
 
