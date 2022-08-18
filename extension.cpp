@@ -140,7 +140,8 @@ bool disable_delete_list;
 bool isTicking;
 bool firstplayer_hasjoined;
 bool ignore_packed_ent_removal;
-int frames;
+int save_frames;
+int restore_frames;
 int kill_frames;
 uint32_t weapon_substitute;
 uint32_t vpk_free_elements;
@@ -171,7 +172,8 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     savegame_lock = false;
     restoring = false;
     protect_player = false;
-    frames = 0;
+    save_frames = 0;
+    restore_frames = 0;
     kill_frames = 0;
     isTicking = false;
     restore_delay = false;
@@ -1194,6 +1196,32 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
     if(!isTicking)
     {
+        while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
+
+        Value* cleanElem = *entityDeleteList;
+
+        while(cleanElem)
+        {
+            Value* nextElem = cleanElem->nextVal;
+            uint32_t object = GetCBaseEntity((uint32_t)(cleanElem->value));
+
+            if(object)
+            {
+                rootconsole->ConsolePrint("Released [%s]", *(uint32_t*)(object+0x68));
+
+                //AddToDeleteList
+                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
+                pDynamicTwoArgFunc(arg0, object+0x18);
+            }
+
+            free(cleanElem);
+            cleanElem = nextElem;
+        }
+
+        *entityDeleteList = NULL;
+
+        pthread_mutex_unlock(&entityDeleteListLock);
+
         //CleanupDeleteList
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
         return pDynamicOneArgFunc(arg0);
@@ -1219,7 +1247,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
         if(object)
         {
-            rootconsole->ConsolePrint("Released [%s]", *(uint32_t*)(object+0x68));
+            //rootconsole->ConsolePrint("Released [%s]", *(uint32_t*)(object+0x68));
 
             //AddToDeleteList
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
@@ -1904,14 +1932,16 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 {
     isTicking = true;
     pOneArgProt pDynamicOneArgFunc;
-    frames++;
+
+    save_frames++;
+    restore_frames++;
 
     if(restore_delay && !restore_delay_lock)
     {
-        frames = 0;
+        restore_frames = 0;
         restore_delay_lock = true;
     }
-    else if(restore_delay && restore_delay_lock && frames >= 50)
+    else if(restore_delay && restore_delay_lock && restore_frames >= 50)
     {
         restoring = false;
         restore_delay = false;
@@ -1946,7 +1976,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
     
-    if(frames >= 500) frames = 0;
+    if(save_frames >= 500) save_frames = 0;
+    if(restore_frames >= 500) restore_frames = 0;
     return 0;
 }
 
@@ -4226,14 +4257,23 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 
     if(savegame && !savegame_lock)
     {
-        frames = 0;
+        save_frames = 0;
         savegame_lock = true;
     }
-    else if(savegame && savegame_lock && frames >= 20)
+    else if(savegame && savegame_lock && save_frames >= 20)
     {
-        if(!restoring) SaveGameSafe(false);
-        savegame = false;
-        savegame_lock = false;
+        save_frames = 20;
+
+        while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
+        bool isEntityDeleteListEmpty = *entityDeleteList == NULL;
+        pthread_mutex_unlock(&entityDeleteListLock);
+        
+        if(!restoring && isEntityDeleteListEmpty)
+        {
+            SaveGameSafe(false);
+            savegame = false;
+            savegame_lock = false;
+        }
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
