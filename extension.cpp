@@ -1227,7 +1227,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    if(kill_frames > 5)
+    if(kill_frames > 4)
     {
         while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
 
@@ -1261,7 +1261,6 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
         kill_frames = 0;
     }
 
-    kill_frames++;
     return 0;
 }
 
@@ -1937,6 +1936,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     save_frames++;
     restore_frames++;
+    kill_frames++;
 
     if(restore_delay && !restore_delay_lock)
     {
@@ -1980,6 +1980,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     
     if(save_frames >= 500) save_frames = 0;
     if(restore_frames >= 500) restore_frames = 0;
+    if(kill_frames >= 500) kill_frames = 0;
     return 0;
 }
 
@@ -4512,7 +4513,7 @@ uint32_t AiHintNpcCombinePatch(uint32_t arg0, uint32_t arg1)
     if(object)
     {
         pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00566CA0);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        return pDynamicTwoArgFunc(arg0, object);
     }
 
     rootconsole->ConsolePrint("Broken entity!");
