@@ -200,6 +200,8 @@ uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size);
 uint32_t SimulationPatchOne(uint32_t arg0);
 uint32_t SimulationPatchTwo(uint32_t arg0, uint32_t arg1);
 uint32_t LevelChangedHookFrameSnaps(uint32_t arg0);
+uint32_t HookAddToDeleteList(uint32_t arg0, uint32_t arg1);
+uint32_t AiHintNpcCombinePatch(uint32_t arg0, uint32_t arg1);
 
 
 /**
