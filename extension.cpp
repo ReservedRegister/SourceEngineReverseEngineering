@@ -138,6 +138,7 @@ bool restore_delay;
 bool restore_delay_lock;
 bool disable_delete_list;
 bool isTicking;
+bool hasSavedOnce;
 bool firstplayer_hasjoined;
 bool ignore_packed_ent_removal;
 int save_frames;
@@ -181,6 +182,7 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     disable_delete_list = false;
     firstplayer_hasjoined = false;
     ignore_packed_ent_removal = false;
+    hasSavedOnce = false;
     weapon_substitute = 0;
     vpk_free_elements = 0;
     packed_ent_counter = 0;
@@ -3007,25 +3009,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     if(strcmp(clsname, "player") != 0 && firstplayer_hasjoined)
     {
-        //EntityGetFunctionByEdict
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
-
-        bool anyplayer_exists = false;
-        uint32_t global_var = *(uint32_t*)(server_srv + 0x010121E0);
-        uint32_t maxPlayers = *(uint32_t*)(global_var+0x14);
-
-        //rootconsole->ConsolePrint("maxPlayers: %d", maxPlayers);
-
-        for(uint32_t i = 1; i <= maxPlayers; i++)
-        {
-            if(pDynamicOneArgFunc((uint32_t)i))
-            {
-                anyplayer_exists = true;
-                break;
-            }
-        }
-
-        if(!anyplayer_exists) return 0;
+        int total_clients_ingame = GetTotalClientsInGame();
+        if(total_clients_ingame == 0) return 0;
     }
 
     //IsMarkedForDeletion
@@ -4117,6 +4102,38 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
+int GetTotalClientsInGame()
+{
+    //EntityGetFunctionByEdict
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
+    uint32_t global_var = *(uint32_t*)(server_srv + 0x010121E0);
+    uint32_t maxPlayers = *(uint32_t*)(global_var+0x14);
+
+    //rootconsole->ConsolePrint("maxPlayers: %d", maxPlayers);
+    int total_clients = 0;
+
+    for(uint32_t i = 1; i <= maxPlayers; i++)
+    {
+        uint32_t player_object = pDynamicOneArgFunc((uint32_t)i);
+
+        if(player_object)
+        {
+            total_clients++;
+        }
+    }
+
+    return total_clients;
+}
+
+bool isAnyClientConnecting()
+{
+    int total_clients = GetNumClients(sv);
+    int total_clients_ingame = GetTotalClientsInGame();
+
+    if(total_clients == total_clients_ingame) return false;
+    return true;
+}
+
 uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -4132,9 +4149,11 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     {
         save_frames = 20;
         
-        if(!restoring)
+        if( (!restoring && !isAnyClientConnecting()) || (!restoring && !hasSavedOnce) )
         {
             SaveGameSafe(false);
+            hasSavedOnce = true;
+            
             savegame = false;
             savegame_lock = false;
         }

@@ -120,6 +120,8 @@ void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 void DequeuePlayerDeaths();
+int GetTotalClientsInGame();
+bool isAnyClientConnecting();
 
 ValueList AllocateValuesList();
 FieldList AllocateFieldList();
