@@ -1408,7 +1408,7 @@ uint32_t MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
     //if(size <= 8192) return (uint32_t)malloc(size*100.0);
 
-    uint32_t newRef = (uint32_t)malloc(size*4.0);
+    uint32_t newRef = (uint32_t)malloc(size*10.0);
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
     //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
@@ -1828,12 +1828,6 @@ uint32_t FrameLockHook(uint32_t arg0)
 
     pOneArgProt pDynamicOneArgFunc;
 
-    //InvalidateEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-    pDynamicOneArgFunc(server_srv + 0x00FF3020);
-
-    Hooks::CleanupDeleteListHook(0);
-
     SaveGameSafe(true);
     InactivateClients(sv);
 
@@ -1889,6 +1883,18 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
+    pDynamicOneArgFunc(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
     pDynamicOneArgFunc(0);
@@ -1899,20 +1905,8 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     DequeuePlayerDeaths();
 
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
-
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
-    pDynamicOneArgFunc(0);
-
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
     
     if(save_frames >= 500) save_frames = 0;
@@ -2066,7 +2060,6 @@ int ReleaseLeakedMemory(ValueList leakList, bool destroy, uint32_t current_cap, 
 
     int total_items = ValueListItems(leakList, NULL);
     int free_total_items = (float)free_perc / 100.0 * total_items;
-
     int has_freed_items = 0;
 
     while(leak)
@@ -2681,7 +2674,7 @@ void PatchOthers()
 
 uint32_t SaveHookDirectMalloc(uint32_t size)
 {
-    uint32_t new_size = size*3.0;
+    uint32_t new_size = size*5.0;
     uint32_t ref = (uint32_t)malloc(new_size);
     memset((void*)ref, 0, new_size);
     rootconsole->ConsolePrint("malloc() [Save/Restore Hook] " HOOK_MSG " size: [%d]", ref, new_size);
@@ -2951,7 +2944,7 @@ uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 
 uint32_t VpkReloadHook(uint32_t arg0)
 {
-    int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 50);
+    int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 60);
     vpk_free_elements = vpk_free_elements - freed_items;
 
     //UnloadUnreferencedModels(g_ModelLoader);
@@ -3401,17 +3394,17 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
     pDynamicOneArgFunc(arg0);
 
-    //scene_flush direct call
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
-    pDynamicOneArgFunc(0);
-
     //Reload model sounds cache
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C44A0);
     pDynamicOneArgFunc(arg0);
 
-    //Flush materials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x000411E0);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 1);
+    //scene_flush direct call
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
+    pDynamicOneArgFunc(0);
+
+    //UnloadAllModels
+    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //ReloadTextures
     pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
@@ -3420,10 +3413,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //ReloadAllMaterials
     pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
     pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
-
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //Invalidate mdl cache
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073C1C0);
@@ -3468,6 +3457,7 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return pDynamicThreeArgFunc(arg0, 1, 1);
 }
 
+
 uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 {
     rootconsole->ConsolePrint("[Main] Called the main player spawn func!");
@@ -3475,13 +3465,13 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
-    
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
-    pDynamicThreeArgFunc(arg0, 1, 1);
 
     //lock mdl cache because thats what latest sdk2013 black mesa code does
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(main_engine_global))+0x64 )  );
     pDynamicOneArgFunc(main_engine_global);
+    
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
+    pDynamicThreeArgFunc(arg0, 1, 1);
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
@@ -3599,17 +3589,13 @@ uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     if(deref_arg4)
     {
         uint32_t eHandle = *(uint32_t*)(deref_arg4+0x4);
+        uint32_t object = GetCBaseEntity(eHandle);
 
-        if(eHandle != 0xFFFFFFFF)
+        if(object)
         {
-            uint32_t object = GetCBaseEntity(eHandle);
-
-            if(object)
-            {
-                //Call orig func
-                pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0057D930);
-                return pDynamicThreeArgFunc(arg0, arg1, arg2);
-            }
+            //Call orig func
+            pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0057D930);
+            return pDynamicThreeArgFunc(arg0, arg1, arg2);
         }
     }
 
@@ -4399,12 +4385,12 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
-    //rootconsole->ConsolePrint("patching malloc()");
+    rootconsole->ConsolePrint("patching malloc()");
 
     //Notes: tried server_srv, dedicated_srv, vphysics_srv
     //Notes: fixed in engine_srv - hopefully last memory leak
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
