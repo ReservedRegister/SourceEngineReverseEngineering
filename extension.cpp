@@ -4104,6 +4104,8 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 
 int GetTotalClientsInGame()
 {
+    pOneArgProt pDynamicOneArgFunc;
+    
     //EntityGetFunctionByEdict
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
     uint32_t global_var = *(uint32_t*)(server_srv + 0x010121E0);
