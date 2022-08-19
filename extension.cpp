@@ -1191,75 +1191,9 @@ uint32_t Hooks::HookEntityDelete(uint32_t arg0)
 uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     if(disable_delete_list) return 0;
+
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
-
-    /*if(!isTicking)
-    {
-        while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
-
-        Value* cleanElem = *entityDeleteList;
-
-        while(cleanElem)
-        {
-            Value* nextElem = cleanElem->nextVal;
-            uint32_t object = GetCBaseEntity((uint32_t)(cleanElem->value));
-
-            if(object)
-            {
-                rootconsole->ConsolePrint("Released [%s]", *(uint32_t*)(object+0x68));
-
-                //AddToDeleteList
-                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
-                pDynamicTwoArgFunc(arg0, object+0x18);
-            }
-
-            free(cleanElem);
-            cleanElem = nextElem;
-        }
-
-        *entityDeleteList = NULL;
-
-        pthread_mutex_unlock(&entityDeleteListLock);
-
-        //CleanupDeleteList
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    if(kill_frames > 4)
-    {
-        while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
-
-        Value* firstEnt = *entityDeleteList;
-        uint32_t object = 0;
-
-        if(firstEnt)
-        {
-            Value* nextVal = firstEnt->nextVal;
-            object = GetCBaseEntity((uint32_t)(firstEnt->value));
-
-            free(firstEnt);
-            *entityDeleteList = nextVal;
-        }
-
-        pthread_mutex_unlock(&entityDeleteListLock);
-
-        if(object)
-        {
-            //rootconsole->ConsolePrint("Released [%s]", *(uint32_t*)(object+0x68));
-
-            //AddToDeleteList
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
-            pDynamicTwoArgFunc(arg0, object+0x18);
-
-            //CleanupDeleteList
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
-            pDynamicOneArgFunc(arg0);
-        }
-
-        kill_frames = 0;
-    }*/
 
     //CleanupDeleteList
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006B2510);
@@ -1955,19 +1889,19 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
-    DequeuePlayerDeaths();
-
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
-    pDynamicOneArgFunc(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
+
+    DequeuePlayerDeaths();
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
@@ -2911,63 +2845,6 @@ void RestorePlayers()
 
         pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
         pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"__client_reset\n");
-
-        if(returnVal) continue;
-
-        
-
-        /*PlayerSave* savedPlayer = *playerSaveList;
-
-        while(savedPlayer)
-        {
-            SavedEntity* savedEntity = savedPlayer->saved_player;
-            char* classname =  (char*) savedEntity->clsname;
-            uint32_t entRefHandle = (uint32_t)savedEntity->refHandle;
-
-            if(entRefHandle == playerRefHandle)
-            {
-                uint32_t object = GetCBaseEntity(entRefHandle);
-
-                FieldList fields = savedEntity->fieldData;
-                Field* field = *fields;
-
-                while(field)
-                {
-                    char* fieldName = (char*) field->label;
-                    char* externalName = (char*) field->key;
-                    fieldtype_t fieldType = *(fieldtype_t*)field->type;
-                    short flags = *(short*)field->flags;
-                    int offset = *(int*)field->offset;
-
-                    ValueList values = field->fieldVals;
-                    Value* valueMember = *values;
-
-                    if(fieldType == FIELD_VECTOR || fieldType == FIELD_POSITION_VECTOR)
-                    {
-                        rootconsole->ConsolePrint("         save-value: [%s] [%s] [%f] [%f] [%f]", fieldName, externalName
-                                                                      , *(float*)   valueMember->value
-                                                                      , *(float*)   valueMember->nextVal->value
-                                                                      , *(float*)   valueMember->nextVal->nextVal->value);
-
-                        *(float*)   (object+offset)     = *(float*)   valueMember->value;
-                        *(float*)   (object+offset+0x4) = *(float*)   valueMember->nextVal->value;
-                        *(float*)   (object+offset+0x8) = *(float*)   valueMember->nextVal->nextVal->value;
-                    }
-
-                    field = field->nextField;
-                }
-
-                break;
-            }
-
-            savedPlayer = savedPlayer->nextPlayer;
-        }*/
-
-
-
-
-        rootconsole->ConsolePrint("Failed to restore player giving weapons...");
-        GivePlayerWeapons(playerEnt, false);
     }
 
     rootconsole->ConsolePrint("Finished restoring players!");
@@ -4268,12 +4145,8 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     else if(savegame && savegame_lock && save_frames >= 20)
     {
         save_frames = 20;
-
-        while(pthread_mutex_trylock(&entityDeleteListLock) != 0);
-        bool isEntityDeleteListEmpty = *entityDeleteList == NULL;
-        pthread_mutex_unlock(&entityDeleteListLock);
         
-        if(!restoring && isEntityDeleteListEmpty)
+        if(!restoring)
         {
             SaveGameSafe(false);
             savegame = false;
@@ -4282,9 +4155,7 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001B1800);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    Hooks::CleanupDeleteListHook(0);
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -4473,35 +4344,6 @@ uint32_t PackedEntityDestruct(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t HookAddToDeleteList(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(!isTicking)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B23F0);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)(*(uint32_t*)(arg1)));
-    uint32_t object = pDynamicOneArgFunc(arg1);
-    
-    if(object)
-    {
-        uint32_t refHandle = *(uint32_t*)(object+0x350);
-        uint32_t chk_ref = GetCBaseEntity(refHandle);
-
-        if(chk_ref)
-        {
-            Value* scheduleEnt = CreateNewValue((void*)refHandle);
-            InsertToValuesList(entityDeleteList, scheduleEnt, &entityDeleteListLock, true, false);
-        }
-    }
-
-    return 0;
-}
-
 uint32_t AiHintNpcCombinePatch(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
@@ -4543,7 +4385,6 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)SimulationPatchOne);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)SimulationPatchTwo);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001A5FB0), (void*)LevelChangedHookFrameSnaps);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B23F0), (void*)HookAddToDeleteList);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00566CA0), (void*)AiHintNpcCombinePatch);
 
 
@@ -4558,13 +4399,13 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)CallocHook);*/
-    rootconsole->ConsolePrint("patching malloc()");
+    //rootconsole->ConsolePrint("patching malloc()");
 
     //Notes: tried server_srv, dedicated_srv, vphysics_srv
     //Notes: fixed in engine_srv - hopefully last memory leak
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
@@ -4724,7 +4565,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), SynergyUtils::getCppAddr(Hooks::FindEntityByName));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), SynergyUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), SynergyUtils::getCppAddr(Hooks::HookEntityDelete));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
