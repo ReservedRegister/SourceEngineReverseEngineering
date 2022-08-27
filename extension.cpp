@@ -4575,7 +4575,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), SynergyUtils::getCppAddr(Hooks::FindEntityByName));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2510), SynergyUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64500), SynergyUtils::getCppAddr(Hooks::HookEntityDelete));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0019C860), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
