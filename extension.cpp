@@ -3410,14 +3410,15 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::PlayerLoadHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0073CDD0);
-    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
-    uint32_t playerIndex = *(uint16_t*)(arg1+6);
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x0019C860);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    uint32_t m_Network = *(uint32_t*)(arg0+0x273DC);
+    uint32_t playerIndex = *(uint16_t*)(m_Network+6);
 
     //FindPlayerObject
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
@@ -3425,7 +3426,7 @@ uint32_t Hooks::PlayerLoadHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     if(playerObject)
     {
-        rootconsole->ConsolePrint("Spawned a new player for first time!");
+        rootconsole->ConsolePrint("Spawned a new player for first time! [%X]", m_Network);
         Hooks::PlayerSpawnDirectHook(playerObject);
     }
     else
@@ -4577,7 +4578,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0073CDD0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0019C860), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), SynergyUtils::getCppAddr(Hooks::SavegameInternalFunction));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), SynergyUtils::getCppAddr(Hooks::ChkHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), SynergyUtils::getCppAddr(Hooks::BarneyThinkHook));
