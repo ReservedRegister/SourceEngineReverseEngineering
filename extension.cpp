@@ -3460,7 +3460,7 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00B01A90);
     pDynamicThreeArgFunc(arg0, 1, 1);
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009924D0);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B043C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
     //unlock
@@ -4567,7 +4567,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), SynergyUtils::getCppAddr(Hooks::PlayerloadSavedHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), SynergyUtils::getCppAddr(Hooks::TransitionFixTheSecond));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), SynergyUtils::getCppAddr(Hooks::PatchAnotherPlayerAccessCrash));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009924D0), SynergyUtils::getCppAddr(Hooks::PlayerSpawnDirectHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B043C0), SynergyUtils::getCppAddr(Hooks::PlayerSpawnDirectHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), SynergyUtils::getCppAddr(Hooks::GivePlayerWeaponsHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), SynergyUtils::getCppAddr(Hooks::FindEntityByHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), SynergyUtils::getCppAddr(Hooks::FindEntityByClassnameHook));
