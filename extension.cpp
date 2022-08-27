@@ -482,8 +482,8 @@ void PatchRestoring()
     memset((void*)remove_player_file_restoring, 0x90, 5);
     *(uint16_t*)(remove_player_file_restoring) = 0xC031;*/
 
-    /*uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
-    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;*/
+    uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
+    *(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
 
     /*uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
     *(uint8_t*)(patch_player_restore_asm) = 0xE9;
@@ -1885,6 +1885,18 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
+
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
+    pDynamicOneArgFunc(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
@@ -1892,18 +1904,6 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
     pDynamicOneArgFunc(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
-
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
-    pDynamicOneArgFunc(0);
-
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
 
     DequeuePlayerDeaths();
 
@@ -2934,7 +2934,7 @@ uint32_t RestoreOverride()
 
 uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    uint32_t ref = (uint32_t)malloc(arg0*10.0);
+    uint32_t ref = (uint32_t)malloc(arg0*5.0);
     rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
 
     Value* leak = CreateNewValue((void*)ref);
