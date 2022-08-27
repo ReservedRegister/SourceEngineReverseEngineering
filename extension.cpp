@@ -1882,9 +1882,7 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
 
     if(restore_delay) return 0;
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
+    DequeuePlayerDeaths();
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471300);
@@ -1894,11 +1892,13 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
+
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
-
-    DequeuePlayerDeaths();
 
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
