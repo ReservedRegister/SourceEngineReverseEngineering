@@ -74,7 +74,6 @@ uint32_t ActivateEntityAddr;
 uint32_t AutosaveLoadOrigAddr;
 uint32_t InactivateClientsAddr;
 uint32_t ReconnectClientsAddr;
-uint32_t PlayerLoadOrigAddr;
 uint32_t VpkReloadAddr;
 
 pTwoArgProt pEdtLoadFunc;
@@ -107,7 +106,6 @@ pTwoArgProt pRestoreFileCallFunc;
 pThreeArgProt AutosaveLoadOrig;
 pOneArgProt InactivateClients;
 pOneArgProt ReconnectClients;
-pOneArgProt PlayerLoadOrig;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -313,7 +311,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     AutosaveLoadOrigAddr = server_srv + 0x00AF4530;
     InactivateClientsAddr = engine_srv + 0x000D5DA0;
     ReconnectClientsAddr = engine_srv + 0x000D5E50;
-    PlayerLoadOrigAddr = server_srv + 0x00B02DB0;
     VpkReloadAddr = server_srv + 0x004CC6D0;
 
     pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
@@ -346,7 +343,6 @@ bool SynergyUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
     AutosaveLoadOrig = (pThreeArgProt)AutosaveLoadOrigAddr;
     InactivateClients = (pOneArgProt)InactivateClientsAddr;
     ReconnectClients = (pOneArgProt)ReconnectClientsAddr;
-    PlayerLoadOrig = (pOneArgProt)PlayerLoadOrigAddr;
 
     delete_operator_array_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8CD + 1) + (server_srv + 0x0041C8CD) + 5 );
     delete_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041C8FD + 1) + (server_srv + 0x0041C8FD) + 5 );
@@ -392,7 +388,8 @@ void PatchRestoring()
     {
         0x00AF4F98,5,0x00AF467D,2,0x0068795A,0x12,0x00AF4EA0,0x27,
         0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,0x0073CDFC,5,
-        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00A316F0,5,0x00739AF1,5,0x00739B48,5
+        0x0096026E,5,0x00815EF0,5,0x00739B4D,5,0x00A316F0,5,0x00739AF1,5,0x00739B48,5,
+        0x00B02DF3,3
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -1897,18 +1894,18 @@ uint32_t Hooks::GameFrameHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
+    pDynamicOneArgFunc(0);
+
+    DequeuePlayerDeaths();
+
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A6A660);
     pDynamicOneArgFunc(0);
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B03590);
-    pDynamicOneArgFunc(0);
-
-    DequeuePlayerDeaths();
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00687440);
     pDynamicOneArgFunc(0);
     
     if(save_frames >= 500) save_frames = 0;
@@ -3339,9 +3336,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 
     if(returnVal != 0)
     {
-        int freed_items = ReleaseLeakedMemory(leakedResourcesVpkSystem, false, vpk_free_elements, 50, 50);
-        vpk_free_elements = vpk_free_elements - freed_items;
-
         UnmountPaths(arg0);
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C9AF0);
         pDynamicOneArgFunc(arg0);
@@ -3374,6 +3368,10 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
             //pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0047BDF0);
             //pDynamicTwoArgFunc(1, 1);
         }
+
+        //UnloadAllModels
+        pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
+        pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5560);
@@ -3386,10 +3384,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //scene_flush direct call
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AAA840);
     pDynamicOneArgFunc(0);
-
-    //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-    pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
     //ReloadTextures
     pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003E460);
@@ -3416,22 +3410,30 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
+uint32_t Hooks::PlayerLoadHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    uint32_t returnVal = PlayerLoadOrig(arg0);
-    //rootconsole->ConsolePrint("called main new player join func!");
+    pOneArgProt pDynamicOneArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
 
-    /*uint32_t m_Network = *(uint32_t*)(arg0+0x24);
-    uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0073CDD0);
+    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
+    uint32_t playerIndex = *(uint16_t*)(arg1+6);
 
-    uint32_t global_one = *(uint32_t*)(server_srv + 0x01012420);
-    global_one = *(uint32_t*)(global_one);
+    //FindPlayerObject
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B646A0);
+    uint32_t playerObject = pDynamicOneArgFunc(playerIndex);
 
-    pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(*(uint32_t*)(global_one+0x4C));
-    uint32_t pEntity = pDynamicTwoArgFunc(*(uint32_t*)(server_srv + 0x01012420), playerIndex);
+    if(playerObject)
+    {
+        rootconsole->ConsolePrint("Spawned a new player for first time!");
+        Hooks::PlayerSpawnDirectHook(playerObject);
+    }
+    else
+    {
+        rootconsole->ConsolePrint("Failed to find connecting player instance!");
+        exit(1);
+    }
 
-    pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)(global_one+0x98));
-    pDynamicThreeArgFunc(*(uint32_t*)(server_srv + 0x01012420), pEntity, (uint32_t)"r_flushlod\n");*/
     return returnVal;
 }
 
@@ -4575,7 +4577,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), SynergyUtils::getCppAddr(Hooks::HookInstaKill));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), SynergyUtils::getCppAddr(Hooks::SaveOverride));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), SynergyUtils::getCppAddr(Hooks::PlayerSpawnHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B02DB0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0073CDD0), SynergyUtils::getCppAddr(Hooks::PlayerLoadHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), SynergyUtils::getCppAddr(Hooks::SavegameInternalFunction));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), SynergyUtils::getCppAddr(Hooks::ChkHandle));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), SynergyUtils::getCppAddr(Hooks::BarneyThinkHook));
