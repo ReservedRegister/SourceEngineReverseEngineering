@@ -233,42 +233,15 @@ uint32_t Hooks::CleanupDeleteListHook()
     return pDynamicOneArgFunc(0);
 }
 
-uint32_t Hooks::PhysCleanup()
-{
-    pOneArgProt pDynamicOneArgFunc;
-    if(disable_delete_list) return 0;
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    return pDynamicOneArgFunc(0);
-}
-
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     if(arg0 == 0) return 0;
 
-    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)(*(uint32_t*)(arg0))   );
-    uint32_t realObject = pDynamicOneArgFunc(arg0);
-    uint32_t refHandle = *(uint32_t*)(realObject+0x334);
-    char* clsname = (char*)(*(uint32_t*)(realObject+0x64));
+    uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+    char* clsname = (char*)(*(uint32_t*)(arg0+0x64));
 
-    if(isTicking)
-    {
-        /*uint32_t actual_object = GetCBaseEntity(refHandle);
-
-        if(actual_object)
-        {
-            //MakeDormant
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006426B0);
-            pDynamicOneArgFunc(actual_object);
-        }*/
-
-        /*Value* delEnt = CreateNewValue((void*)refHandle);
-        InsertToValuesList(deleteList, delEnt, true, true, false);
-        return 0;*/
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66B70);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -766,9 +739,8 @@ void HookFunctionsWithCpp()
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00648E90), g_BmsUtils.getCppAddr(Hooks::CreateNoSpawnHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), g_BmsUtils.getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), g_BmsUtils.getCppAddr(Hooks::CleanupDeleteListHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), g_BmsUtils.getCppAddr(Hooks::PhysCleanup));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A65620), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), g_BmsUtils.getCppAddr(Hooks::Util_RemoveHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), g_BmsUtils.getCppAddr(Hooks::Util_RemoveHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), g_BmsUtils.getCppAddr(Hooks::HostChangelevelHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), g_BmsUtils.getCppAddr(Hooks::PhysSimEnt));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
@@ -784,7 +756,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004EC1A0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004EC1A0), g_BmsUtils.getCppAddr(Hooks::EmptyCall));
 
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC00), g_BmsUtils.getCppAddr(Hooks::EmptyCall));

@@ -113,7 +113,6 @@ public:
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook();
 	static uint32_t PhysSimEnt(uint32_t arg0);
-	static uint32_t PhysCleanup();
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t InputBreakNExplodeHook(uint32_t arg0);
