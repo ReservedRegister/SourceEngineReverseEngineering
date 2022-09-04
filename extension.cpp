@@ -224,7 +224,7 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
-uint32_t Hooks::CleanupDeleteListHook()
+uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     if(disable_delete_list) return 0;
@@ -274,23 +274,24 @@ bool RemoveFirstEntity(ValueList passedInDeleteList)
     return false;
 }
 
+uint32_t Hooks::SV_FrameHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    Hooks::CleanupDeleteListHook(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x001957B0);
+    pDynamicOneArgFunc(arg0);
+}
+
 uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    disable_delete_list = true;
+    //disable_delete_list = true;
     isTicking = true;
     //frames++;
-
-
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
-
-    //CleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
 
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
@@ -306,41 +307,21 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         frames = 0;
     }*/
 
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
-
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
 
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
     pDynamicOneArgFunc(0);
 
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
-
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
-
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
-
-    //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
     return 0;
 }
 
