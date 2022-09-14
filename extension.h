@@ -53,7 +53,6 @@ void DisableCacheCvars();
 void PopulateHookExclusionLists();
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
 uint32_t GetCBaseEntity(uint32_t EHandle);
-bool RemoveFirstEntity(ValueList passedInDeleteList);
 
 uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
@@ -126,7 +125,7 @@ public:
 class BmsUtils : public SDKExtension
 {
 public:
-	void* getCppAddr(auto classAddr);
+	static void* getCppAddr(auto classAddr);
 
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.
