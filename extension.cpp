@@ -120,6 +120,15 @@ void ApplySingleHooks()
 
     uint32_t delete_panim_call_two = server_srv + 0x0053CFC5;
     memset((void*)delete_panim_call_two, 0x90, 2);*/
+
+    uint32_t delete_list_call = server_srv + 0x00944F61;
+    memset((void*)delete_list_call, 0x90, 5);
+
+    delete_list_call = server_srv + 0x00944FC5;
+    memset((void*)delete_list_call, 0x90, 5);
+
+    delete_list_call = server_srv + 0x00A7AC57;
+    memset((void*)delete_list_call, 0x90, 5);
 }
 
 void DisableCacheCvars()
@@ -214,8 +223,6 @@ uint32_t GetCBaseEntity(uint32_t EHandle)
 uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
-
-    disable_delete_list = false;
     isTicking = false;
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
@@ -270,15 +277,15 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
     pDynamicOneArgFunc(0);
 
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
-
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
-    pDynamicOneArgFunc(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
@@ -286,28 +293,24 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     return 0;
 }
 
-uint32_t Hooks::InputBreakNExplodeHook(uint32_t arg0)
+uint32_t Hooks::HookInstaKill(uint32_t arg0)
 {
     pThreeArgProt pDynamicThreeArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
-    if(isTicking)
-    {
-        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-        uint32_t ent_counter = 0;
-        uint32_t ent = 0;
-        while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"env_explosion")) != 0) ent_counter++;
+    char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
 
-        if(ent_counter >= 150)
-        {
-            rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
-            return 0;
-        }
+    if(isTicking && strcmp(clsname, "player") != 0)
+    {
+        rootconsole->ConsolePrint("slow killed instead [%s]", clsname);
+        Hooks::Util_RemoveHook(arg0);
+        return 0;
     }
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008B7530);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66BC0);
     return pDynamicOneArgFunc(arg0);
 }
+
 uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
@@ -341,7 +344,9 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
-    pDynamicOneArgFunc(arg0+0x14);
+    uint32_t isMarked = pDynamicOneArgFunc(arg0+0x14);
+
+    if(isMarked) return 0;
 
     disable_delete_list = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
@@ -420,24 +425,24 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     pDynamicTwoArgFunc(engine_srv + 0x00320560, 0);
 
     //Flush materials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D280);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 1);
-
-    //ReloadAllMaterials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
+    //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D280);
+    //pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 1);
 
     //ReloadTextures
     pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003D240);
     pDynamicOneArgFunc(materialsystem_srv + 0x00166B20);
 
+    //ReloadAllMaterials
+    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
+    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
+
     //InvalidateMdlCache
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
+    //pDynamicOneArgFunc(0);
 
     //FlushAllUnlocked (bone cache)
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    pDynamicOneArgFunc(server_srv + 0x01014880);
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
+    //pDynamicOneArgFunc(server_srv + 0x01014880);
 
     //flush particles
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00BE7650);
@@ -685,7 +690,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), BmsUtils::getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), BmsUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), BmsUtils::getCppAddr(Hooks::SV_FrameHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), BmsUtils::getCppAddr(Hooks::Util_RemoveHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), BmsUtils::getCppAddr(Hooks::Util_RemoveHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), BmsUtils::getCppAddr(Hooks::HostChangelevelHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), BmsUtils::getCppAddr(Hooks::PhysSimEnt));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), BmsUtils::getCppAddr(Hooks::EmptyCall));
@@ -695,13 +700,13 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), BmsUtils::getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), BmsUtils::getCppAddr(Hooks::AcceptInputHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B7530), BmsUtils::getCppAddr(Hooks::InputBreakNExplodeHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), BmsUtils::getCppAddr(Hooks::HookInstaKill));
 
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004EBFD0), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00ADE0F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
 
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC00), BmsUtils::getCppAddr(Hooks::EmptyCall));
