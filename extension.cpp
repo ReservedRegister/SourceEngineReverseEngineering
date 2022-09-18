@@ -91,7 +91,7 @@ void BmsUtils::SDK_OnAllLoaded()
     HookFunctionsWithCpp();
     RestoreMemoryProtections();
     DisableCacheCvars();
-    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME SMEXT_CONF_VERSION " loaded!" "  ----------------------");
+    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
 }
 
 void ApplySingleHooks()
