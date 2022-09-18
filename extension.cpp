@@ -28,7 +28,6 @@ uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 
-pthread_mutex_t value_list_lock;
 bool isTicking;
 bool disable_delete_list;
 uint32_t CGlobalEntityList;
@@ -37,14 +36,6 @@ ValueList deleteList;
 bool BmsUtils::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
     AllowWriteToMappedMemory();
-
-    int pthread_init_one = pthread_mutex_init(&value_list_lock, NULL);
-
-    if(pthread_init_one != 0)
-    {
-        rootconsole->ConsolePrint("\nMutex init for lists thread safeness has failed\n");
-        exit(EXIT_FAILURE);
-    }
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -100,7 +91,7 @@ void BmsUtils::SDK_OnAllLoaded()
     HookFunctionsWithCpp();
     RestoreMemoryProtections();
     DisableCacheCvars();
-    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+    rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME SMEXT_CONF_VERSION " loaded!" "  ----------------------");
 }
 
 void ApplySingleHooks()
@@ -136,8 +127,8 @@ void DisableCacheCvars()
     pTwoArgProt pDynamicTwoArgFunc;
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001B1340);
 
-    pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
-    pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+    //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
+    //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
 }
 
 uint32_t Hooks::EmptyCall()
@@ -269,6 +260,34 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
+uint32_t Hooks::MyNpcPointerHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064A140);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Fixed crash in MyNpcPointer()");
+    return 0;
+}
+
+uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(arg1)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008835B0);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Fixed crash in IRelationType()");
+    return 0;
+}
+
 uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -335,22 +354,6 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(isTicking)
-    {
-        /*pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008F3870);
-        uint32_t ent_counter = 0;
-        uint32_t ent = 0;
-        while((ent = pDynamicThreeArgFunc(CGlobalEntityList, ent, (uint32_t)"*")) != 0) ent_counter++;
-
-        if(ent_counter >= 4032)
-        {
-            rootconsole->ConsolePrint("Max edict reached! [prevented crash]");
-            return 0;
-        }*/
-
-        rootconsole->ConsolePrint("Created: %s", arg0);
-    }
-
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
@@ -372,64 +375,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     disable_delete_list = false;
     return returnVal;
-}
-
-uint32_t Hooks::CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pFourArgProt pDynamicFourArgFunc;
-    if(isTicking) return Hooks::CreateEntityByNameHook(arg0, (uint32_t)0xFFFFFFFF);
-    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00648E90);
-    return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-}
-
-uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
-{
-    //arg2 and arg3 = CBaseEntity
-    pSixArgProt pDynamicSixArgFunc;
-
-    uint32_t refHandle_one = *(uint32_t*)(arg0+0x334);
-    uint32_t refHandle_two = 0;
-    uint32_t refHandle_three = 0;
-
-    if(arg2) refHandle_two = *(uint32_t*)(arg2+0x334);
-    if(arg3) refHandle_three = *(uint32_t*)(arg3+0x334);
-
-    bool chk_one = IsInValuesList(deleteList, (void*)refHandle_one, false);
-    bool chk_two = IsInValuesList(deleteList, (void*)refHandle_two, false);
-    bool chk_three = IsInValuesList(deleteList, (void*)refHandle_three, false);
-
-    if(chk_one)
-    {
-        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
-        {
-            char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
-            rootconsole->ConsolePrint("arg0 Input Disabled: [%s] [%s]", arg1, clsname);
-            return 0;
-        }
-    }
-
-    if(refHandle_two && chk_two)
-    {
-        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
-        {
-            char* clsname =  (char*) ( *(uint32_t*)(arg2+0x64) );
-            rootconsole->ConsolePrint("arg2 Input Disabled: [%s] [%s]", arg1, clsname);
-            return 0;
-        }
-    }
-
-    if(refHandle_three && chk_three)
-    {
-        if(strcmp((char*)arg1, "TongueTipUpdated") == 0)
-        {
-            char* clsname =  (char*) ( *(uint32_t*)(arg3+0x64) );
-            rootconsole->ConsolePrint("arg3 Input Disabled: [%s] [%s]", arg1, clsname);
-            return 0;
-        }
-    }
-
-    pDynamicSixArgFunc = (pSixArgProt)(server_srv + 0x00644C00);
-    return pDynamicSixArgFunc(arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
@@ -673,21 +618,21 @@ void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* targ
 
 void HookFunctionsWithC()
 {
-    rootconsole->ConsolePrint("patching calloc()");
+    /*rootconsole->ConsolePrint("patching calloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)CallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);*/
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
+    /*HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
-    rootconsole->ConsolePrint("patching realloc()");
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);*/
+    /*rootconsole->ConsolePrint("patching realloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)ReallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)ReallocHook);
@@ -699,13 +644,12 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000A7C70), (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)(materialsystem_srv + 0x00031230), (void*)OperatorNewArrayHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0002B4E0), (void*)OperatorNewArrayHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x00027A40), (void*)OperatorNewArrayHook);
+    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x00027A40), (void*)OperatorNewArrayHook);*/
 }
 
 void HookFunctionsWithCpp()
 {
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), BmsUtils::getCppAddr(Hooks::CreateEntityByNameHook));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00648E90), BmsUtils::getCppAddr(Hooks::CreateNoSpawnHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), BmsUtils::getCppAddr(Hooks::CreateEntityByNameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), BmsUtils::getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), BmsUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), BmsUtils::getCppAddr(Hooks::SV_FrameHook));
@@ -718,7 +662,6 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CAA00), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), BmsUtils::getCppAddr(Hooks::AcceptInputHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), BmsUtils::getCppAddr(Hooks::HookInstaKill));
 
 
@@ -728,8 +671,8 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC00), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC40), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064A140), BmsUtils::getCppAddr(Hooks::MyNpcPointerHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008835B0), BmsUtils::getCppAddr(Hooks::IRelationTypeHook));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC80), BmsUtils::getCppAddr(Hooks::EmptyCall));
 }
 
@@ -754,13 +697,13 @@ Value* CreateNewValue(void* valueInput)
     return val;
 }
 
-void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex)
+void DeleteAllValuesInList(ValueList list, bool free_val, pthread_mutex_t* lockInput)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    while(pthread_mutex_trylock(lockInput) != 0);
 
     if(!list || !*list)
     {
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        pthread_mutex_unlock(lockInput);
         return;
     }
     
@@ -775,12 +718,12 @@ void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex)
     }
 
     *list = NULL;
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    pthread_mutex_unlock(lockInput);
 }
 
-bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
+bool IsInValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    while(pthread_mutex_trylock(lockInput) != 0);
 
     Value* aValue = *list;
 
@@ -788,26 +731,26 @@ bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex)
     {
         if((uint32_t)aValue->value == (uint32_t)searchVal)
         {
-            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            pthread_mutex_unlock(lockInput);
             return true;
         }
         
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    pthread_mutex_unlock(lockInput);
     return false;
 }
 
-bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
+bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    while(pthread_mutex_trylock(lockInput) != 0);
 
     Value* aValue = *list;
 
     if(aValue == NULL)
     {
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        pthread_mutex_unlock(lockInput);
         return false;
     }
 
@@ -817,7 +760,7 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
         Value* detachedValue = aValue->nextVal;
         free(*list);
         *list = detachedValue;
-        if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+        pthread_mutex_unlock(lockInput);
         return true;
     }
 
@@ -830,20 +773,20 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex)
 
             free(aValue->nextVal);
             aValue->nextVal = detachedValue;
-            if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+            pthread_mutex_unlock(lockInput);
             return true;
         }
 
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    pthread_mutex_unlock(lockInput);
     return false;
 }
 
-int ValueListItems(ValueList list, bool lock_mutex)
+int ValueListItems(ValueList list, pthread_mutex_t* lockInput)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    while(pthread_mutex_trylock(lockInput) != 0);
 
     Value* aValue = *list;
     int counter = 0;
@@ -854,13 +797,13 @@ int ValueListItems(ValueList list, bool lock_mutex)
         aValue = aValue->nextVal;
     }
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    pthread_mutex_unlock(lockInput);
     return counter;
 }
 
-bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex)
+bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk)
 {
-    if(lock_mutex) while(pthread_mutex_trylock(&value_list_lock) != 0);
+    while(pthread_mutex_trylock(lockInput) != 0);
 
     if(duplicate_chk)
     {
@@ -870,7 +813,7 @@ bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
         {
             if((uint32_t)aValue->value == (uint32_t)head->value)
             {
-                if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+                pthread_mutex_unlock(lockInput);
                 return false;
             }
         
@@ -887,7 +830,7 @@ bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
             if(aValue->nextVal == NULL)
             {
                 aValue->nextVal = head;
-                if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+                pthread_mutex_unlock(lockInput);
                 return true;
             }
 
@@ -898,6 +841,6 @@ bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_c
     head->nextVal = *list;
     *list = head;
 
-    if(lock_mutex) pthread_mutex_unlock(&value_list_lock);
+    pthread_mutex_unlock(lockInput);
     return true;
 }

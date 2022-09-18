@@ -38,11 +38,11 @@ typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint3
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);
-void DeleteAllValuesInList(ValueList list, bool free_val, bool lock_mutex);
-bool IsInValuesList(ValueList list, void* searchVal, bool lock_mutex);
-bool RemoveFromValuesList(ValueList list, void* searchVal, bool lock_mutex);
-bool InsertToValuesList(ValueList list, Value* head, bool tail, bool duplicate_chk, bool lock_mutex);
-int ValueListItems(ValueList list, bool lock_mutex);
+void DeleteAllValuesInList(ValueList list, bool free_val, pthread_mutex_t* lockInput);
+bool IsInValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput);
+bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput);
+bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk);
+int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
 
 void ApplySingleHooks();
 void AllowWriteToMappedMemory();
@@ -115,10 +115,10 @@ public:
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 	static uint32_t PhysSimEnt(uint32_t arg0);
-	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
-	static uint32_t CreateNoSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t HookInstaKill(uint32_t arg0);
 	static uint32_t SV_FrameHook(uint32_t arg0);
+	static uint32_t MyNpcPointerHook(uint32_t arg0);
+	static uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1);
 };
 
 /**
