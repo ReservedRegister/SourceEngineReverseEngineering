@@ -274,7 +274,7 @@ uint32_t Hooks::MyNpcPointerHook(uint32_t arg0)
     return 0;
 }
 
-uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::IRelationTypeHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
