@@ -238,6 +238,25 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     return pDynamicOneArgFunc(0);
 }
 
+uint32_t CalcPoseSingleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6,
+uint32_t arg7, uint32_t arg8)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pNineArgProt pDynamicNineArgProt;
+
+    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x000C9DC0);
+    uint32_t mapName = pDynamicOneArgFunc(engine_srv + 0x003329C0);
+
+    if(strncmp((char*)mapName, "bm_c4", 5) == 0 || strncmp((char*)mapName, "bm_c5", 5) == 0)
+    {
+        pDynamicNineArgProt = (pNineArgProt)(server_srv + 0x00525F30);
+        return pDynamicNineArgProt(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    }
+
+    //rootconsole->ConsolePrint("CalcPoseSingle() is only allowed for Xen maps!");
+    return 0;
+}
+
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -706,7 +725,7 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00ADE0F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC00), BmsUtils::getCppAddr(Hooks::EmptyCall));

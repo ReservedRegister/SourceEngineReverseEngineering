@@ -33,6 +33,7 @@ typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
 
 ValueList AllocateValuesList();
@@ -58,6 +59,8 @@ uint32_t CallocHook(uint32_t nitems, uint32_t size);
 uint32_t MallocHook(uint32_t size);
 uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
 uint32_t OperatorNewArrayHook(uint32_t size);
+uint32_t CalcPoseSingleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6,
+uint32_t arg7, uint32_t arg8);
 
 
 /**
