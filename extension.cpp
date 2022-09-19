@@ -527,7 +527,11 @@ void RestoreMemoryProtections()
 
 void PopulateHookExclusionLists()
 {
+    hook_exclude_list_base[0] = server_srv;
+    hook_exclude_list_offset[0] = 0x0052B02C;
 
+    hook_exclude_list_base[1] = server_srv;
+    hook_exclude_list_offset[1] = 0x00628096;
 }
 
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
@@ -668,12 +672,15 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064A140), BmsUtils::getCppAddr(Hooks::MyNpcPointerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008835B0), BmsUtils::getCppAddr(Hooks::IRelationTypeHook));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC80), BmsUtils::getCppAddr(Hooks::EmptyCall));
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), BmsUtils::getCppAddr(Hooks::EmptyCall));
 }
 
 void* BmsUtils::getCppAddr(auto classAddr)
