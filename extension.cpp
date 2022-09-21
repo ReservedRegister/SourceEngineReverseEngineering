@@ -260,17 +260,23 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::MyNpcPointerHook(uint32_t arg0)
+uint32_t Hooks::TakeDamageAliveHook(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
-    if(arg0)
+    if(arg1)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064A140);
-        return pDynamicOneArgFunc(arg0);
+        uint32_t chkRef = *(uint32_t*)(arg1+0x28);
+        uint32_t object = GetCBaseEntity(chkRef);
+
+        if(object)
+        {
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0057B840);
+            return pDynamicTwoArgFunc(arg0, arg1);
+        }
     }
 
-    rootconsole->ConsolePrint("Fixed crash in MyNpcPointer()");
+    rootconsole->ConsolePrint("Fixed crash in take damage function");
     return 0;
 }
 
@@ -675,7 +681,7 @@ void HookFunctionsWithCpp()
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064A140), BmsUtils::getCppAddr(Hooks::MyNpcPointerHook));
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057B840), BmsUtils::getCppAddr(Hooks::TakeDamageAliveHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008835B0), BmsUtils::getCppAddr(Hooks::IRelationTypeHook));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC80), BmsUtils::getCppAddr(Hooks::EmptyCall));
 

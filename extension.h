@@ -117,7 +117,7 @@ public:
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t HookInstaKill(uint32_t arg0);
 	static uint32_t SV_FrameHook(uint32_t arg0);
-	static uint32_t MyNpcPointerHook(uint32_t arg0);
+	static uint32_t TakeDamageAliveHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1);
 };
 
