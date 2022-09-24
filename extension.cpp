@@ -541,6 +541,9 @@ void PopulateHookExclusionLists()
 
     hook_exclude_list_base[2] = server_srv;
     hook_exclude_list_offset[2] = 0x006248D9;
+
+    hook_exclude_list_base[3] = server_srv;
+    hook_exclude_list_offset[3] = 0x0052B131;
 }
 
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
