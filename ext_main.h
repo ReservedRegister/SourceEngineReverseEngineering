@@ -5,10 +5,10 @@
 #include "core.h"
 
 typedef uintptr_t(*pThreeArgProt)(uintptr_t, uintptr_t, uintptr_t);
+typedef uintptr_t(__thiscall* pTwoArgProtThis)(uintptr_t, uintptr_t);
 
 class Hooks {
 public:
-	static uintptr_t AdditionalContentHook(uintptr_t arg0, uintptr_t arg1, uintptr_t arg2);
 	static uintptr_t MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t arg2);
 };
 
