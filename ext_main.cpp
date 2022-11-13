@@ -62,7 +62,7 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 			int space_counter = 0;
 			size_t tag_offset = -1;
 
-			for (size_t i = 0; i <= strlen((char*)arg0); i++)
+			for (size_t i = 0; i < strlen((char*)arg0); i++)
 			{
 				if (*(char*)(arg0 + i) == ' ') space_counter++;
 
@@ -90,7 +90,7 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 				int char_counter = 0;
 				int total_copied_chars = 0;
 
-				for (size_t i = 0; i <= optional_tags_length_original; i++)
+				for (size_t i = 0; i < optional_tags_length_original; i++)
 				{
 					if (*(char*)(optional_tags + i) == ' ' || i+1 > optional_tags_length_original)
 					{
