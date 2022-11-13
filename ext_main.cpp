@@ -90,11 +90,12 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 				int char_counter = 0;
 				int total_copied_chars = 0;
 
+
 				for (size_t i = 0; i < optional_tags_length_original; i++)
 				{
-					if (*(char*)(optional_tags + i) == ' ' || i+1 > optional_tags_length_original)
+					if ( (*(char*)(optional_tags + i) == ' ') || (i + 1 >= optional_tags_length_original) )
 					{
-						if (i + 1 > optional_tags_length_original)
+						if (i + 1 >= optional_tags_length_original)
 						{
 							*(char*)(single_tag + char_counter) = *(char*)(optional_tags + i);
 							char_counter++;
@@ -105,7 +106,9 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 							*(char*)(single_tag + char_counter) = 0;
 						}
 
-						if (strstr((char*)start_cpy, single_tag) == NULL)
+						rootconsole->ConsolePrint("content_tags: [%s] optional_tag: [%s]", start_cpy, single_tag);
+
+						if (strstr((char*)start_cpy, single_tag) == NULL && strcmp(single_tag, "hl2") != 0)
 						{
 							size_t actual_tag_lenght = strlen(single_tag);
 
@@ -113,9 +116,10 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 							memcpy(optional_tags_only + total_copied_chars + 1, single_tag, actual_tag_lenght);
 
 							total_copied_chars = total_copied_chars + actual_tag_lenght+1;
-							char_counter = 0;
-							continue;
 						}
+
+						char_counter = 0;
+						continue;
 					}
 
 					*(char*)(single_tag + char_counter) = *(char*)(optional_tags + i);
