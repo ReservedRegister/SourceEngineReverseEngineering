@@ -112,14 +112,14 @@ void ApplySingleHooks()
     uint32_t delete_panim_call_two = server_srv + 0x0053CFC5;
     memset((void*)delete_panim_call_two, 0x90, 2);*/
 
-    uint32_t delete_list_call = server_srv + 0x00944F61;
+    /*uint32_t delete_list_call = server_srv + 0x00944F61;
     memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00944FC5;
     memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call, 0x90, 5);
+    memset((void*)delete_list_call, 0x90, 5);*/
 }
 
 void DisableCacheCvars()
@@ -298,10 +298,6 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001957B0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -313,14 +309,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     isTicking = true;
 
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
-    pDynamicOneArgFunc(0);
-
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    pDynamicOneArgFunc(0);
-
     //PreSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
     pDynamicOneArgFunc(0);
@@ -329,11 +317,21 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook(0);
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
     return 0;
 }
 
@@ -641,8 +639,8 @@ void HookFunctionsWithC()
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)CallocHook);
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);*/
-    rootconsole->ConsolePrint("patching malloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
+    //rootconsole->ConsolePrint("patching malloc()");
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)MallocHook);
     /*HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)MallocHook);
@@ -666,7 +664,7 @@ void HookFunctionsWithC()
 void HookFunctionsWithCpp()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), BmsUtils::getCppAddr(Hooks::CreateEntityByNameHook));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), BmsUtils::getCppAddr(Hooks::SpawnServerHook));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), BmsUtils::getCppAddr(Hooks::SpawnServerHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), BmsUtils::getCppAddr(Hooks::CleanupDeleteListHook));
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), BmsUtils::getCppAddr(Hooks::SV_FrameHook));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), BmsUtils::getCppAddr(Hooks::Util_RemoveHook));
@@ -678,12 +676,12 @@ void HookFunctionsWithCpp()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CAA00), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), BmsUtils::getCppAddr(Hooks::EmptyCall));
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), BmsUtils::getCppAddr(Hooks::HookInstaKill));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), BmsUtils::getCppAddr(Hooks::HookInstaKill));
 
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), BmsUtils::getCppAddr(Hooks::EmptyCall));
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), BmsUtils::getCppAddr(Hooks::EmptyCall));
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), BmsUtils::getCppAddr(Hooks::EmptyCall));
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
