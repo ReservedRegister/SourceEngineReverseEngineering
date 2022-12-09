@@ -165,9 +165,9 @@ uintptr_t Hooks::MountGamePathsHook(uintptr_t arg0, uintptr_t arg1, uintptr_t ar
 				free(single_tag);
 				free(optional_tags_only);
 			}
-
-			free(cpy_optional_tags);
 		}
+
+		free(cpy_optional_tags);
 	}
 
 	rootconsole->ConsolePrint("[%s] [%s] [%s]", arg0, arg1, arg2);
