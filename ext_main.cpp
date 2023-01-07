@@ -123,7 +123,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CAA00), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
 
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
@@ -327,11 +327,9 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
 
-    if(isTicking && strcmp(clsname, "player") != 0)
+    if(isTicking)
     {
-        rootconsole->ConsolePrint("slow killed instead [%s]", clsname);
-        Hooks::Util_RemoveHook(arg0);
-        return 0;
+        rootconsole->ConsolePrint("fast killed [%s]", clsname);
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66BC0);
