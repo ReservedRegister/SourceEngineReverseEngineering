@@ -138,6 +138,7 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F55D0), (void*)Hooks::ClearEntitiesHook);
 }
 
 void DisableCacheCvars()
@@ -409,4 +410,32 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t Hooks::ClearEntitiesHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    int ent_counter = 0;
+
+    //NextHandle
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008F37E0);
+    uint32_t entity = pDynamicTwoArgFunc(CGlobalEntityList, 0);
+
+    while(entity)
+    {
+        char* clsname = (char*)(*(uint32_t*)(entity+0x64));
+        rootconsole->ConsolePrint("Killing [%s]", clsname);
+
+        Hooks::Util_RemoveHook(entity);
+        Hooks::CleanupDeleteListHook(0);
+
+        entity = pDynamicTwoArgFunc(CGlobalEntityList, 0);
+        ent_counter++;
+        rootconsole->ConsolePrint("Ents killed [%d]", ent_counter);
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F55D0);
+    return pDynamicOneArgFunc(arg0);
 }

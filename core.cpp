@@ -207,8 +207,8 @@ Library* LoadLibrary(char* library_sub_path)
 Library* getlibrary(char* file_line)
 {
     Library* search_attempt_one = LoadLibrary(strcasestr(file_line, "/bin/"));
-    Library* search_attempt_two = LoadLibrary(strcasestr(file_line, "/synergy/bin/"));
-    Library* search_attempt_three = LoadLibrary(strcasestr(file_line, "/synergy/addons/"));
+    Library* search_attempt_two = LoadLibrary(strcasestr(file_line, "/bms/bin/"));
+    Library* search_attempt_three = LoadLibrary(strcasestr(file_line, "/bms/addons/"));
 
     if(search_attempt_one) return search_attempt_one;
     if(search_attempt_two) return search_attempt_two;
