@@ -6,6 +6,8 @@ projectName = 'bms_utils'
 # smsdk_ext.cpp will be automatically added later
 sourceFiles = [
   'extension.cpp',
+  'core.cpp',
+  'ext_main.cpp',
 ]
 
 ###############

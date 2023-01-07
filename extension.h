@@ -1,68 +1,3 @@
-#include <sys/mman.h>
-#include <link.h>
-
-#define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
-#define EXT_PREFIX "[BlackMesaUtils] "
-
-typedef struct _Value {
-	void* value;
-	struct _Value* nextVal;
-} Value;
-
-typedef Value** ValueList;
-
-enum MDLCacheFlush_t
-{
-	MDLCACHE_FLUSH_STUDIOHDR		= 0x01,
-	MDLCACHE_FLUSH_STUDIOHWDATA		= 0x02,
-	MDLCACHE_FLUSH_VCOLLIDE			= 0x04,
-	MDLCACHE_FLUSH_ANIMBLOCK		= 0x08,
-	MDLCACHE_FLUSH_VIRTUALMODEL		= 0x10,
-	MDLCACHE_FLUSH_AUTOPLAY         = 0x20,
-	MDLCACHE_FLUSH_VERTEXES         = 0x40,
-
-	MDLCACHE_FLUSH_IGNORELOCK       = 0x80000000,
-	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
-};
-
-typedef uint32_t (*pZeroArgProt)();
-typedef uint32_t (*pOneArgProt)(uint32_t);
-typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
-typedef uint32_t (*pThreeArgProt)(uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-
-ValueList AllocateValuesList();
-Value* CreateNewValue(void* valueInput);
-void DeleteAllValuesInList(ValueList list, bool free_val, pthread_mutex_t* lockInput);
-bool IsInValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput);
-bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput);
-bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk);
-int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
-
-void ApplySingleHooks();
-void AllowWriteToMappedMemory();
-void RestoreMemoryProtections();
-void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer);
-void HookFunctionsWithC();
-void HookFunctionsWithCpp();
-void DisableCacheCvars();
-void PopulateHookExclusionLists();
-bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);
-uint32_t GetCBaseEntity(uint32_t EHandle);
-
-uint32_t CallocHook(uint32_t nitems, uint32_t size);
-uint32_t MallocHook(uint32_t size);
-uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
-uint32_t OperatorNewArrayHook(uint32_t size);
-uint32_t CalcPoseSingleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6,
-uint32_t arg7, uint32_t arg8);
-
-
 /**
  * vim: set ts=4 :
  * =============================================================================
@@ -104,23 +39,6 @@ uint32_t arg7, uint32_t arg8);
 
 #include "smsdk_ext.h"
 
-class Hooks
-{
-public:
-	static uint32_t EmptyCall();
-	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t GameFrameHook(uint32_t arg0);
-	static uint32_t Util_RemoveHook(uint32_t arg0);
-	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-	static uint32_t CleanupDeleteListHook(uint32_t arg0);
-	static uint32_t PhysSimEnt(uint32_t arg0);
-	static uint32_t HookInstaKill(uint32_t arg0);
-	static uint32_t SV_FrameHook(uint32_t arg0);
-	static uint32_t TakeDamageAliveHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1);
-};
-
 /**
  * @brief Sample implementation of the SDK Extension.
  * Note: Uncomment one of the pre-defined virtual functions in order to use it.
@@ -128,8 +46,6 @@ public:
 class BmsUtils : public SDKExtension
 {
 public:
-	static void* getCppAddr(auto classAddr);
-
 	/**
 	 * @brief This is called after the initial loading sequence has been processed.
 	 *
@@ -138,7 +54,7 @@ public:
 	 * @param late		Whether or not the module was loaded after map load.
 	 * @return			True to succeed loading, false to fail.
 	 */
-	virtual bool SDK_OnLoad(char *error, size_t maxlen, bool late);
+	//virtual bool SDK_OnLoad(char *error, size_t maxlen, bool late);
 	
 	/**
 	 * @brief This is called right before the extension is unloaded.
