@@ -111,7 +111,7 @@ void HookFunctions()
     HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x00027A40), (void*)OperatorNewArrayHook);*/
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), (void*)Hooks::CreateEntityByNameHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), (void*)Hooks::SpawnServerHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), (void*)Hooks::SpawnServerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), (void*)Hooks::CleanupDeleteListHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), (void*)Hooks::SV_FrameHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), (void*)Hooks::Util_RemoveHook);
@@ -356,7 +356,10 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
     uint32_t isMarked = pDynamicOneArgFunc(arg0+0x14);
 
-    if(isMarked) return 0;
+    if(isMarked)
+    {
+        rootconsole->ConsolePrint("Simulated marked entity [%s]", clsname);
+    }
 
     disable_delete_list = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
@@ -367,26 +370,25 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
 uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 {
-    rootconsole->ConsolePrint(EXT_PREFIX "SpawnServer Hooked 5\n\n");
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
     //UnloadAllModels
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0013AE80);
-    pDynamicTwoArgFunc(engine_srv + 0x00320560, 0);
+    //pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0013AE80);
+    //pDynamicTwoArgFunc(engine_srv + 0x00320560, 0);
 
     //Flush materials
     //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D280);
     //pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 1);
 
     //ReloadTextures
-    pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003D240);
-    pDynamicOneArgFunc(materialsystem_srv + 0x00166B20);
+    //pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003D240);
+    //pDynamicOneArgFunc(materialsystem_srv + 0x00166B20);
 
     //ReloadAllMaterials
-    pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
-    pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
+    //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
+    //pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
 
     //InvalidateMdlCache
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
@@ -417,23 +419,22 @@ uint32_t Hooks::ClearEntitiesHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    int ent_counter = 0;
+    uint32_t entity = 0;
 
     //NextHandle
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008F37E0);
-    uint32_t entity = pDynamicTwoArgFunc(CGlobalEntityList, 0);
 
-    while(entity)
+    while((entity = pDynamicTwoArgFunc(CGlobalEntityList, 0)) != 0)
     {
         char* clsname = (char*)(*(uint32_t*)(entity+0x64));
         rootconsole->ConsolePrint("Killing [%s]", clsname);
 
+        //Clear - EventQueue
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
+        pDynamicOneArgFunc(server_srv + 0x01869800);
+
         Hooks::Util_RemoveHook(entity);
         Hooks::CleanupDeleteListHook(0);
-
-        entity = pDynamicTwoArgFunc(CGlobalEntityList, 0);
-        ent_counter++;
-        rootconsole->ConsolePrint("Ents killed [%d]", ent_counter);
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F55D0);
