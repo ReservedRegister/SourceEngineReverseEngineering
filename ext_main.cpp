@@ -78,6 +78,9 @@ void ApplySingleHooks()
 
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
+
+    uint32_t remove_deactivate_contraint_ent = server_srv + 0x00A5E0C3;
+    memset((void*)remove_deactivate_contraint_ent, 0x90, 5);
 }
 
 void HookFunctions()
@@ -426,15 +429,14 @@ uint32_t Hooks::ClearEntitiesHook(uint32_t arg0)
 
     while((entity = pDynamicTwoArgFunc(CGlobalEntityList, 0)) != 0)
     {
-        char* clsname = (char*)(*(uint32_t*)(entity+0x64));
-        rootconsole->ConsolePrint("Killing [%s]", clsname);
+        //char* clsname = (char*)(*(uint32_t*)(entity+0x64));
+        //rootconsole->ConsolePrint("Killing [%s]", clsname);
 
         //Clear - EventQueue
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
         pDynamicOneArgFunc(server_srv + 0x01869800);
 
-        Hooks::Util_RemoveHook(entity);
-        Hooks::CleanupDeleteListHook(0);
+        Hooks::HookInstaKill(entity);
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F55D0);
