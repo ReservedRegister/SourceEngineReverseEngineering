@@ -78,9 +78,6 @@ void ApplySingleHooks()
 
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
-
-    uint32_t remove_deactivate_contraint_ent = server_srv + 0x00A5E0C3;
-    memset((void*)remove_deactivate_contraint_ent, 0x90, 5);
 }
 
 void HookFunctions()
@@ -219,8 +216,27 @@ uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
 
 uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = false;
+
+    uint32_t entity = 0;
+
+    //NextHandle
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008F37E0);
+
+    while((entity = pDynamicTwoArgFunc(CGlobalEntityList, entity)) != 0)
+    {
+        char* clsname = (char*)(*(uint32_t*)(entity+0x64));
+        rootconsole->ConsolePrint("Killing [%s]", clsname);
+
+        //Clear - EventQueue
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
+        pDynamicOneArgFunc(server_srv + 0x01869800);
+
+        Hooks::Util_RemoveHook(entity);
+    }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -295,7 +311,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
-
     isTicking = true;
 
     //PreSystems
@@ -306,12 +321,12 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    pDynamicOneArgFunc(0);
-
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
     pDynamicOneArgFunc(0);
 
     //SimulateEntities
@@ -421,23 +436,6 @@ uint32_t Hooks::ClearEntitiesHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t entity = 0;
-
-    //NextHandle
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008F37E0);
-
-    while((entity = pDynamicTwoArgFunc(CGlobalEntityList, 0)) != 0)
-    {
-        //char* clsname = (char*)(*(uint32_t*)(entity+0x64));
-        //rootconsole->ConsolePrint("Killing [%s]", clsname);
-
-        //Clear - EventQueue
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
-        pDynamicOneArgFunc(server_srv + 0x01869800);
-
-        Hooks::HookInstaKill(entity);
-    }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F55D0);
     return pDynamicOneArgFunc(arg0);
