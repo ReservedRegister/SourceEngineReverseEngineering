@@ -229,13 +229,15 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     while((entity = pDynamicTwoArgFunc(CGlobalEntityList, entity)) != 0)
     {
         char* clsname = (char*)(*(uint32_t*)(entity+0x64));
-        rootconsole->ConsolePrint("Killing [%s]", clsname);
+        rootconsole->ConsolePrint("Destroying vphysics [%s]", clsname);
 
         //Clear - EventQueue
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
         pDynamicOneArgFunc(server_srv + 0x01869800);
 
-        Hooks::Util_RemoveHook(entity);
+        //VphysicsDestroyObject
+        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(entity))+0x2A0) );
+        pDynamicOneArgFunc(entity);
     }
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
@@ -301,8 +303,6 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    Hooks::CleanupDeleteListHook(0);
-
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001957B0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -328,6 +328,8 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //UpdateClientData
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
     pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
