@@ -221,9 +221,7 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = false;
 
-    Hooks::CleanupDeleteListHook(0);
-
-    uint32_t entity = 0;
+    /*uint32_t entity = 0;
 
     //NextHandle
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008F37E0);
@@ -240,7 +238,7 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         //VphysicsDestroyObject
         pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(entity))+0x2A0) );
         pDynamicOneArgFunc(entity);
-    }
+    }*/
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -261,10 +259,26 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     if(arg0 == 0) return 0;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
-    char* clsname = (char*)(*(uint32_t*)(arg0+0x64));
+    uint32_t object_verify = GetCBaseEntity(refHandle);
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66B70);
-    return pDynamicOneArgFunc(arg0);
+    if(object_verify)
+    {
+        char* clsname = (char*)(*(uint32_t*)(object_verify+0x64));
+        rootconsole->ConsolePrint("Destroying [%s]", clsname);
+
+        //VphysicsDestroyObject
+        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
+        pDynamicOneArgFunc(object_verify);
+
+        rootconsole->ConsolePrint("Destroyed [%s]", clsname);
+
+        //UTIL_Remove(CBaseEntity*)
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66B70);
+        return pDynamicOneArgFunc(object_verify);
+    }
+
+    rootconsole->ConsolePrint("Failed to verify entity object!");
+    return 0;
 }
 
 uint32_t Hooks::TakeDamageAliveHook(uint32_t arg0, uint32_t arg1)
