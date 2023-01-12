@@ -221,6 +221,8 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = false;
 
+    Hooks::CleanupDeleteListHook(0);
+
     uint32_t entity = 0;
 
     //NextHandle
@@ -303,6 +305,8 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
+    Hooks::CleanupDeleteListHook(0);
+
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001957B0);
     return pDynamicOneArgFunc(arg0);
 }
@@ -341,7 +345,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook(0);
     return 0;
 }
 
