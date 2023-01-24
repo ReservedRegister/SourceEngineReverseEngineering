@@ -1,10 +1,6 @@
 #include "ext_main.h"
 #include "core.h"
 
-bool isTicking;
-bool disable_delete_list;
-ValueList deleteList;
-
 void InitExtension()
 {
     AllowWriteToMappedMemory();
@@ -331,22 +327,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = true;
 
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
-    pDynamicOneArgFunc(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
-    pDynamicOneArgFunc(0);
-
-    //StartFrame
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
-    pDynamicOneArgFunc(0);
-
-    //UpdateClientData
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    pDynamicOneArgFunc(0);
-
     Hooks::CleanupDeleteListHook(0);
 
     //SimulateEntities
@@ -359,6 +339,31 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
 
+    Hooks::CleanupDeleteListHook(0);
+
+    //StartFrame
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //UpdateClientData
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
     return 0;
 }
 
@@ -399,7 +404,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     if(isMarked)
     {
-        rootconsole->ConsolePrint("Simulated marked entity [%s]", clsname);
+        rootconsole->ConsolePrint("Attempted to simulate marked entity [%s]", clsname);
+        return 0;
     }
 
     disable_delete_list = true;

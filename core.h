@@ -37,6 +37,9 @@ extern uint32_t dedicated_srv_size;
 extern uint32_t datacache_srv_size;
 
 extern uint32_t CGlobalEntityList;
+extern bool isTicking;
+extern bool disable_delete_list;
+extern ValueList deleteList;
 
 typedef uint32_t (*pZeroArgProt)();
 typedef uint32_t (*pOneArgProt)(uint32_t);

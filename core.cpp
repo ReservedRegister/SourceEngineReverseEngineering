@@ -5,8 +5,6 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 uint32_t loaded_libraries[512] = {};
 
-uint32_t CGlobalEntityList;
-
 uint32_t engine_srv;
 uint32_t server_srv;
 uint32_t materialsystem_srv;
@@ -20,6 +18,11 @@ uint32_t materialsystem_srv_size;
 uint32_t vphysics_srv_size;
 uint32_t dedicated_srv_size;
 uint32_t datacache_srv_size;
+
+uint32_t CGlobalEntityList;
+bool isTicking;
+bool disable_delete_list;
+ValueList deleteList;
 
 void* copy_val(void* val, size_t copy_size)
 {

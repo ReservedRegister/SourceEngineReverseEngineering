@@ -40,9 +40,9 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"BlackMesaUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension that aims to resolve errors and aim in reversing the black mesa dedicated server"
-#define SMEXT_CONF_VERSION		"9.17"
-#define SMEXT_CONF_AUTHOR		"Somebody"
-#define SMEXT_CONF_URL			"http://www.sourcemod.net/"
+#define SMEXT_CONF_VERSION		"9.18"
+#define SMEXT_CONF_AUTHOR		"ReservedRegister"
+#define SMEXT_CONF_URL			"https://github.com/ReservedRegister"
 #define SMEXT_CONF_LOGTAG		"BlackMesaUtils"
 #define SMEXT_CONF_LICENSE		"GPL"
 #define SMEXT_CONF_DATESTRING	__DATE__
