@@ -134,7 +134,7 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F55D0), (void*)Hooks::ClearEntitiesHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064B1B0), (void*)Hooks::SetCollisionBoundsFromModelHook);
 }
 
 void DisableCacheCvars()
@@ -461,11 +461,17 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t Hooks::ClearEntitiesHook(uint32_t arg0)
+uint32_t Hooks::SetCollisionBoundsFromModelHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
+    
+    if(arg0)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064B1B0);
+        return pDynamicOneArgFunc(arg0);
+    }
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F55D0);
-    return pDynamicOneArgFunc(arg0);
+    rootconsole->ConsolePrint("Base entity was NULL");
+    return 0;
 }
