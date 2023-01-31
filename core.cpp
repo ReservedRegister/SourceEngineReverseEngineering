@@ -19,6 +19,8 @@ uint32_t vphysics_srv_size;
 uint32_t dedicated_srv_size;
 uint32_t datacache_srv_size;
 
+pThreeArgProt FindEntityByClassname;
+
 uint32_t CGlobalEntityList;
 bool isTicking;
 bool disable_delete_list;

@@ -43,6 +43,8 @@ void InitExtension()
     dedicated_srv_size = dedicated_srv_lib->library_size;
     datacache_srv_size = datacache_srv_lib->library_size;
 
+    FindEntityByClassname = (pThreeArgProt)(server_srv + 0x008F3870);
+
     disable_delete_list = false;
     isTicking = false;
     CGlobalEntityList = server_srv + 0x018711E0;
@@ -135,6 +137,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064B1B0), (void*)Hooks::SetCollisionBoundsFromModelHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
 }
 
 void DisableCacheCvars()
@@ -474,4 +477,18 @@ uint32_t Hooks::SetCollisionBoundsFromModelHook(uint32_t arg0)
 
     rootconsole->ConsolePrint("Base entity was NULL");
     return 0;
+}
+
+uint32_t Hooks::UTIL_GetLocalPlayerHook()
+{
+    uint32_t player = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+
+    if(!player)
+    {
+        rootconsole->ConsolePrint("Failed to find player!");
+        return player;
+    }
+
+    rootconsole->ConsolePrint("Successfully located a player!");
+    return player;
 }

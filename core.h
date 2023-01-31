@@ -9,6 +9,31 @@
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 #define EXT_PREFIX "[BlackMesaUtils] "
 
+typedef uint32_t (*pZeroArgProt)();
+typedef uint32_t (*pOneArgProt)(uint32_t);
+typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
+typedef uint32_t (*pThreeArgProt)(uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+
+enum MDLCacheFlush_t
+{
+	MDLCACHE_FLUSH_STUDIOHDR		= 0x01,
+	MDLCACHE_FLUSH_STUDIOHWDATA		= 0x02,
+	MDLCACHE_FLUSH_VCOLLIDE			= 0x04,
+	MDLCACHE_FLUSH_ANIMBLOCK		= 0x08,
+	MDLCACHE_FLUSH_VIRTUALMODEL		= 0x10,
+	MDLCACHE_FLUSH_AUTOPLAY         = 0x20,
+	MDLCACHE_FLUSH_VERTEXES         = 0x40,
+
+	MDLCACHE_FLUSH_IGNORELOCK       = 0x80000000,
+	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
+};
+
 typedef struct _Library {
 	char* library_signature;
 	uint32_t library_base_address;
@@ -36,35 +61,13 @@ extern uint32_t vphysics_srv_size;
 extern uint32_t dedicated_srv_size;
 extern uint32_t datacache_srv_size;
 
+extern pThreeArgProt FindEntityByClassname;
+
 extern uint32_t CGlobalEntityList;
 extern bool isTicking;
 extern bool disable_delete_list;
 extern ValueList deleteList;
 
-typedef uint32_t (*pZeroArgProt)();
-typedef uint32_t (*pOneArgProt)(uint32_t);
-typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
-typedef uint32_t (*pThreeArgProt)(uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFourArgProt)(uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pFiveArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSixArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pSevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pNineArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
-
-enum MDLCacheFlush_t
-{
-	MDLCACHE_FLUSH_STUDIOHDR		= 0x01,
-	MDLCACHE_FLUSH_STUDIOHWDATA		= 0x02,
-	MDLCACHE_FLUSH_VCOLLIDE			= 0x04,
-	MDLCACHE_FLUSH_ANIMBLOCK		= 0x08,
-	MDLCACHE_FLUSH_VIRTUALMODEL		= 0x10,
-	MDLCACHE_FLUSH_AUTOPLAY         = 0x20,
-	MDLCACHE_FLUSH_VERTEXES         = 0x40,
-
-	MDLCACHE_FLUSH_IGNORELOCK       = 0x80000000,
-	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
-};
 
 void* copy_val(void* val, size_t copy_size);
 void ForceMemoryAccess();
