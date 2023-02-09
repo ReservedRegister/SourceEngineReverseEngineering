@@ -332,6 +332,12 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
 
     Hooks::CleanupDeleteListHook(0);
 
+    //PreSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
     //StartFrame
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     pDynamicOneArgFunc(0);
@@ -341,14 +347,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
-    pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
