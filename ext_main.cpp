@@ -275,7 +275,7 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-        uint32_t returnVal = pDynamicOneArgFunc(object_verify);
+        uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
 
         rootconsole->ConsolePrint("Removed [%s]", clsname);
         return returnVal;
