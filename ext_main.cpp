@@ -115,7 +115,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), (void*)Hooks::SpawnServerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), (void*)Hooks::CleanupDeleteListHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), (void*)Hooks::SV_FrameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66B70), (void*)Hooks::Util_RemoveHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), (void*)Hooks::Util_RemoveHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), (void*)Hooks::HostChangelevelHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), (void*)Hooks::PhysSimEnt);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), (void*)Hooks::EmptyCall);
@@ -255,26 +255,30 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
 {
+    // THIS IS THE UTIL_Remove(IServerNetworable*)
+
     pOneArgProt pDynamicOneArgFunc;
     if(arg0 == 0) return 0;
 
-    uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+    uint32_t cbaseobject = arg0-0x14;
+    uint32_t refHandle = *(uint32_t*)(cbaseobject+0x334);
     uint32_t object_verify = GetCBaseEntity(refHandle);
 
     if(object_verify)
     {
-        char* clsname = (char*)(*(uint32_t*)(object_verify+0x64));
-        rootconsole->ConsolePrint("Destroying [%s]", clsname);
-
         //VphysicsDestroyObject
-        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
-        pDynamicOneArgFunc(object_verify);
+        //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
+        //pDynamicOneArgFunc(object_verify);
 
-        rootconsole->ConsolePrint("Destroyed [%s]", clsname);
+        char* clsname = (char*)(*(uint32_t*)(object_verify+0x64));
+        rootconsole->ConsolePrint("Removing [%s]", clsname);
 
-        //UTIL_Remove(CBaseEntity*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66B70);
-        return pDynamicOneArgFunc(object_verify);
+        //UTIL_Remove(IServerNetworkable*)
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+        uint32_t returnVal = pDynamicOneArgFunc(object_verify);
+
+        rootconsole->ConsolePrint("Removed [%s]", clsname);
+        return returnVal;
     }
 
     rootconsole->ConsolePrint("Failed to verify entity object!");
