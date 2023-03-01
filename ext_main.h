@@ -21,7 +21,7 @@ public:
 	static uint32_t PhysSimEnt(uint32_t arg0);
 	static uint32_t HookInstaKill(uint32_t arg0);
 	static uint32_t SV_FrameHook(uint32_t arg0);
-	static uint32_t TakeDamageAliveHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t TakeDamageHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t IRelationTypeHook(uint32_t arg0, uint32_t arg1);
     static uint32_t CallocHook(uint32_t nitems, uint32_t size);
     static uint32_t MallocHook(uint32_t size);
@@ -29,6 +29,7 @@ public:
     static uint32_t OperatorNewArrayHook(uint32_t size);
 	static uint32_t SetCollisionBoundsFromModelHook(uint32_t arg0);
 	static uint32_t UTIL_GetLocalPlayerHook();
+	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
 };
 
 #endif

@@ -131,7 +131,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
 
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057B840), (void*)Hooks::TakeDamageAliveHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0062E0E0), (void*)Hooks::TakeDamageHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008835B0), (void*)Hooks::IRelationTypeHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC80), (void*)Hooks::EmptyCall);
 
@@ -139,6 +139,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064B1B0), (void*)Hooks::SetCollisionBoundsFromModelHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
 }
 
 void DisableCacheCvars()
@@ -285,7 +286,7 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
     return 0;
 }
 
-uint32_t Hooks::TakeDamageAliveHook(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::TakeDamageHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
@@ -296,7 +297,7 @@ uint32_t Hooks::TakeDamageAliveHook(uint32_t arg0, uint32_t arg1)
 
         if(object)
         {
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0057B840);
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0062E0E0);
             return pDynamicTwoArgFunc(arg0, arg1);
         }
     }
@@ -317,6 +318,20 @@ uint32_t Hooks::IRelationTypeHook(uint32_t arg0, uint32_t arg1)
 
     rootconsole->ConsolePrint("Fixed crash in IRelationType()");
     return 0;
+}
+
+uint32_t Hooks::ScriptThinkEntCheck(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B01EE0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x3B0);
+    uint32_t chkRef = GetCBaseEntity(refHandle);
+
+    if(!chkRef) return 0;
+    return returnVal;
 }
 
 uint32_t Hooks::SV_FrameHook(uint32_t arg0)
@@ -393,6 +408,9 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+
+    uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
+    if(!firstPlayer) return 0;
 
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
