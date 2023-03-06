@@ -71,9 +71,6 @@ void ApplySingleHooks()
     uint32_t delete_list_call = server_srv + 0x00944F61;
     memset((void*)delete_list_call, 0x90, 5);
 
-    delete_list_call = server_srv + 0x00944FC5;
-    memset((void*)delete_list_call, 0x90, 5);
-
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
 
