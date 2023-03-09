@@ -74,6 +74,9 @@ void ApplySingleHooks()
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
 
+    delete_list_call = server_srv + 0x00944FC5;
+    memset((void*)delete_list_call, 0x90, 5);
+
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
 }
@@ -334,8 +337,6 @@ uint32_t Hooks::ScriptThinkEntCheck(uint32_t arg0)
 uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-
-    Hooks::CleanupDeleteListHook(0);
 
     pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001957B0);
     return pDynamicOneArgFunc(arg0);
