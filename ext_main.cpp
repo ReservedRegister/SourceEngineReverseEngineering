@@ -272,13 +272,13 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
         //pDynamicOneArgFunc(object_verify);
 
         char* clsname = (char*)(*(uint32_t*)(object_verify+0x64));
-        rootconsole->ConsolePrint("Removing [%s]", clsname);
+        //rootconsole->ConsolePrint("Removing [%s]", clsname);
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
         uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
 
-        rootconsole->ConsolePrint("Removed [%s]", clsname);
+        //rootconsole->ConsolePrint("Removed [%s]", clsname);
         return returnVal;
     }
 
@@ -500,6 +500,5 @@ uint32_t Hooks::UTIL_GetLocalPlayerHook()
         return player;
     }
 
-    rootconsole->ConsolePrint("Successfully located a player!");
     return player;
 }
