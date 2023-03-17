@@ -492,13 +492,5 @@ uint32_t Hooks::SetCollisionBoundsFromModelHook(uint32_t arg0)
 
 uint32_t Hooks::UTIL_GetLocalPlayerHook()
 {
-    uint32_t player = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
-
-    if(!player)
-    {
-        rootconsole->ConsolePrint("Failed to find player!");
-        return player;
-    }
-
-    return player;
+    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 }
