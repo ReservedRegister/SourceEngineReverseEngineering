@@ -330,6 +330,29 @@ void RestoreMemoryProtections()
     }
 }
 
+bool IsEntityValid(uint32_t refHandle)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(object)
+    {
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(object+0x14);
+
+        if(isMarked)
+        {
+            rootconsole->ConsolePrint("Blocked AcceptInput due to finding a sus entity!");
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 ValueList AllocateValuesList()
 {
     ValueList list = (ValueList) malloc(sizeof(ValueList));

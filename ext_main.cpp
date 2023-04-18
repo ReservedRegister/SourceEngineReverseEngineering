@@ -140,9 +140,9 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064B1B0), (void*)Hooks::SetCollisionBoundsFromModelHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
 }
 
 void DisableCacheCvars()
@@ -478,19 +478,47 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t Hooks::SetCollisionBoundsFromModelHook(uint32_t arg0)
+uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
 {
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
-    
+
+    // CBaseEntity arg0 arg2 arg3
+
     if(arg0)
     {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064B1B0);
-        return pDynamicOneArgFunc(arg0);
+        uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+        if(IsEntityValid(refHandle) == false)
+        {
+            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+            return 0;
+        }
     }
 
-    rootconsole->ConsolePrint("Base entity was NULL");
-    return 0;
+    if(arg2)
+    {
+        uint32_t refHandle = *(uint32_t*)(arg2+0x334);
+        if(IsEntityValid(refHandle) == false)
+        {
+            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+            return 0;
+        }
+    }
+
+    if(arg3)
+    {
+        uint32_t refHandle = *(uint32_t*)(arg3+0x334);
+        if(IsEntityValid(refHandle) == false)
+        {
+            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+            return 0;
+        }
+    }
+
+    //Passed sanity check
+    pSixArgProt pDynamicSixArgProt;
+    pDynamicSixArgProt = (pSixArgProt)(server_srv + 0x00644C00);
+    return pDynamicSixArgProt(arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
 uint32_t Hooks::UTIL_GetLocalPlayerHook()

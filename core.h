@@ -89,4 +89,6 @@ bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* lock
 bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk);
 int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
 
+bool IsEntityValid(uint32_t refHandle);
+
 #endif
