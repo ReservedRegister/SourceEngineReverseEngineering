@@ -485,34 +485,22 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     // CBaseEntity arg0 arg2 arg3
 
-    if(arg0)
+    if(IsEntityValid(arg0) == false)
     {
-        uint32_t refHandle = *(uint32_t*)(arg0+0x334);
-        if(IsEntityValid(refHandle) == false)
-        {
-            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-            return 0;
-        }
+        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+        return 0;
     }
 
-    if(arg2)
+    if(IsEntityValid(arg2) == false)
     {
-        uint32_t refHandle = *(uint32_t*)(arg2+0x334);
-        if(IsEntityValid(refHandle) == false)
-        {
-            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-            return 0;
-        }
+        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+        return 0;
     }
 
-    if(arg3)
+    if(IsEntityValid(arg3) == false)
     {
-        uint32_t refHandle = *(uint32_t*)(arg3+0x334);
-        if(IsEntityValid(refHandle) == false)
-        {
-            rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-            return 0;
-        }
+        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
+        return 0;
     }
 
     //Passed sanity check

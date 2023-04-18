@@ -330,10 +330,12 @@ void RestoreMemoryProtections()
     }
 }
 
-bool IsEntityValid(uint32_t refHandle)
+bool IsEntityValid(uint32_t entity)
 {
     pOneArgProt pDynamicOneArgFunc;
-    uint32_t object = GetCBaseEntity(refHandle);
+    if(entity == 0) return false;
+
+    uint32_t object = GetCBaseEntity(*(uint32_t*)(entity+0x334));
 
     if(object)
     {
@@ -343,7 +345,6 @@ bool IsEntityValid(uint32_t refHandle)
 
         if(isMarked)
         {
-            rootconsole->ConsolePrint("Blocked AcceptInput due to finding a sus entity!");
             return false;
         }
 
