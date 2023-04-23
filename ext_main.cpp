@@ -422,7 +422,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     if(isMarked)
     {
-        rootconsole->ConsolePrint("Simulated marked entity [%s]", clsname);
+        rootconsole->ConsolePrint("Attempted to simulate marked entity [%s]", clsname);
+        return 0;
     }
 
     disable_delete_list = true;
@@ -485,19 +486,36 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     // CBaseEntity arg0 arg2 arg3
 
-    if(IsEntityValid(arg0) == false)
+    bool failure = false;
+
+    if(arg0)
     {
-        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-        return 0;
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(arg0+0x14);
+
+        if(isMarked) failure = true;
     }
 
-    if(IsEntityValid(arg2) == false)
+    if(arg2)
     {
-        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-        return 0;
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(arg2+0x14);
+
+        if(isMarked) failure = true;
     }
 
-    if(IsEntityValid(arg3) == false)
+    if(arg3)
+    {
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(arg3+0x14);
+
+        if(isMarked) failure = true;
+    }
+
+    if(failure)
     {
         rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
         return 0;
