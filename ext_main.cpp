@@ -490,15 +490,6 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(IsEntityValid(arg0) == false) failure = true;
 
-    if(arg2)
-    {
-        //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
-        uint32_t isMarked = pDynamicOneArgFunc(arg2+0x14);
-
-        if(isMarked) failure = true;
-    }
-
     if(failure)
     {
         rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
