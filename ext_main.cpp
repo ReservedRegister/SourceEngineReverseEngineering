@@ -226,6 +226,10 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = false;
 
+    //Clear - EventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C88C0);
+    pDynamicOneArgFunc(server_srv + 0x01869800);
+
     /*uint32_t entity = 0;
 
     //NextHandle
