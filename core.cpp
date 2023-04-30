@@ -330,10 +330,10 @@ void RestoreMemoryProtections()
     }
 }
 
-bool IsEntityValid(uint32_t entity)
+uint32_t IsEntityValid(uint32_t entity)
 {
     pOneArgProt pDynamicOneArgFunc;
-    if(entity == 0) return false;
+    if(entity == 0) return entity;
 
     uint32_t object = GetCBaseEntity(*(uint32_t*)(entity+0x334));
 
@@ -345,13 +345,13 @@ bool IsEntityValid(uint32_t entity)
 
         if(isMarked)
         {
-            return false;
+            return 0;
         }
 
-        return true;
+        return entity;
     }
 
-    return false;
+    return 0;
 }
 
 ValueList AllocateValuesList()

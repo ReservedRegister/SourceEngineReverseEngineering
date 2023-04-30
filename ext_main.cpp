@@ -492,7 +492,7 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     bool failure = false;
 
-    if(IsEntityValid(arg0) == false) failure = true;
+    if(IsEntityValid(arg0) == 0) failure = true;
 
     if(failure)
     {
