@@ -79,6 +79,9 @@ void ApplySingleHooks()
 
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
+
+    uint32_t sim_patch = server_srv + 0x00A7ADB4;
+    memset((void*)sim_patch, 0x90, 6);
 }
 
 void HookFunctions()
