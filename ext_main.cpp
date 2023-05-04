@@ -82,6 +82,12 @@ void ApplySingleHooks()
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
+
+    uint32_t removecall_vp = vphysics_srv + 0x0003CF04;
+    memset((void*)removecall_vp, 0x90, 5);
+
+    uint32_t removecall_vp2 = vphysics_srv + 0x0003D25E;
+    memset((void*)removecall_vp2, 0x90, 5);
 }
 
 void HookFunctions()
@@ -367,27 +373,13 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     //pDynamicOneArgFunc(0);
 
-    //PhysOnCleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    pDynamicOneArgFunc(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
-    //PhysOnCleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    pDynamicOneArgFunc(0);
-
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
-
-    //PhysOnCleanupDeleteList
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    pDynamicOneArgFunc(0);
-
-    //Hooks::CleanupDeleteListHook(0);
 
     //UpdateClientData
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
