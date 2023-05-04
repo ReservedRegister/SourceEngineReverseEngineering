@@ -74,20 +74,15 @@ void ApplySingleHooks()
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
 
-    //delete_list_call = server_srv + 0x00944FC5;
-    //memset((void*)delete_list_call, 0x90, 5);
+    uint32_t game_frame_delete_list_patch = server_srv + 0x00944FC5;
+    offset = (uint32_t)Hooks::GameFrameDeleteListHook - game_frame_delete_list_patch - 5;
+    *(uint32_t*)(game_frame_delete_list_patch+1) = offset;
 
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
-
-    uint32_t removecall_vp = vphysics_srv + 0x0003CF04;
-    memset((void*)removecall_vp, 0x90, 5);
-
-    uint32_t removecall_vp2 = vphysics_srv + 0x0003D25E;
-    memset((void*)removecall_vp2, 0x90, 5);
 }
 
 void HookFunctions()
@@ -262,6 +257,20 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
+uint32_t Hooks::GameFrameDeleteListHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+    return 0;
+}
+
 uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -384,10 +393,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
-    pDynamicOneArgFunc(0);
 
     //UpdateClientData
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);

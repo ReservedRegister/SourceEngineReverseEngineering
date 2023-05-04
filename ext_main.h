@@ -30,6 +30,7 @@ public:
 	static uint32_t UTIL_GetLocalPlayerHook();
 	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
+	static uint32_t GameFrameDeleteListHook(uint32_t arg0);
 };
 
 #endif
