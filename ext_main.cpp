@@ -268,7 +268,15 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     if(disable_delete_list) return 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    return pDynamicOneArgFunc(0);
+    pDynamicOneArgFunc(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc(0);
+    
+    return 0;
 }
 
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
