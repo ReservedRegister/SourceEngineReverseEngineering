@@ -51,7 +51,7 @@ void InitExtension()
     deleteList = AllocateValuesList();
 
     PopulateHookExclusionLists();
-    ApplySingleHooks();
+    ApplyPatches();
     DisableCacheCvars();
     HookFunctions();
 
@@ -60,7 +60,7 @@ void InitExtension()
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded!" "  ----------------------");
 }
 
-void ApplySingleHooks()
+void ApplyPatches()
 {
     uint32_t offset = 0;
 
@@ -69,10 +69,10 @@ void ApplySingleHooks()
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
     uint32_t delete_list_call = server_srv + 0x00944F61;
-    memset((void*)delete_list_call, 0x90, 5);
+    //memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call, 0x90, 5);
+    //memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t game_frame_delete_list_patch = server_srv + 0x00944FC5;
     offset = (uint32_t)Hooks::GameFrameDeleteListHook - game_frame_delete_list_patch - 5;
@@ -83,9 +83,6 @@ void ApplySingleHooks()
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
-
-    uint32_t remove_v_del = server_srv + 0x0064BE96;
-    memset((void*)remove_v_del, 0x90, 6);
 }
 
 void HookFunctions()
@@ -391,6 +388,8 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
+    Hooks::CleanupDeleteListHook(0);
+
     //UpdateClientData
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
     //pDynamicOneArgFunc(0);
@@ -508,7 +507,7 @@ uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
     uint32_t object = *(uint32_t*)(arg0+8);
     if(object == 0) return 0;
 
-    rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
+    //rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
 
     //VphysicsDestroyObject
     pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object))+0x2A0) );

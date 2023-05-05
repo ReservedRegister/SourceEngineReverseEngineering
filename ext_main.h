@@ -4,7 +4,7 @@
 #define EXT_MAIN_H
 
 void InitExtension();
-void ApplySingleHooks();
+void ApplyPatches();
 void HookFunctions();
 void DisableCacheCvars();
 
