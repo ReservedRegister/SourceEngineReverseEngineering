@@ -261,8 +261,6 @@ uint32_t Hooks::GameFrameDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    Hooks::CleanupDeleteListHook(0);
-
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
@@ -277,15 +275,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     if(disable_delete_list) return 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
-    pDynamicOneArgFunc(0);
-    
-    return 0;
+    return pDynamicOneArgFunc(0);
 }
 
 uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
@@ -313,6 +303,11 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
         uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
 
         //rootconsole->ConsolePrint("Removed [%s]", clsname);
+
+        //ClearDeadObjects
+        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*) (*(uint32_t*)(server_srv + 0x00FF3DD0)))+0x0C8)  );
+        pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x00FF3DD0));
+
         return returnVal;
     }
 
