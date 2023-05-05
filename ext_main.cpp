@@ -507,6 +507,15 @@ uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
     uint32_t object = *(uint32_t*)(arg0+8);
     if(object == 0) return 0;
 
+    uint32_t refHandle = *(uint32_t*)(object+0x334);
+    uint32_t object_chk = GetCBaseEntity(refHandle);
+
+    if(object_chk == 0)
+    {
+        rootconsole->ConsolePrint("Failed to validate entity!");
+        return 0;
+    }
+
     //rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
 
     //VphysicsDestroyObject
