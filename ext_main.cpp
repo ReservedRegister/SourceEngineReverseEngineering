@@ -83,6 +83,9 @@ void ApplySingleHooks()
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
+
+    uint32_t remove_v_del = server_srv + 0x0064BE96;
+    memset((void*)remove_v_del, 0x90, 6);
 }
 
 void HookFunctions()
@@ -147,6 +150,9 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), (void*)Hooks::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
 }
 
 void DisableCacheCvars()
@@ -303,10 +309,6 @@ uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
         uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
 
         //rootconsole->ConsolePrint("Removed [%s]", clsname);
-
-        //ClearDeadObjects
-        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*) (*(uint32_t*)(server_srv + 0x00FF3DD0)))+0x0C8)  );
-        pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x00FF3DD0));
 
         return returnVal;
     }
@@ -494,6 +496,31 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    // DELETE THE PHYSICS OBJECT
+    // CLEAR THE DEAD OBJECTS
+    // DELETE THE ENTITY
+
+    uint32_t object = *(uint32_t*)(arg0+8);
+    if(object == 0) return 0;
+
+    rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
+
+    //VphysicsDestroyObject
+    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object))+0x2A0) );
+    pDynamicOneArgFunc(object);
+
+    //Clean Phys
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
+    pDynamicOneArgFunc(0);
+
+    //Delete Entity
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08190);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
