@@ -74,15 +74,45 @@ void ApplyPatches()
     delete_list_call = server_srv + 0x00A7AC57;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    uint32_t game_frame_delete_list_patch = server_srv + 0x00944FC5;
-    offset = (uint32_t)Hooks::GameFrameDeleteListHook - game_frame_delete_list_patch - 5;
-    *(uint32_t*)(game_frame_delete_list_patch+1) = offset;
+    delete_list_call = server_srv + 0x00944FC5;
+    //memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
 
+    uint32_t eventqueue = server_srv + 0x00944FB9;
+    memset((void*)eventqueue, 0x90, 5);
+
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
+
+    uint32_t vphysicsupdatepatch = server_srv + 0x00413E5B;
+    memset((void*)vphysicsupdatepatch, 0x90, 12);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch+1) = 0x1C;
+    *(uint8_t*)(vphysicsupdatepatch+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch = server_srv + 0x00413E62;
+    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch - 5;
+    *(uint8_t*)(vphysicsupdatepatch) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch+1) = offset;
+
+    uint32_t vphysicsupdatepatch_two = server_srv + 0x00413E92;
+    memset((void*)vphysicsupdatepatch_two, 0x90, 7);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch_two) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch_two+1) = 0x1C;
+    *(uint8_t*)(vphysicsupdatepatch_two+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch_two = server_srv + 0x00413EC2;
+    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_two - 5;
+    *(uint8_t*)(vphysicsupdatepatch_two) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch_two+1) = offset;
 }
 
 void HookFunctions()
@@ -132,7 +162,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
 
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
@@ -145,11 +175,13 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
 }
 
 void DisableCacheCvars()
@@ -260,15 +292,12 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
-uint32_t Hooks::GameFrameDeleteListHook(uint32_t arg0)
+uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
-    pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
+    rootconsole->ConsolePrint("Removing unreasonable entity [%s]", *(uint32_t*)(arg0+0x64));
+    Hooks::Util_RemoveHook(arg0+0x14);
     return 0;
 }
 
@@ -348,18 +377,22 @@ uint32_t Hooks::IRelationTypeHook(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t Hooks::ScriptThinkEntCheck(uint32_t arg0)
+uint32_t Hooks::CPropHevCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+    if(arg1 == 0) return 0;
+    
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008A7200);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B01EE0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x3B0);
-    uint32_t chkRef = GetCBaseEntity(refHandle);
-
-    if(!chkRef) return 0;
-    return returnVal;
+uint32_t Hooks::CPropRadiationCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+    if(arg1 == 0) return 0;
+    
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008A7700);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::SV_FrameHook(uint32_t arg0)
@@ -384,18 +417,31 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     //pDynamicOneArgFunc(0);
 
+    Hooks::CleanupDeleteListHook(0);
+
+    uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
+    if(!firstPlayer) return 0;
+
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
     Hooks::CleanupDeleteListHook(0);
 
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
     //UpdateClientData
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    //pDynamicOneArgFunc(0);
-
-    //ServiceEventQueue
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     //pDynamicOneArgFunc(0);
     return 0;
 }
@@ -430,9 +476,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
-
-    uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
-    if(!firstPlayer) return 0;
 
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
