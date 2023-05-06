@@ -152,7 +152,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), (void*)Hooks::SpawnServerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), (void*)Hooks::CleanupDeleteListHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), (void*)Hooks::SV_FrameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), (void*)Hooks::Util_RemoveHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), (void*)Hooks::UTIL_RemoveHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), (void*)Hooks::HostChangelevelHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), (void*)Hooks::PhysSimEnt);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), (void*)Hooks::EmptyCall);
@@ -182,6 +182,7 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
 }
 
 void DisableCacheCvars()
@@ -258,6 +259,20 @@ uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
     return newRef;
 }
 
+uint32_t Hooks::ScriptThinkEntCheck(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B01EE0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x3B0);
+    uint32_t chkRef = GetCBaseEntity(refHandle);
+
+    if(!chkRef) return 0;
+    return returnVal;
+}
+
 uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -297,7 +312,7 @@ uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     rootconsole->ConsolePrint("Removing unreasonable entity [%s]", *(uint32_t*)(arg0+0x64));
-    Hooks::Util_RemoveHook(arg0+0x14);
+    Hooks::UTIL_RemoveHook(arg0+0x14);
     return 0;
 }
 
@@ -310,7 +325,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     return pDynamicOneArgFunc(0);
 }
 
-uint32_t Hooks::Util_RemoveHook(uint32_t arg0)
+uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
 {
     // THIS IS THE UTIL_Remove(IServerNetworable*)
 

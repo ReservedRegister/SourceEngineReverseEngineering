@@ -15,7 +15,7 @@ public:
 	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t GameFrameHook(uint32_t arg0);
-	static uint32_t Util_RemoveHook(uint32_t arg0);
+	static uint32_t UTIL_RemoveHook(uint32_t arg0);
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);
 	static uint32_t PhysSimEnt(uint32_t arg0);
@@ -33,6 +33,7 @@ public:
 	static uint32_t HookFinalDeleteCall(uint32_t arg0);
 	static uint32_t CPropHevCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
 	static uint32_t CPropRadiationCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
+	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
 };
 
 #endif
