@@ -64,6 +64,8 @@ extern uint32_t datacache_srv_size;
 extern pThreeArgProt FindEntityByClassname;
 
 extern uint32_t CGlobalEntityList;
+extern int hooked_delete_counter;
+extern int normal_delete_counter;
 extern bool isTicking;
 extern bool disable_delete_list;
 extern ValueList deleteList;

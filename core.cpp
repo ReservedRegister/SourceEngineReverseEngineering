@@ -22,6 +22,8 @@ uint32_t datacache_srv_size;
 pThreeArgProt FindEntityByClassname;
 
 uint32_t CGlobalEntityList;
+int hooked_delete_counter;
+int normal_delete_counter;
 bool isTicking;
 bool disable_delete_list;
 ValueList deleteList;

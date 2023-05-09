@@ -34,6 +34,7 @@ public:
 	static uint32_t CPropHevCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
 	static uint32_t CPropRadiationCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
 	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
+	static uint32_t UpdateOnRemove(uint32_t arg0);
 };
 
 #endif

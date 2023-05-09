@@ -47,6 +47,8 @@ void InitExtension()
 
     disable_delete_list = false;
     isTicking = false;
+    hooked_delete_counter = 0;
+    normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x018711E0;
     deleteList = AllocateValuesList();
 
@@ -185,6 +187,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064BE10), (void*)Hooks::UpdateOnRemove);
 }
 
 void DisableCacheCvars()
@@ -194,6 +197,16 @@ void DisableCacheCvars()
 
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+}
+
+uint32_t Hooks::UpdateOnRemove(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    normal_delete_counter++;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064BE10);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::EmptyCall()
@@ -345,6 +358,29 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
         char* clsname = (char*)(*(uint32_t*)(object_verify+0x64));
         //rootconsole->ConsolePrint("Removing [%s]", clsname);
 
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(object_verify+0x14);
+
+        if(isMarked)
+        {
+            rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
+            return 0;
+        }
+
+        //PhysIsInCallback
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+        uint32_t isInCallback = pDynamicOneArgFunc(0);
+
+        if(isInCallback)
+        {
+            //UTIL_Remove(IServerNetworkable*)
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+            return pDynamicOneArgFunc(object_verify+0x14);
+        }
+
+        hooked_delete_counter++;
+
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
         uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
@@ -355,6 +391,7 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
     }
 
     rootconsole->ConsolePrint("Failed to verify entity object!");
+    exit(EXIT_FAILURE);
     return 0;
 }
 
@@ -432,6 +469,17 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     //pDynamicOneArgFunc(0);
 
+    if(hooked_delete_counter == normal_delete_counter)
+    {
+        hooked_delete_counter = 0;
+        normal_delete_counter = 0;
+    }
+    else
+    {
+        rootconsole->ConsolePrint("Critical error - entity count mismatch!");
+        exit(EXIT_FAILURE);
+    }
+
     Hooks::CleanupDeleteListHook(0);
 
     uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
@@ -466,13 +514,48 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     pThreeArgProt pDynamicThreeArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
-    char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+    uint32_t refHandleInsta = *(uint32_t*)(arg0+0x334);
+    uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
+
+    if(cbase_chk == 0)
+    {
+        rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
+        exit(EXIT_FAILURE);
+        return 0;
+    }
+
+    char* clsname =  (char*) ( *(uint32_t*)(cbase_chk+0x64) );
+
+    //IsMarkedForDeletion
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+    uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
+
+    if(isMarked)
+    {
+        rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_RemoveImmediate(CBaseEntity*)");
+        return 0;
+    }
 
     if(isTicking)
     {
         rootconsole->ConsolePrint("fast killed [%s]", clsname);
     }
 
+    if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
+    {
+        if(*(uint32_t*)(server_srv + 0x018CBEC0) == 0)
+        {
+            // FAST DELETE ONLY
+
+            hooked_delete_counter++;
+
+            //VphysicsDestroyObject
+            pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
+            pDynamicOneArgFunc(cbase_chk);
+        }
+    }
+
+    //InstaKill
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66BC0);
     return pDynamicOneArgFunc(arg0);
 }
