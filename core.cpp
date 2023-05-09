@@ -531,12 +531,21 @@ void DestroyVObjectForMarkedEnts()
         {
             uint32_t iServerObj = *(uint32_t*)(g_DeleteList+i*4);
             uint32_t cbase = *(uint32_t*)(iServerObj+8);
+            uint32_t refHandle = *(uint32_t*)(cbase+0x334);
+            uint32_t cbase_verified = GetCBaseEntity(refHandle);
 
-            //rootconsole->ConsolePrint("v obj dest! [%s]", *(uint32_t*)(cbase+0x64));
+            if(cbase_verified)
+            {
+                //rootconsole->ConsolePrint("v obj dest! [%s]", *(uint32_t*)(cbase+0x64));
 
-            //VphysicsDestroyObject
-            pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase))+0x2A0) );
-            pDynamicOneArgFunc(cbase);
+                //VphysicsDestroyObject
+                pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_verified))+0x2A0) );
+                pDynamicOneArgFunc(cbase_verified);
+                continue;
+            }
+
+            rootconsole->ConsolePrint("Critical error invalid entity object!");
+            exit(EXIT_FAILURE);
         }
     }
 }
