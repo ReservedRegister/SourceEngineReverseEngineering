@@ -79,6 +79,12 @@ void ApplyPatches()
     delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
 
+    uint32_t patch_remove = server_srv + 0x00B66B0B;
+    memset((void*)patch_remove, 0x90, 5);
+
+    *(uint8_t*)(patch_remove) = 0x31;
+    *(uint8_t*)(patch_remove+1) = 0xC0;
+
     uint32_t remove_v_del = server_srv + 0x0064BE96;
     memset((void*)remove_v_del, 0x90, 6);
 
@@ -344,6 +350,8 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
     // THIS IS THE UTIL_Remove(IServerNetworable*)
 
     pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
     if(arg0 == 0) return 0;
 
     uint32_t cbaseobject = arg0-0x14;
@@ -369,18 +377,22 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
             return 0;
         }
 
+        hooked_delete_counter++;
+
         //PhysIsInCallback
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
         uint32_t isInCallback = pDynamicOneArgFunc(0);
 
-        if(isInCallback)
+        while(isInCallback)
         {
-            //UTIL_Remove(IServerNetworkable*)
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-            return pDynamicOneArgFunc(object_verify+0x14);
-        }
+            //CCollisionEvent - AddRemoveObject
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+            pDynamicTwoArgFunc(server_srv + 0x018AE4C0, object_verify+0x14);
 
-        hooked_delete_counter++;
+            //PhysIsInCallback
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+            isInCallback = pDynamicOneArgFunc(0);
+        }
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -514,6 +526,7 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 {
     pThreeArgProt pDynamicThreeArgFunc;
     pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t refHandleInsta = *(uint32_t*)(arg0+0x334);
     uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
@@ -549,6 +562,21 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
             // FAST DELETE ONLY
 
             hooked_delete_counter++;
+
+            //PhysIsInCallback
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+            uint32_t isInCallback = pDynamicOneArgFunc(0);
+
+            while(isInCallback)
+            {
+                //CCollisionEvent - AddRemoveObject
+                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+                pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
+
+                //PhysIsInCallback
+                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+                isInCallback = pDynamicOneArgFunc(0);
+            }
 
             //VphysicsDestroyObject
             pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );

@@ -523,6 +523,7 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
 void DestroyVObjectForMarkedEnts()
 {
     pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
     
     int ent_size = *(int*)(server_srv + 0x018913AC);
     uint32_t g_DeleteList = *(uint32_t*)(server_srv + 0x018913A0);
@@ -539,6 +540,21 @@ void DestroyVObjectForMarkedEnts()
             if(cbase_verified)
             {
                 //rootconsole->ConsolePrint("v obj dest! [%s]", *(uint32_t*)(cbase+0x64));
+
+                //PhysIsInCallback
+                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+                uint32_t isInCallback = pDynamicOneArgFunc(0);
+
+                while(isInCallback)
+                {
+                    //CCollisionEvent - AddRemoveObject
+                    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+                    pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_verified+0x14);
+
+                    //PhysIsInCallback
+                    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+                    isInCallback = pDynamicOneArgFunc(0);
+                }
 
                 //VphysicsDestroyObject
                 pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_verified))+0x2A0) );
