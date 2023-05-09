@@ -77,6 +77,9 @@ void ApplyPatches()
     delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
 
+    uint32_t remove_v_del = server_srv + 0x0064BE96;
+    memset((void*)remove_v_del, 0x90, 6);
+
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
 
@@ -177,7 +180,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A658D0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
@@ -316,6 +318,8 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     if(disable_delete_list) return 0;
+
+    DestroyVObjectForMarkedEnts();
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     return pDynamicOneArgFunc(0);
@@ -571,14 +575,6 @@ uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
     }
 
     //rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
-
-    //VphysicsDestroyObject
-    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object))+0x2A0) );
-    pDynamicOneArgFunc(object);
-
-    //Clean Phys
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    pDynamicOneArgFunc(0);
 
     //Delete Entity
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08190);

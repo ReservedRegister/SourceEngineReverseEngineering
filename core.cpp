@@ -517,3 +517,26 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
     pthread_mutex_unlock(lockInput);
     return true;
 }
+
+void DestroyVObjectForMarkedEnts()
+{
+    pOneArgProt pDynamicOneArgFunc;
+    
+    int ent_size = *(int*)(server_srv + 0x018913AC);
+    uint32_t g_DeleteList = *(uint32_t*)(server_srv + 0x018913A0);
+
+    if(ent_size > 0)
+    {
+        for(int i = 0; i < ent_size; i++)
+        {
+            uint32_t iServerObj = *(uint32_t*)(g_DeleteList+i*4);
+            uint32_t cbase = *(uint32_t*)(iServerObj+8);
+
+            //rootconsole->ConsolePrint("v obj dest! [%s]", *(uint32_t*)(cbase+0x64));
+
+            //VphysicsDestroyObject
+            pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase))+0x2A0) );
+            pDynamicOneArgFunc(cbase);
+        }
+    }
+}

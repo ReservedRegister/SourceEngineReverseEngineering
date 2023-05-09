@@ -90,5 +90,6 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
 int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
 
 uint32_t IsEntityValid(uint32_t refHandle);
+void DestroyVObjectForMarkedEnts();
 
 #endif
