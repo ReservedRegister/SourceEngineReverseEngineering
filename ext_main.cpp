@@ -394,6 +394,15 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
             isInCallback = pDynamicOneArgFunc(0);
         }
 
+        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(arg0))+0x1C)  );
+        uint32_t real_object = pDynamicOneArgFunc(arg0);
+
+        if(real_object == 0)
+        {
+            rootconsole->ConsolePrint("\n\nFATAL ERROR FAILED TO FIND OBJECT!\n\n");
+            exit(EXIT_FAILURE);
+        }
+
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
         uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
