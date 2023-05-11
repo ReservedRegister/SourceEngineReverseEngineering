@@ -584,8 +584,6 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
         }
     }
 
-    char* clsname =  (char*) ( *(uint32_t*)(cbase_chk+0x64) );
-
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
     uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
@@ -598,7 +596,7 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 
     if(isTicking)
     {
-        rootconsole->ConsolePrint("fast killed [%s]", clsname);
+        rootconsole->ConsolePrint("fast killed [%s]", classname);
     }
 
     if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
@@ -631,7 +629,9 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
             *(uint8_t*)(server_srv + 0x018C98E4) = 0;
             *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
 
-            Hooks::UpdateOnRemove(cbase_chk);
+            //UpdateOnRemove
+            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
+            pDynamicOneArgFunc(cbase_chk);
 
             *(uint8_t*)(server_srv + 0x018C98E5) = 1;
 
