@@ -26,6 +26,7 @@ int hooked_delete_counter;
 int normal_delete_counter;
 bool isTicking;
 bool disable_delete_list;
+bool player_spawned;
 ValueList deleteList;
 
 void* copy_val(void* val, size_t copy_size)

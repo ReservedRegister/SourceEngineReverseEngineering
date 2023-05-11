@@ -68,6 +68,7 @@ extern int hooked_delete_counter;
 extern int normal_delete_counter;
 extern bool isTicking;
 extern bool disable_delete_list;
+extern bool player_spawned;
 extern ValueList deleteList;
 
 
