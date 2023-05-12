@@ -72,13 +72,13 @@ void ApplyPatches()
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
     uint32_t delete_list_call = server_srv + 0x00944F61;
-    //memset((void*)delete_list_call, 0x90, 5);
+    memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00A7AC57;
-    //memset((void*)delete_list_call, 0x90, 5);
+    memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00944FC5;
-    //memset((void*)delete_list_call, 0x90, 5);
+    memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t patch_remove = server_srv + 0x00B66B0B;
     memset((void*)patch_remove, 0x90, 5);
@@ -525,8 +525,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    Hooks::CleanupDeleteListHook(0);
-
     if(player_spawned)
     {
         uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
@@ -537,16 +535,12 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
-    Hooks::CleanupDeleteListHook(0);
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
