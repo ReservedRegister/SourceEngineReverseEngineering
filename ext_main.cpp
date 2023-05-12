@@ -80,6 +80,9 @@ void ApplyPatches()
     delete_list_call = server_srv + 0x00944FC5;
     memset((void*)delete_list_call, 0x90, 5);
 
+    uint32_t bad_call_remove = server_srv + 0x009B5054;
+    memset((void*)bad_call_remove, 0x90, 5);
+
     uint32_t patch_remove = server_srv + 0x00B66B0B;
     memset((void*)patch_remove, 0x90, 5);
 
