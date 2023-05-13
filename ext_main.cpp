@@ -71,13 +71,13 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::GameFrameHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
-    uint32_t delete_list_call = server_srv + 0x00944F61;
+    //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    delete_list_call = server_srv + 0x00A7AC57;
+    //delete_list_call = server_srv + 0x00A7AC57;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    delete_list_call = server_srv + 0x00944FC5;
+    //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t bad_call_remove = server_srv + 0x009B5054;
@@ -89,8 +89,8 @@ void ApplyPatches()
     *(uint8_t*)(patch_remove) = 0x31;
     *(uint8_t*)(patch_remove+1) = 0xC0;
 
-    uint32_t remove_v_del = server_srv + 0x0064BE96;
-    memset((void*)remove_v_del, 0x90, 6);
+    uint32_t jmp_vphys = server_srv + 0x004E4146;
+    *(uint8_t*)(jmp_vphys) = 0xEB;
 
     uint32_t postsystemscall = server_srv + 0x00944FB4;
     memset((void*)postsystemscall, 0x90, 5);
@@ -342,8 +342,6 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     if(disable_delete_list) return 0;
-
-    DestroyVObjectForMarkedEnts();
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
     return pDynamicOneArgFunc(0);
@@ -628,8 +626,8 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
             }
 
             //VphysicsDestroyObject
-            pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
-            pDynamicOneArgFunc(cbase_chk);
+            //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
+            //pDynamicOneArgFunc(cbase_chk);
 
             *(uint8_t*)(server_srv + 0x018C98E4) = 0;
             *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
