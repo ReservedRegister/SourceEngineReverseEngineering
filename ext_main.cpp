@@ -199,6 +199,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064BE10), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6160), (void*)Hooks::PlayerSpawnHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074DA80), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
 }
 
 void DisableCacheCvars()
@@ -356,9 +357,8 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
 
     if(arg0 == 0) return 0;
 
-    char* classname = (char*)(*(uint32_t*)(arg0+0x64));
-
     uint32_t cbaseobject = arg0-0x14;
+    char* classname = (char*)(*(uint32_t*)(cbaseobject+0x64));
     uint32_t refHandle = *(uint32_t*)(cbaseobject+0x334);
     uint32_t object_verify = GetCBaseEntity(refHandle);
 
@@ -427,6 +427,19 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
     rootconsole->ConsolePrint("Failed to verify entity object!");
     exit(EXIT_FAILURE);
     return 0;
+}
+
+uint32_t Hooks::CXenShieldController_UpdateOnRemoveHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074DA80);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    //Add missing call to UpdateOnRemove
+    Hooks::UpdateOnRemove(arg0);
+
+    return returnVal;
 }
 
 uint32_t Hooks::TakeDamageHook(uint32_t arg0, uint32_t arg1)

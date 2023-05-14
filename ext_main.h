@@ -36,6 +36,7 @@ public:
 	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
 	static uint32_t PlayerSpawnHook(uint32_t arg0);
+	static uint32_t CXenShieldController_UpdateOnRemoveHook(uint32_t arg0);
 };
 
 #endif
