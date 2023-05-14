@@ -200,6 +200,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064BE10), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6160), (void*)Hooks::PlayerSpawnHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074DA80), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
 }
 
 void DisableCacheCvars()
@@ -337,6 +338,33 @@ uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
     rootconsole->ConsolePrint("Removing unreasonable entity [%s]", *(uint32_t*)(arg0+0x64));
     Hooks::UTIL_RemoveHook(arg0+0x14);
     return 0;
+}
+
+uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t cbaseobject_one = *(uint32_t*)(arg0+0x72C);
+    uint32_t cbaseobject_two = *(uint32_t*)(arg0+0x730);
+
+    uint32_t refHandle_one = *(uint32_t*)(cbaseobject_one+0x334);
+    uint32_t refHandle_two = *(uint32_t*)(cbaseobject_two+0x334);
+
+    uint32_t check_one = GetCBaseEntity(refHandle_one);
+    uint32_t check_two = GetCBaseEntity(refHandle_two);
+
+    if(check_one == 0)
+    {
+        *(uint32_t*)(arg0+0x72C) = 0;
+    }
+
+    if(check_two == 0)
+    {
+        *(uint32_t*)(arg0+0x730) = 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0082DFE0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
