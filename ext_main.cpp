@@ -347,20 +347,26 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
     uint32_t cbaseobject_one = *(uint32_t*)(arg0+0x72C);
     uint32_t cbaseobject_two = *(uint32_t*)(arg0+0x730);
 
-    uint32_t refHandle_one = *(uint32_t*)(cbaseobject_one+0x334);
-    uint32_t refHandle_two = *(uint32_t*)(cbaseobject_two+0x334);
-
-    uint32_t check_one = GetCBaseEntity(refHandle_one);
-    uint32_t check_two = GetCBaseEntity(refHandle_two);
-
-    if(check_one == 0)
+    if(cbaseobject_one)
     {
-        *(uint32_t*)(arg0+0x72C) = 0;
+        uint32_t refHandle_one = *(uint32_t*)(cbaseobject_one+0x334);
+        uint32_t check_one = GetCBaseEntity(refHandle_one);
+
+        if(check_one == 0)
+        {
+            *(uint32_t*)(arg0+0x72C) = 0;
+        }
     }
 
-    if(check_two == 0)
+    if(cbaseobject_two)
     {
-        *(uint32_t*)(arg0+0x730) = 0;
+        uint32_t refHandle_two = *(uint32_t*)(cbaseobject_two+0x334);
+        uint32_t check_two = GetCBaseEntity(refHandle_two);
+
+        if(check_two == 0)
+        {
+            *(uint32_t*)(arg0+0x730) = 0;
+        }
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0082DFE0);
