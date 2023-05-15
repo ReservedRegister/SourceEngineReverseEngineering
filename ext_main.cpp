@@ -417,21 +417,16 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
             return 0;
         }
 
-        hooked_delete_counter++;
-
         //PhysIsInCallback
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
         uint32_t isInCallback = pDynamicOneArgFunc(0);
 
-        while(isInCallback)
+        if(isInCallback)
         {
             //CCollisionEvent - AddRemoveObject
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
             pDynamicTwoArgFunc(server_srv + 0x018AE4C0, object_verify+0x14);
-
-            //PhysIsInCallback
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
-            isInCallback = pDynamicOneArgFunc(0);
+            return 0;
         }
 
         pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(arg0))+0x1C)  );
@@ -442,6 +437,8 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
             rootconsole->ConsolePrint("\n\nFATAL ERROR FAILED TO FIND OBJECT!\n\n");
             exit(EXIT_FAILURE);
         }
+
+        hooked_delete_counter++;
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -630,6 +627,18 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
         return 0;
     }
 
+    //PhysIsInCallback
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+    uint32_t isInCallback = pDynamicOneArgFunc(0);
+
+    if(isInCallback)
+    {
+        //CCollisionEvent - AddRemoveObject
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+        pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
+        return 0;
+    }
+
     if(isTicking)
     {
         rootconsole->ConsolePrint("fast killed [%s]", classname);
@@ -642,21 +651,6 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
             // FAST DELETE ONLY
 
             hooked_delete_counter++;
-
-            //PhysIsInCallback
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
-            uint32_t isInCallback = pDynamicOneArgFunc(0);
-
-            while(isInCallback)
-            {
-                //CCollisionEvent - AddRemoveObject
-                pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
-                pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
-
-                //PhysIsInCallback
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
-                isInCallback = pDynamicOneArgFunc(0);
-            }
 
             //VphysicsDestroyObject
             //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
