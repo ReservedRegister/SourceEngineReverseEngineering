@@ -309,7 +309,7 @@ uint32_t Hooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
 
     if(object)
     {
-        object_chk = GetCBaseEntity(object+0x334);
+        object_chk = GetCBaseEntity(*(uint32_t*)(object+0x334));
     }
 
     if(object_chk)
