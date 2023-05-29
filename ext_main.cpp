@@ -200,6 +200,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074DA80), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
 }
 
 void DisableCacheCvars()
@@ -356,6 +357,22 @@ uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
 
     rootconsole->ConsolePrint("Removing unreasonable entity [%s]", *(uint32_t*)(arg0+0x64));
     Hooks::UTIL_RemoveHook(arg0+0x14);
+    return 0;
+}
+
+uint32_t Hooks::InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    uint32_t fourth_offset = *(uint32_t*)(arg1+4);
+
+    if(fourth_offset)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00905160);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Entity was NULL");
     return 0;
 }
 
