@@ -305,21 +305,19 @@ uint32_t Hooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t object = *(uint32_t*)(arg0+0x35C);
-    uint32_t object_chk = 0;
 
     if(object)
     {
-        object_chk = GetCBaseEntity(*(uint32_t*)(object+0x334));
+        uint32_t object_chk = GetCBaseEntity(*(uint32_t*)(object+0x334));
+
+        if(object_chk == 0)
+        {
+            *(uint32_t*)(arg0+0x35C) = 0;
+        }
     }
 
-    if(object_chk)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A1F550);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Entity was NULL - CNewXogSettings::InputApplySettings");
-    return 0;
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A1F550);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
