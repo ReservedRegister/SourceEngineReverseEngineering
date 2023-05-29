@@ -177,7 +177,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
 
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
@@ -199,7 +199,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6160), (void*)Hooks::PlayerSpawnHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074DA80), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
 }
 
 void DisableCacheCvars()
@@ -300,19 +300,25 @@ uint32_t Hooks::ScriptThinkEntCheck(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1)
+uint32_t Hooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    uint32_t fourth_offset = *(uint32_t*)(arg1+4);
+    uint32_t object = *(uint32_t*)(arg0+0x35C);
+    uint32_t object_chk = 0;
 
-    if(fourth_offset)
+    if(object)
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00905160);
+        object_chk = GetCBaseEntity(object+0x334);
+    }
+
+    if(object_chk)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A1F550);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Entity was NULL");
+    rootconsole->ConsolePrint("Entity was NULL - CNewXogSettings::InputApplySettings");
     return 0;
 }
 
