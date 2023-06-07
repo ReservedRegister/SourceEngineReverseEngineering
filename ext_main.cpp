@@ -668,7 +668,7 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 
     if(fast_kill == false)
     {
-        rootconsole->ConsolePrint("Forced slow-kill in fast-kill");
+        rootconsole->ConsolePrint("Forced slow-kill on fast-kill [%s]", classname);
         Hooks::UTIL_RemoveHook(cbase_chk+0x14);
         return 0;
     }
