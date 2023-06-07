@@ -648,12 +648,15 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
     char* classname = (char*) ( *(uint32_t*)(arg0+0x64) );
     uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
 
+    bool fast_kill = false;
+
     if(cbase_chk == 0)
     {
         if(strcmp(classname, "player") == 0 && refHandleInsta == 0xFFFFFFFF)
         {
             //player handle is not set on offline player
             cbase_chk = arg0;
+            fast_kill = true;
         }
         else
         {
@@ -661,6 +664,13 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
             exit(EXIT_FAILURE);
             return 0;
         }
+    }
+
+    if(fast_kill == false)
+    {
+        rootconsole->ConsolePrint("Forced slow-kill in fast-kill");
+        Hooks::UTIL_RemoveHook(cbase_chk+0x14);
+        return 0;
     }
 
     //IsMarkedForDeletion
