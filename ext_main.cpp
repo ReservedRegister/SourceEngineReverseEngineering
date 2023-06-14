@@ -71,14 +71,14 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::GameFrameHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
-    //uint32_t delete_list_call = server_srv + 0x00944F61;
-    //memset((void*)delete_list_call, 0x90, 5);
+    uint32_t delete_list_call = server_srv + 0x00944F61;
+    memset((void*)delete_list_call, 0x90, 5);
 
-    //delete_list_call = server_srv + 0x00A7AC57;
-    //memset((void*)delete_list_call, 0x90, 5);
+    delete_list_call = server_srv + 0x00A7AC57;
+    memset((void*)delete_list_call, 0x90, 5);
 
-    //delete_list_call = server_srv + 0x00944FC5;
-    //memset((void*)delete_list_call, 0x90, 5);
+    delete_list_call = server_srv + 0x00944FC5;
+    memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t bad_call_remove = server_srv + 0x009B5054;
     memset((void*)bad_call_remove, 0x90, 5);
@@ -595,8 +595,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
     //pDynamicOneArgFunc(0);
 
-    Hooks::CleanupDeleteListHook(0);
-
     if(hooked_delete_counter == normal_delete_counter)
     {
         hooked_delete_counter = 0;
@@ -614,13 +612,9 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         if(!firstPlayer) return 0;
     }
 
-    Hooks::CleanupDeleteListHook(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
-
-    Hooks::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
