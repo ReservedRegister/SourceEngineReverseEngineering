@@ -659,13 +659,6 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
         }
     }
 
-    if(strcmp(classname, "player") != 0)
-    {
-        rootconsole->ConsolePrint("Forced slow-kill on fast-kill [%s]", classname);
-        Hooks::UTIL_RemoveHook(cbase_chk+0x14);
-        return 0;
-    }
-
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
     uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
