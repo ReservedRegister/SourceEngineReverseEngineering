@@ -72,7 +72,7 @@ void ApplyPatches()
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
     uint32_t delete_list_call = server_srv + 0x00944F61;
-    memset((void*)delete_list_call, 0x90, 5);
+    //memset((void*)delete_list_call, 0x90, 5);
 
     delete_list_call = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call, 0x90, 5);
@@ -623,8 +623,6 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
 
     //UpdateClientData
     //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
