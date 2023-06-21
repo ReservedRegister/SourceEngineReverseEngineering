@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"BlackMesaUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension that aims to resolve errors and aim in reversing the black mesa dedicated server"
-#define SMEXT_CONF_VERSION		"9.108"
+#define SMEXT_CONF_VERSION		"9.110"
 #define SMEXT_CONF_AUTHOR		"ReservedRegister"
 #define SMEXT_CONF_URL			"https://github.com/ReservedRegister"
 #define SMEXT_CONF_LOGTAG		"BlackMesaUtils"
