@@ -3,6 +3,7 @@
 
 void InitExtension()
 {
+    InitCore();
     AllowWriteToMappedMemory();
 
     char* root_dir = getenv("PWD");

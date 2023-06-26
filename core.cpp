@@ -4,6 +4,7 @@ uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 uint32_t loaded_libraries[512] = {};
+uint32_t our_libraries[512] = {};
 
 uint32_t engine_srv;
 uint32_t server_srv;
@@ -28,6 +29,29 @@ bool isTicking;
 bool disable_delete_list;
 bool player_spawned;
 ValueList deleteList;
+
+void InitCore()
+{
+    //Populate our libraries
+
+    our_libraries[0] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[0], 1024, "%s", "/bms/bin/server_srv.so");
+
+    our_libraries[1] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[1], 1024, "%s", "/bin/engine_srv.so");
+
+    our_libraries[2] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[2], 1024, "%s", "/bin/materialsystem_srv.so");
+
+    our_libraries[3] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[3], 1024, "%s", "/bin/vphysics_srv.so");
+
+    our_libraries[4] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[4], 1024, "%s", "/bin/dedicated_srv.so");
+
+    our_libraries[5] = (uint32_t)malloc(1024);
+    snprintf((char*)our_libraries[5], 1024, "%s", "/bin/datacache_srv.so");
+}
 
 void* copy_val(void* val, size_t copy_size)
 {
@@ -199,7 +223,7 @@ Library* LoadLibrary(char* library_sub_path)
                     new_lib->library_size = 0;
                     loaded_libraries[i] = (uint32_t)new_lib;
                     
-                    //rootconsole->ConsolePrint("[%s]", library_full_path);
+                    rootconsole->ConsolePrint("Loaded [%s]", library_sub_path);
                     return new_lib;
                 }
             }
@@ -214,13 +238,19 @@ Library* LoadLibrary(char* library_sub_path)
 
 Library* getlibrary(char* file_line)
 {
-    Library* search_attempt_one = LoadLibrary(strcasestr(file_line, "/bin/"));
-    Library* search_attempt_two = LoadLibrary(strcasestr(file_line, "/bms/bin/"));
-    Library* search_attempt_three = LoadLibrary(strcasestr(file_line, "/bms/addons/"));
+    for(int i = 0; i < 512; i++)
+    {
+        if(our_libraries[i] == 0) continue;
 
-    if(search_attempt_one) return search_attempt_one;
-    if(search_attempt_two) return search_attempt_two;
-    if(search_attempt_three) return search_attempt_three;
+        Library* found_lib = LoadLibrary(strcasestr(file_line, (char*)our_libraries[i]));
+
+        if(found_lib)
+        {
+            //rootconsole->ConsolePrint("Detected our library [%s]", our_libraries[i]);
+            return found_lib;
+        }
+    }
+
     return NULL;
 }
 
@@ -283,6 +313,7 @@ void AllowWriteToMappedMemory()
                     memory_prots_save_list[i] = start_address_parsed;
                     memory_prots_save_list[i+1] = end_address_parsed;
                     memory_prots_save_list[i+2] = (uint32_t)save_protections;
+                    //rootconsole->ConsolePrint("Saved [%X] [%X] [%s]", end_address_parsed, start_address_parsed, currentLibrary->library_signature);
                     break;
                 }
             }
@@ -303,13 +334,23 @@ void ForceMemoryAccess()
 {
     for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
     {
+        if(memory_prots_save_list[i] == 0 && memory_prots_save_list[i+1] == 0 && memory_prots_save_list[i+2] == 0) continue;
+        
         size_t pagesize = sysconf(_SC_PAGE_SIZE);
         uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
 
         if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
         {
-            perror("mprotect");
-            exit(EXIT_FAILURE);
+            rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+
+            //SELINUX shite
+
+            //perror("mprotect");
+            //exit(EXIT_FAILURE);
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
         }
     }
 }

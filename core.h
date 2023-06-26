@@ -71,7 +71,7 @@ extern bool disable_delete_list;
 extern bool player_spawned;
 extern ValueList deleteList;
 
-
+void InitCore();
 void* copy_val(void* val, size_t copy_size);
 void ForceMemoryAccess();
 Library* getlibrary(char* file_line);
