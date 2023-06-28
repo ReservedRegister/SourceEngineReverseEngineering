@@ -590,6 +590,8 @@ uint32_t Hooks::ServiceEventQueueHook()
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     uint32_t returnVal = pDynamicOneArgFunc(0);
 
+    Hooks::CleanupDeleteListHook(0);
+
     return returnVal;
 }
 
