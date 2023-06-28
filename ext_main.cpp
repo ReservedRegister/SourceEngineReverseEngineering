@@ -69,17 +69,17 @@ void ApplyPatches()
     uint32_t offset = 0;
 
     uint32_t hook_game_frame_delete_list = server_srv + 0x00944FAF;
-    offset = (uint32_t)Hooks::GameFrameHook - hook_game_frame_delete_list - 5;
+    offset = (uint32_t)Hooks::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
-    uint32_t delete_list_call = server_srv + 0x00944F61;
-    memset((void*)delete_list_call, 0x90, 5);
+    //uint32_t delete_list_call = server_srv + 0x00944F61;
+    //memset((void*)delete_list_call, 0x90, 5);
 
-    delete_list_call = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call, 0x90, 5);
+    //delete_list_call = server_srv + 0x00A7AC57;
+    //memset((void*)delete_list_call, 0x90, 5);
 
-    delete_list_call = server_srv + 0x00944FC5;
-    memset((void*)delete_list_call, 0x90, 5);
+    //delete_list_call = server_srv + 0x00944FC5;
+    //memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t bad_call_remove = server_srv + 0x009B5054;
     memset((void*)bad_call_remove, 0x90, 5);
@@ -93,14 +93,9 @@ void ApplyPatches()
     uint32_t jmp_vphys = server_srv + 0x004E4146;
     *(uint8_t*)(jmp_vphys) = 0xEB;
 
-    uint32_t postsystemscall = server_srv + 0x00944FB4;
-    memset((void*)postsystemscall, 0x90, 5);
-
-    uint32_t presystemscall = server_srv + 0x00944F66;
-    memset((void*)presystemscall, 0x90, 5);
-
-    uint32_t eventqueue = server_srv + 0x00944FB9;
-    memset((void*)eventqueue, 0x90, 5);
+    uint32_t eventqueue_hook = server_srv + 0x00944FB9;
+    offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
+    *(uint32_t*)(eventqueue_hook+1) = offset;
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
@@ -585,17 +580,24 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::GameFrameHook(uint32_t arg0)
+uint32_t Hooks::ServiceEventQueueHook()
+{
+    pOneArgProt pDynamicOneArgFunc;
+    
+    Hooks::CleanupDeleteListHook(0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    uint32_t returnVal = pDynamicOneArgFunc(0);
+
+    return returnVal;
+}
+
+uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     isTicking = true;
-
-    //StartFrame
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006BD6F0);
-    //pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
 
     if(hooked_delete_counter == normal_delete_counter)
     {
@@ -614,27 +616,10 @@ uint32_t Hooks::GameFrameHook(uint32_t arg0)
         if(!firstPlayer) return 0;
     }
 
-    //PreSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CA9E0);
-    pDynamicOneArgFunc(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
-    pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //UpdateClientData
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AB1D20);
-    //pDynamicOneArgFunc(0);
     return 0;
 }
 

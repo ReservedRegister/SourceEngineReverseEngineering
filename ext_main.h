@@ -14,7 +14,8 @@ public:
 	static uint32_t EmptyCall();
 	static uint32_t SpawnServerHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CreateEntityByNameHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t GameFrameHook(uint32_t arg0);
+	static uint32_t SimulateEntitiesHook(uint32_t arg0);
+	static uint32_t ServiceEventQueueHook();
 	static uint32_t UTIL_RemoveHook(uint32_t arg0);
 	static uint32_t HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);

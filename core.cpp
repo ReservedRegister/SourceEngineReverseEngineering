@@ -198,14 +198,10 @@ Library* FindLibrary(char* lib_name, bool less_intense_search)
     return NULL;
 }
 
-Library* LoadLibrary(char* library_sub_path)
+Library* LoadLibrary(char* library_full_path)
 {
-    if(library_sub_path)
+    if(library_full_path)
     {
-        char* root_dir = getenv("PWD");
-        char library_full_path[1024];
-
-        snprintf(library_full_path, 1024, "%s%s", root_dir, library_sub_path);
         Library* found_lib = FindLibrary(library_full_path, false);
         if(found_lib) return found_lib;
 
@@ -223,7 +219,7 @@ Library* LoadLibrary(char* library_sub_path)
                     new_lib->library_size = 0;
                     loaded_libraries[i] = (uint32_t)new_lib;
                     
-                    rootconsole->ConsolePrint("Loaded [%s]", library_sub_path);
+                    rootconsole->ConsolePrint("Loaded [%s]", library_full_path);
                     return new_lib;
                 }
             }
@@ -242,12 +238,41 @@ Library* getlibrary(char* file_line)
     {
         if(our_libraries[i] == 0) continue;
 
-        Library* found_lib = LoadLibrary(strcasestr(file_line, (char*)our_libraries[i]));
+        char* match = strcasestr(file_line, (char*)our_libraries[i]);
 
-        if(found_lib)
+        if(match)
         {
-            //rootconsole->ConsolePrint("Detected our library [%s]", our_libraries[i]);
-            return found_lib;
+            int temp_char_reverser = 0;
+            char* abs_path = NULL;
+
+            while(abs_path == NULL)
+            {
+                if(*(char*)(match-temp_char_reverser) == ' ')
+                {
+                    if(*(char*)(match-temp_char_reverser+1) == '/')
+                    {
+                        abs_path = match-temp_char_reverser+1;
+                    }
+                }
+
+                temp_char_reverser++;
+            }
+
+            /*char file_line_temp[512];
+            snprintf(file_line_temp, 512, "%s", file_line);
+            strtok(file_line_temp, " \t");
+            for(int i = 0; i < 4; i++) strtok(NULL, " \t");
+            char* abs_path = strtok(NULL, " \t");*/
+
+            //rootconsole->ConsolePrint("abs [%s]", abs_path);
+
+            Library* found_lib = LoadLibrary(abs_path);
+
+            if(found_lib)
+            {
+                //rootconsole->ConsolePrint("Detected our library [%s]", our_libraries[i]);
+                return found_lib;
+            }
         }
     }
 
