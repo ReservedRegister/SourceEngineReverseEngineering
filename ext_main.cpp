@@ -75,8 +75,8 @@ void ApplyPatches()
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    //delete_list_call = server_srv + 0x00A7AC57;
-    //memset((void*)delete_list_call, 0x90, 5);
+    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    memset((void*)delete_list_call_sim, 0x90, 5);
 
     //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -190,7 +190,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01EE0), (void*)Hooks::ScriptThinkEntCheck);
@@ -668,9 +667,12 @@ uint32_t Hooks::HookInstaKill(uint32_t arg0)
 
     if(isInCallback)
     {
+        rootconsole->ConsolePrint("Should not be! (Insta)");
+        exit(EXIT_FAILURE);
+
         //CCollisionEvent - AddRemoveObject
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
-        pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
+        //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+        //pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
         return 0;
     }
 
@@ -796,51 +798,6 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    // DELETE THE PHYSICS OBJECT
-    // CLEAR THE DEAD OBJECTS
-    // DELETE THE ENTITY
-
-    uint32_t object = *(uint32_t*)(arg0+8);
-    if(object == 0) return 0;
-
-    char* classname = (char*)(*(uint32_t*)(object+0x64));
-
-    uint32_t refHandle = *(uint32_t*)(object+0x334);
-    uint32_t object_chk = GetCBaseEntity(refHandle);
-
-    if(object_chk == 0)
-    {
-        if(strcmp(classname, "player") == 0 && refHandle == 0xFFFFFFFF)
-        {
-            //player handle is not set on offline player
-            object_chk = object;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("Failed to validate entity!");
-            exit(EXIT_FAILURE);
-            return 0;
-        }
-    }
-
-    //VphysicsDestroyObject
-    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_chk))+0x2A0) );
-    pDynamicOneArgFunc(object_chk);
-
-    //Clean Phys
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
-    pDynamicOneArgFunc(0);
-
-    //rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
-
-    //Delete Entity
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08190);
-    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
