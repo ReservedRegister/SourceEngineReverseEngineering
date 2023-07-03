@@ -53,6 +53,7 @@ void InitExtension()
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x018711E0;
     deleteList = AllocateValuesList();
+    server_sleeping = false;
 
     PopulateHookExclusionLists();
     ApplyPatches();
@@ -614,7 +615,15 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     if(player_spawned)
     {
         uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
-        if(!firstPlayer) return 0;
+
+        if(!firstPlayer)
+        {
+            server_sleeping = true;
+        }
+        else
+        {
+            server_sleeping = false;
+        }
     }
 
     //SimulateEntities
@@ -742,6 +751,11 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     if(isMarked)
     {
         rootconsole->ConsolePrint("Attempted to simulate marked entity [%s]", clsname);
+        return 0;
+    }
+
+    if(server_sleeping)
+    {
         return 0;
     }
 

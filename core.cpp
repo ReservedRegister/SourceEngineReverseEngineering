@@ -28,6 +28,7 @@ int normal_delete_counter;
 bool isTicking;
 bool disable_delete_list;
 bool player_spawned;
+bool server_sleeping;
 ValueList deleteList;
 
 void InitCore()

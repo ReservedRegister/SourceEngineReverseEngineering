@@ -70,6 +70,7 @@ extern bool isTicking;
 extern bool disable_delete_list;
 extern bool player_spawned;
 extern ValueList deleteList;
+extern bool server_sleeping;
 
 void InitCore();
 void* copy_val(void* val, size_t copy_size);
