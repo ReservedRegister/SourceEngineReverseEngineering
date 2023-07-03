@@ -612,18 +612,15 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    if(player_spawned)
-    {
-        uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
+    uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
 
-        if(!firstPlayer)
-        {
-            server_sleeping = true;
-        }
-        else
-        {
-            server_sleeping = false;
-        }
+    if(!firstPlayer)
+    {
+        server_sleeping = true;
+    }
+    else
+    {
+        server_sleeping = false;
     }
 
     //SimulateEntities
@@ -754,7 +751,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
         return 0;
     }
 
-    if(server_sleeping)
+    if(server_sleeping && player_spawned)
     {
         return 0;
     }
