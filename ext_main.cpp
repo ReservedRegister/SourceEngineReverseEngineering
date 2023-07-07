@@ -76,8 +76,8 @@ void ApplyPatches()
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    //uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
-    //memset((void*)delete_list_call_sim, 0x90, 5);
+    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    memset((void*)delete_list_call_sim, 0x90, 5);
 
     //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -200,6 +200,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
 }
 
 void DisableCacheCvars()
@@ -348,6 +349,51 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    // DELETE THE PHYSICS OBJECT
+    // CLEAR THE DEAD OBJECTS
+    // DELETE THE ENTITY
+
+    uint32_t object = *(uint32_t*)(arg0+8);
+    if(object == 0) return 0;
+
+    char* classname = (char*)(*(uint32_t*)(object+0x64));
+
+    uint32_t refHandle = *(uint32_t*)(object+0x334);
+    uint32_t object_chk = GetCBaseEntity(refHandle);
+
+    if(object_chk == 0)
+    {
+        if(strcmp(classname, "player") == 0 && refHandle == 0xFFFFFFFF)
+        {
+            //player handle is not set on offline player
+            object_chk = object;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Failed to validate entity!");
+            exit(EXIT_FAILURE);
+            return 0;
+        }
+    }
+
+    //VphysicsDestroyObject
+    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_chk))+0x2A0) );
+    pDynamicOneArgFunc(object_chk);
+
+    //Clean Phys
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
+    pDynamicOneArgFunc(0);
+
+    //rootconsole->ConsolePrint("Removing! [%s]", *(uint32_t*)(object+0x64));
+
+    //Delete Entity
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08190);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
@@ -583,8 +629,6 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
 uint32_t Hooks::ServiceEventQueueHook()
 {
     pOneArgProt pDynamicOneArgFunc;
-    
-    Hooks::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
