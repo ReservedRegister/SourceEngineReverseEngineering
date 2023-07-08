@@ -200,7 +200,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
 }
 
 void DisableCacheCvars()
@@ -629,14 +629,7 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
 uint32_t Hooks::ServiceEventQueueHook()
 {
     pOneArgProt pDynamicOneArgFunc;
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    uint32_t returnVal = pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    return returnVal;
+    return 0;
 }
 
 uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
@@ -670,6 +663,10 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
 
     return 0;
 }
@@ -792,11 +789,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     if(isMarked)
     {
         rootconsole->ConsolePrint("Attempted to simulate marked entity [%s]", clsname);
-        return 0;
-    }
-
-    if(server_sleeping && player_spawned)
-    {
         return 0;
     }
 
