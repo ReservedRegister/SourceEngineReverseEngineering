@@ -200,7 +200,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
 }
 
 void DisableCacheCvars()
