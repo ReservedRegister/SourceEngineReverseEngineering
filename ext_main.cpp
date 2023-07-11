@@ -76,8 +76,8 @@ void ApplyPatches()
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call_sim, 0x90, 5);
+    //uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    //memset((void*)delete_list_call_sim, 0x90, 5);
 
     //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -629,7 +629,12 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
 uint32_t Hooks::ServiceEventQueueHook()
 {
     pOneArgProt pDynamicOneArgFunc;
-    return 0;
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    uint32_t returnVal = pDynamicOneArgFunc(0);
+
+    return returnVal;
 }
 
 uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
@@ -663,10 +668,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    pDynamicOneArgFunc(0);
 
     return 0;
 }
