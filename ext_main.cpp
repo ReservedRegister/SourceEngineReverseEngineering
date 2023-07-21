@@ -189,7 +189,7 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
