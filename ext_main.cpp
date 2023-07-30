@@ -101,6 +101,10 @@ void ApplyPatches()
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
 
+    uint32_t fix_script_think = server_srv + 0x00B0416D;
+    *(uint8_t*)(fix_script_think) = 0xE9;
+    *(uint32_t*)(fix_script_think+1) = 0xAC;
+
     uint32_t vphysicsupdatepatch = server_srv + 0x00413E5B;
     memset((void*)vphysicsupdatepatch, 0x90, 12);
 
@@ -189,7 +193,6 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7200), (void*)Hooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A7700), (void*)Hooks::CPropRadiationCharger_ShouldApplyEffect);
@@ -654,7 +657,7 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    uint32_t firstPlayer = UTIL_GetLocalPlayerHook();
+    uint32_t firstPlayer = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     if(!firstPlayer)
     {
@@ -789,8 +792,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     if(isMarked)
     {
-        rootconsole->ConsolePrint("Attempted to simulate marked entity [%s]", clsname);
-        return 0;
+        rootconsole->ConsolePrint("Simulated marked entity [%s]", clsname);
     }
 
     disable_delete_list = true;
@@ -861,17 +863,11 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(failure)
     {
-        rootconsole->ConsolePrint("AcceptInput() failed due to bad data!");
-        return 0;
+        rootconsole->ConsolePrint("AcceptInput used a marked entity!");
     }
 
     //Passed sanity check
     pSixArgProt pDynamicSixArgProt;
     pDynamicSixArgProt = (pSixArgProt)(server_srv + 0x00644C00);
     return pDynamicSixArgProt(arg0, arg1, arg2, arg3, arg4, arg5);
-}
-
-uint32_t Hooks::UTIL_GetLocalPlayerHook()
-{
-    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 }
