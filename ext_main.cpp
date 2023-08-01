@@ -73,6 +73,10 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
+    uint32_t eventqueue_hook = server_srv + 0x00944FB9;
+    offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
+    *(uint32_t*)(eventqueue_hook+1) = offset;
+
     uint32_t delete_list_call = server_srv + 0x00944F61;
     memset((void*)delete_list_call, 0x90, 5);
 
@@ -85,21 +89,17 @@ void ApplyPatches()
     uint32_t bad_call_remove = server_srv + 0x009B5054;
     memset((void*)bad_call_remove, 0x90, 5);
 
-    uint32_t patch_remove = server_srv + 0x00B66B0B;
-    memset((void*)patch_remove, 0x90, 5);
+    //uint32_t patch_remove = server_srv + 0x00B66B0B;
+    //memset((void*)patch_remove, 0x90, 5);
 
-    *(uint8_t*)(patch_remove) = 0x31;
-    *(uint8_t*)(patch_remove+1) = 0xC0;
+    //*(uint8_t*)(patch_remove) = 0x31;
+    //*(uint8_t*)(patch_remove+1) = 0xC0;
 
     uint32_t jmp_vphys = server_srv + 0x004E4146;
     *(uint8_t*)(jmp_vphys) = 0xEB;
 
-    uint32_t eventqueue_hook = server_srv + 0x00944FB9;
-    offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
-    *(uint32_t*)(eventqueue_hook+1) = offset;
-
-    uint32_t sim_patch = server_srv + 0x00A7ADB4;
-    memset((void*)sim_patch, 0x90, 6);
+    //uint32_t sim_patch = server_srv + 0x00A7ADB4;
+    //memset((void*)sim_patch, 0x90, 6);
 
     uint32_t fix_script_think = server_srv + 0x00B0416D;
     *(uint8_t*)(fix_script_think) = 0xE9;
@@ -504,18 +504,6 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
         if(isMarked)
         {
             rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
-            return 0;
-        }
-
-        //PhysIsInCallback
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
-        uint32_t isInCallback = pDynamicOneArgFunc(0);
-
-        if(isInCallback)
-        {
-            //CCollisionEvent - AddRemoveObject
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
-            pDynamicTwoArgFunc(server_srv + 0x018AE4C0, object_verify+0x14);
             return 0;
         }
 
