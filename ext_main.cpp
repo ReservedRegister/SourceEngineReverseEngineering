@@ -223,7 +223,7 @@ uint32_t Hooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
 
     if(arg1 == 0) return 0;
 
-    uint32_t real = GetCBaseEntity(arg1+0x334);
+    uint32_t real = GetCBaseEntity(*(uint32_t*)(arg1+0x334));
 
     if(real)
     {
@@ -241,7 +241,7 @@ uint32_t Hooks::AbsolutePosHook(uint32_t arg0)
 
     if(arg0 == 0) return 0;
 
-    uint32_t real = GetCBaseEntity(arg0+0x334);
+    uint32_t real = GetCBaseEntity(*(uint32_t*)(arg0+0x334));
 
     if(real)
     {
