@@ -98,8 +98,8 @@ void ApplyPatches()
     uint32_t jmp_vphys = server_srv + 0x004E4146;
     *(uint8_t*)(jmp_vphys) = 0xEB;
 
-    //uint32_t sim_patch = server_srv + 0x00A7ADB4;
-    //memset((void*)sim_patch, 0x90, 6);
+    uint32_t sim_patch = server_srv + 0x00A7ADB4;
+    memset((void*)sim_patch, 0x90, 6);
 
     uint32_t fix_script_think = server_srv + 0x00B0416D;
     *(uint8_t*)(fix_script_think) = 0xE9;
@@ -204,6 +204,8 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00643FE0), (void*)Hooks::AbsolutePosHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7CD50), (void*)Hooks::EnumElementHook);
 }
 
 void DisableCacheCvars()
@@ -213,6 +215,42 @@ void DisableCacheCvars()
 
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+}
+
+uint32_t Hooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(arg1 == 0) return 0;
+
+    uint32_t real = GetCBaseEntity(arg1+0x334);
+
+    if(real)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A7CD50);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Attempted to use a dead object!");
+    return 0;
+}
+
+uint32_t Hooks::AbsolutePosHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0 == 0) return 0;
+
+    uint32_t real = GetCBaseEntity(arg0+0x334);
+
+    if(real)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00643FE0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Attempted to use a dead object!");
+    return 0;
 }
 
 uint32_t Hooks::UpdateOnRemove(uint32_t arg0)
