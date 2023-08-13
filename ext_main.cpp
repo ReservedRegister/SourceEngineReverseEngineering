@@ -206,6 +206,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00643FE0), (void*)Hooks::AbsolutePosHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7CD50), (void*)Hooks::EnumElementHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
 }
 
 void DisableCacheCvars()
@@ -874,6 +875,20 @@ uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
     return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t Hooks::YawHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005B4EB0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Failed to find a real object!");
+    return 0;
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)

@@ -43,6 +43,7 @@ public:
 	static uint32_t InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t AbsolutePosHook(uint32_t arg0);
 	static uint32_t EnumElementHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t YawHook(uint32_t arg0);
 };
 
 #endif
