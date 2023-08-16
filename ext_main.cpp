@@ -819,7 +819,8 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 
     if(isMarked)
     {
-        rootconsole->ConsolePrint("Simulated marked entity [%s]", clsname);
+        rootconsole->ConsolePrint("Simulation ignored for [%s]", clsname);
+        return 0;
     }
 
     disable_delete_list = true;
