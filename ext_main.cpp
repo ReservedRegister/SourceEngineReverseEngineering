@@ -524,7 +524,8 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
 uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
 {
-    RemoveEntityNormal(arg0, true);
+    uint32_t cbaseobject = arg0-0x14;
+    RemoveEntityNormal(cbaseobject, true);
     return 0;
 }
 

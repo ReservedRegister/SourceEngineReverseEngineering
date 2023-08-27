@@ -590,16 +590,13 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
 
 void RemoveEntityNormal(uint32_t entity_object, bool validate)
 {
-    // THIS IS THE UTIL_Remove(IServerNetworable*)
-
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
     if(entity_object == 0) return;
 
-    uint32_t cbaseobject = entity_object-0x14;
-    char* classname = (char*)(*(uint32_t*)(cbaseobject+0x64));
-    uint32_t refHandle = *(uint32_t*)(cbaseobject+0x334);
+    char* classname = (char*)(*(uint32_t*)(entity_object+0x64));
+    uint32_t refHandle = *(uint32_t*)(entity_object+0x334);
     uint32_t object_verify = GetCBaseEntity(refHandle);
 
     if(object_verify == 0)
@@ -607,7 +604,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         if(!validate)
         {
             //player handle is not set on offline player
-            object_verify = cbaseobject;
+            object_verify = entity_object;
         }
     }
 
@@ -627,15 +624,6 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         {
             rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
             return;
-        }
-
-        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(object_verify))+0x1C)  );
-        uint32_t real_object = pDynamicOneArgFunc(object_verify);
-
-        if(real_object == 0)
-        {
-            rootconsole->ConsolePrint("\n\nFATAL ERROR FAILED TO FIND OBJECT!\n\n");
-            exit(EXIT_FAILURE);
         }
 
         hooked_delete_counter++;
@@ -742,7 +730,7 @@ void InstaKill(uint32_t entity_object, bool validate)
         }
         else
         {
-            RemoveEntityNormal(cbase_chk+0x14, validate);
+            RemoveEntityNormal(cbase_chk, validate);
             return;
         }
     }
