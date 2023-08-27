@@ -77,8 +77,8 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
     *(uint32_t*)(eventqueue_hook+1) = offset;
 
-    //uint32_t delete_list_call = server_srv + 0x00944F61;
-    //memset((void*)delete_list_call, 0x90, 5);
+    uint32_t delete_list_call = server_srv + 0x00944F61;
+    memset((void*)delete_list_call, 0x90, 5);
 
     uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call_sim, 0x90, 5);
@@ -207,6 +207,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00643FE0), (void*)Hooks::AbsolutePosHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7CD50), (void*)Hooks::EnumElementHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
 }
 
 void DisableCacheCvars()
@@ -216,6 +217,39 @@ void DisableCacheCvars()
 
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+}
+
+uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
+{
+    pZeroArgProt pDynamicZeroArgProt;
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+    
+    uint8_t cVar1;
+    uint32_t piVar2;
+    uint32_t local_10;
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B6A2E0);
+    cVar1 = pDynamicTwoArgFunc(server_srv + 0x018C98A0, arg0);
+
+    if(cVar1 == 0) return 0;
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
+    piVar2 = pDynamicTwoArgFunc(arg0, 0xFFFFFFFF);
+
+
+    if(piVar2 != 0)
+    {
+        rootconsole->ConsolePrint("Precache %s", arg0);
+        
+        //Precache
+        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(piVar2))+0x68)  );
+        pDynamicOneArgFunc(piVar2);
+
+        InstaKill(piVar2, false);
+    }
+
+    return 0;
 }
 
 uint32_t Hooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
@@ -404,28 +438,11 @@ uint32_t Hooks::HookFinalDeleteCall(uint32_t arg0)
     if(object == 0) return 0;
 
     char* classname = (char*)(*(uint32_t*)(object+0x64));
-
     uint32_t refHandle = *(uint32_t*)(object+0x334);
-    uint32_t object_chk = GetCBaseEntity(refHandle);
-
-    if(object_chk == 0)
-    {
-        if(strcmp(classname, "player") == 0 && refHandle == 0xFFFFFFFF)
-        {
-            //player handle is not set on offline player
-            object_chk = object;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("Failed to validate entity!");
-            exit(EXIT_FAILURE);
-            return 0;
-        }
-    }
 
     //VphysicsDestroyObject
-    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_chk))+0x2A0) );
-    pDynamicOneArgFunc(object_chk);
+    pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object))+0x2A0) );
+    pDynamicOneArgFunc(object);
 
     //Clean Phys
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A658D0);
@@ -507,67 +524,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
 uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
 {
-    // THIS IS THE UTIL_Remove(IServerNetworable*)
-
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(arg0 == 0) return 0;
-
-    uint32_t cbaseobject = arg0-0x14;
-    char* classname = (char*)(*(uint32_t*)(cbaseobject+0x64));
-    uint32_t refHandle = *(uint32_t*)(cbaseobject+0x334);
-    uint32_t object_verify = GetCBaseEntity(refHandle);
-
-    if(object_verify == 0)
-    {
-        if(strcmp(classname, "player") == 0 && refHandle == 0xFFFFFFFF)
-        {
-            //player handle is not set on offline player
-            object_verify = cbaseobject;
-        }
-    }
-
-    if(object_verify)
-    {
-        //VphysicsDestroyObject
-        //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
-        //pDynamicOneArgFunc(object_verify);
-
-        //rootconsole->ConsolePrint("Removing [%s]", clsname);
-
-        //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
-        uint32_t isMarked = pDynamicOneArgFunc(object_verify+0x14);
-
-        if(isMarked)
-        {
-            rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
-            return 0;
-        }
-
-        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(arg0))+0x1C)  );
-        uint32_t real_object = pDynamicOneArgFunc(arg0);
-
-        if(real_object == 0)
-        {
-            rootconsole->ConsolePrint("\n\nFATAL ERROR FAILED TO FIND OBJECT!\n\n");
-            exit(EXIT_FAILURE);
-        }
-
-        hooked_delete_counter++;
-
-        //UTIL_Remove(IServerNetworkable*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
-        uint32_t returnVal = pDynamicOneArgFunc(object_verify+0x14);
-
-        //rootconsole->ConsolePrint("Removed [%s]", clsname);
-
-        return returnVal;
-    }
-
-    rootconsole->ConsolePrint("Failed to verify entity object!");
-    exit(EXIT_FAILURE);
+    RemoveEntityNormal(arg0, true);
     return 0;
 }
 
@@ -704,97 +661,7 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
 
 uint32_t Hooks::HookInstaKill(uint32_t arg0)
 {
-    pThreeArgProt pDynamicThreeArgFunc;
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(arg0 == 0) return 0;
-
-    uint32_t refHandleInsta = *(uint32_t*)(arg0+0x334);
-    char* classname = (char*) ( *(uint32_t*)(arg0+0x64) );
-    uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
-
-    if(cbase_chk == 0)
-    {
-        if(strcmp(classname, "player") == 0 && refHandleInsta == 0xFFFFFFFF)
-        {
-            //player handle is not set on offline player
-            cbase_chk = arg0;
-        }
-        else
-        {
-            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
-            exit(EXIT_FAILURE);
-            return 0;
-        }
-    }
-
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
-    uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
-
-    if(isMarked)
-    {
-        rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_RemoveImmediate(CBaseEntity*)");
-        return 0;
-    }
-
-    //PhysIsInCallback
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
-    uint32_t isInCallback = pDynamicOneArgFunc(0);
-
-    if(isInCallback)
-    {
-        rootconsole->ConsolePrint("Should not be! (Insta)");
-        exit(EXIT_FAILURE);
-
-        //CCollisionEvent - AddRemoveObject
-        //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
-        //pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
-        return 0;
-    }
-
-    if(isTicking)
-    {
-        rootconsole->ConsolePrint("fast killed [%s]", classname);
-    }
-
-    if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
-    {
-        if(*(uint32_t*)(server_srv + 0x018CBEC0) == 0)
-        {
-            // FAST DELETE ONLY
-
-            hooked_delete_counter++;
-
-            //VphysicsDestroyObject
-            //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
-            //pDynamicOneArgFunc(cbase_chk);
-
-            *(uint8_t*)(server_srv + 0x018C98E4) = 0;
-            *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
-
-            //UpdateOnRemove
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
-            pDynamicOneArgFunc(cbase_chk);
-
-            *(uint8_t*)(server_srv + 0x018C98E5) = 1;
-
-            //CALL RELEASE
-            uint32_t iServerObj = cbase_chk+0x14;
-
-            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
-            pDynamicOneArgFunc(iServerObj);
-
-            *(uint8_t*)(server_srv + 0x018C98E5) = 0;
-        }
-        else
-        {
-            Hooks::UTIL_RemoveHook(cbase_chk+0x14);
-            return 0;
-        }
-    }
-
+    InstaKill(arg0, true);
     return 0;
 }
 
@@ -820,6 +687,11 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     if(isMarked)
     {
         rootconsole->ConsolePrint("Simulation ignored for [%s]", clsname);
+        return 0;
+    }
+
+    if(server_sleeping && player_spawned)
+    {
         return 0;
     }
 
@@ -905,7 +777,8 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(failure)
     {
-        rootconsole->ConsolePrint("AcceptInput used a marked entity!");
+        rootconsole->ConsolePrint("AcceptInput blocked a marked entity!");
+        return 0;
     }
 
     //Passed sanity check

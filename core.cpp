@@ -588,6 +588,168 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
     return true;
 }
 
+void RemoveEntityNormal(uint32_t entity_object, bool validate)
+{
+    // THIS IS THE UTIL_Remove(IServerNetworable*)
+
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(entity_object == 0) return;
+
+    uint32_t cbaseobject = entity_object-0x14;
+    char* classname = (char*)(*(uint32_t*)(cbaseobject+0x64));
+    uint32_t refHandle = *(uint32_t*)(cbaseobject+0x334);
+    uint32_t object_verify = GetCBaseEntity(refHandle);
+
+    if(object_verify == 0)
+    {
+        if(!validate)
+        {
+            //player handle is not set on offline player
+            object_verify = cbaseobject;
+        }
+    }
+
+    if(object_verify)
+    {
+        //VphysicsDestroyObject
+        //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(object_verify))+0x2A0) );
+        //pDynamicOneArgFunc(object_verify);
+
+        //rootconsole->ConsolePrint("Removing [%s]", clsname);
+
+        //IsMarkedForDeletion
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        uint32_t isMarked = pDynamicOneArgFunc(object_verify+0x14);
+
+        if(isMarked)
+        {
+            rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
+            return;
+        }
+
+        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(object_verify))+0x1C)  );
+        uint32_t real_object = pDynamicOneArgFunc(object_verify);
+
+        if(real_object == 0)
+        {
+            rootconsole->ConsolePrint("\n\nFATAL ERROR FAILED TO FIND OBJECT!\n\n");
+            exit(EXIT_FAILURE);
+        }
+
+        hooked_delete_counter++;
+
+        //UTIL_Remove(IServerNetworkable*)
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+        pDynamicOneArgFunc(object_verify+0x14);
+
+        //rootconsole->ConsolePrint("Removed [%s]", clsname);
+
+        return;
+    }
+
+    rootconsole->ConsolePrint("Failed to verify entity object!");
+    exit(EXIT_FAILURE);
+    return;
+}
+
+void InstaKill(uint32_t entity_object, bool validate)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(entity_object == 0) return;
+
+    uint32_t refHandleInsta = *(uint32_t*)(entity_object+0x334);
+    char* classname = (char*) ( *(uint32_t*)(entity_object+0x64) );
+    uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
+
+    if(cbase_chk == 0)
+    {
+        if(!validate)
+        {
+            //player handle is not set on offline player
+            cbase_chk = entity_object;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("\n\nFailed to verify entity for fast kill [%X]\n\n", (uint32_t)__builtin_return_address(0) - server_srv);
+            exit(EXIT_FAILURE);
+            return;
+        }
+    }
+
+    //IsMarkedForDeletion
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+    uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
+
+    if(isMarked)
+    {
+        rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_RemoveImmediate(CBaseEntity*)");
+        return;
+    }
+
+    //PhysIsInCallback
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+    uint32_t isInCallback = pDynamicOneArgFunc(0);
+
+    if(isInCallback)
+    {
+        rootconsole->ConsolePrint("Should not be! (Insta)");
+        exit(EXIT_FAILURE);
+
+        //CCollisionEvent - AddRemoveObject
+        //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
+        //pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
+        return;
+    }
+
+    if(isTicking)
+    {
+        rootconsole->ConsolePrint("fast killed [%s]", classname);
+    }
+
+    if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
+    {
+        if(*(uint32_t*)(server_srv + 0x018CBEC0) == 0)
+        {
+            // FAST DELETE ONLY
+
+            hooked_delete_counter++;
+
+            //VphysicsDestroyObject
+            //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
+            //pDynamicOneArgFunc(cbase_chk);
+
+            *(uint8_t*)(server_srv + 0x018C98E4) = 0;
+            *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
+
+            //UpdateOnRemove
+            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
+            pDynamicOneArgFunc(cbase_chk);
+
+            *(uint8_t*)(server_srv + 0x018C98E5) = 1;
+
+            //CALL RELEASE
+            uint32_t iServerObj = cbase_chk+0x14;
+
+            pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
+            pDynamicOneArgFunc(iServerObj);
+
+            *(uint8_t*)(server_srv + 0x018C98E5) = 0;
+        }
+        else
+        {
+            RemoveEntityNormal(cbase_chk+0x14, validate);
+            return;
+        }
+    }
+
+    return;
+}
+
 void DestroyVObjectForMarkedEnts()
 {
     pOneArgProt pDynamicOneArgFunc;
