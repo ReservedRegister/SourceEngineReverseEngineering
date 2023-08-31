@@ -77,11 +77,11 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
     *(uint32_t*)(eventqueue_hook+1) = offset;
 
-    uint32_t delete_list_call = server_srv + 0x00944F61;
-    memset((void*)delete_list_call, 0x90, 5);
+    //uint32_t delete_list_call = server_srv + 0x00944F61;
+    //memset((void*)delete_list_call, 0x90, 5);
 
-    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call_sim, 0x90, 5);
+    //uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    //memset((void*)delete_list_call_sim, 0x90, 5);
 
     //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -208,6 +208,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7CD50), (void*)Hooks::EnumElementHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
 }
 
 void DisableCacheCvars()
@@ -217,6 +218,11 @@ void DisableCacheCvars()
 
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+}
+
+uint32_t Hooks::UTIL_GetLocalPlayerHook()
+{
+    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 }
 
 uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
@@ -656,6 +662,8 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
+
+    Hooks::CleanupDeleteListHook(0);
 
     return 0;
 }
