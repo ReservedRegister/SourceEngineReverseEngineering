@@ -590,6 +590,7 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
 
 void RemoveEntityNormal(uint32_t entity_object, bool validate)
 {
+    pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
@@ -626,7 +627,13 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
             return;
         }
 
-        hooked_delete_counter++;
+        pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
+        uint8_t returnVal = pDynamicZeroArgFunc();
+
+        if(returnVal == 0)
+        {
+            hooked_delete_counter++;
+        }
 
         //UTIL_Remove(IServerNetworkable*)
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
@@ -644,6 +651,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
 void InstaKill(uint32_t entity_object, bool validate)
 {
+    pZeroArgProt pDynamicZeroArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
@@ -705,7 +713,13 @@ void InstaKill(uint32_t entity_object, bool validate)
         {
             // FAST DELETE ONLY
 
-            hooked_delete_counter++;
+            pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
+            uint8_t returnVal = pDynamicZeroArgFunc();
+
+            if(returnVal == 0)
+            {
+                hooked_delete_counter++;
+            }
 
             //VphysicsDestroyObject
             //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
