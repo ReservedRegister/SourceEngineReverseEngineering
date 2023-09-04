@@ -604,7 +604,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
     {
         if(!validate)
         {
-            //player handle is not set on offline player
+            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
             object_verify = entity_object;
         }
     }
@@ -667,7 +667,7 @@ void InstaKill(uint32_t entity_object, bool validate)
     {
         if(!validate)
         {
-            //player handle is not set on offline player
+            rootconsole->ConsolePrint("Warning: Entity delete request granted without validation!");
             cbase_chk = entity_object;
         }
         else
