@@ -627,6 +627,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
             return;
         }
 
+        //IsInPhysCallback
         pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
         uint8_t returnVal = pDynamicZeroArgFunc();
 
@@ -713,6 +714,7 @@ void InstaKill(uint32_t entity_object, bool validate)
         {
             // FAST DELETE ONLY
 
+            //IsInPhysCallback
             pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
             uint8_t returnVal = pDynamicZeroArgFunc();
 
