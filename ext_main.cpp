@@ -105,6 +105,18 @@ void ApplyPatches()
     *(uint8_t*)(fix_script_think) = 0xE9;
     *(uint32_t*)(fix_script_think+1) = 0xAC;
 
+    uint32_t player_patch_one = server_srv + 0x00589CD9;
+    memset((void*)player_patch_one, 0x90, 6);
+    
+    *(uint8_t*)(player_patch_one) = 0xE9;
+    *(uint32_t*)(player_patch_one+1) = 0x19EF;
+
+    uint32_t player_patch_two = server_srv + 0x0058B8D3;
+    memset((void*)player_patch_two, 0x90, 6);
+
+    *(uint8_t*)(player_patch_two) = 0xE9;
+    *(uint32_t*)(player_patch_two+1) = 0x71E;
+
     uint32_t vphysicsupdatepatch = server_srv + 0x00413E5B;
     memset((void*)vphysicsupdatepatch, 0x90, 12);
 
