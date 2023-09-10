@@ -221,6 +221,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003E14B0), (void*)Hooks::GetBaseEntityHook);
 }
 
 void DisableCacheCvars()
