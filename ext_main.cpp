@@ -783,6 +783,33 @@ uint32_t Hooks::YawHook(uint32_t arg0)
     return 0;
 }
 
+uint32_t Hooks::GetBaseEntityHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    
+    if(arg0)
+    {
+        uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+        uint32_t object = GetCBaseEntity(refHandle);
+
+        if(object)
+        {
+            //IsMarkedForDeletion
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+            uint32_t isMarked = pDynamicOneArgFunc(object+0x14);
+
+            if(!isMarked)
+            {
+                return object;
+            }
+        }
+    }
+
+    rootconsole->ConsolePrint("Failed to find valid object!");
+    return 0;
+
+}
+
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
 {
     pOneArgProt pDynamicOneArgFunc;

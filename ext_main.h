@@ -45,6 +45,7 @@ public:
 	static uint32_t EnumElementHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t YawHook(uint32_t arg0);
 	static uint32_t UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1);
+	static uint32_t GetBaseEntityHook(uint32_t arg0);
 };
 
 #endif
