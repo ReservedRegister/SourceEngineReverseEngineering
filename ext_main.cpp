@@ -80,8 +80,8 @@ void ApplyPatches()
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    //uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
-    //memset((void*)delete_list_call_sim, 0x90, 5);
+    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    memset((void*)delete_list_call_sim, 0x90, 5);
 
     //delete_list_call = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -487,12 +487,16 @@ uint32_t Hooks::InputSetCSMVolumeHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    uint32_t fourth_offset = *(uint32_t*)(arg1+4);
-
-    if(fourth_offset)
+    if(arg1)
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00905160);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        uint32_t base_offset = *(uint32_t*)(arg1);
+        uint32_t fourth_offset = *(uint32_t*)(arg1+4);
+
+        if(base_offset && fourth_offset)
+        {
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00905160);
+            return pDynamicTwoArgFunc(arg0, arg1);
+        }
     }
 
     rootconsole->ConsolePrint("Entity was NULL");
@@ -636,12 +640,7 @@ uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
 uint32_t Hooks::ServiceEventQueueHook()
 {
     pOneArgProt pDynamicOneArgFunc;
-
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
-    uint32_t returnVal = pDynamicOneArgFunc(0);
-
-    return returnVal;
+    return 0;
 }
 
 uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
@@ -675,6 +674,10 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc(0);
 
     return 0;
 }
