@@ -83,8 +83,8 @@ void ApplyPatches()
     uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
     memset((void*)delete_list_call_sim, 0x90, 5);
 
-    //delete_list_call = server_srv + 0x00944FC5;
-    //memset((void*)delete_list_call, 0x90, 5);
+    uint32_t delete_list_call_last = server_srv + 0x00944FC5;
+    memset((void*)delete_list_call_last, 0x90, 5);
 
     uint32_t bad_call_remove = server_srv + 0x009B5054;
     memset((void*)bad_call_remove, 0x90, 5);
@@ -670,6 +670,8 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     {
         server_sleeping = false;
     }
+
+    Hooks::CleanupDeleteListHook(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
