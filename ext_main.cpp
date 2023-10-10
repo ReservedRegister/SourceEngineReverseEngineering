@@ -80,11 +80,11 @@ void ApplyPatches()
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
 
-    uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
-    memset((void*)delete_list_call_sim, 0x90, 5);
+    //uint32_t delete_list_call_sim = server_srv + 0x00A7AC57;
+    //memset((void*)delete_list_call_sim, 0x90, 5);
 
-    uint32_t delete_list_call_last = server_srv + 0x00944FC5;
-    memset((void*)delete_list_call_last, 0x90, 5);
+    //uint32_t delete_list_call_last = server_srv + 0x00944FC5;
+    //memset((void*)delete_list_call_last, 0x90, 5);
 
     uint32_t bad_call_remove = server_srv + 0x009B5054;
     memset((void*)bad_call_remove, 0x90, 5);
@@ -156,12 +156,12 @@ void HookFunctions()
     //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
 
-    rootconsole->ConsolePrint("patching malloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //->ConsolePrint("patching malloc()");
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
 
     //rootconsole->ConsolePrint("patching realloc()");
@@ -677,9 +677,13 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
 
+    Hooks::CleanupDeleteListHook(0);
+
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
     pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
 
     return 0;
 }
