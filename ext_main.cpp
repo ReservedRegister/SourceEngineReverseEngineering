@@ -224,7 +224,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AE32C0), (void*)Hooks::ShouldHitEntityHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006AC000), (void*)Hooks::CanSelectSchedule);
 }
 
 void DisableCacheCvars()
@@ -804,32 +804,20 @@ uint32_t Hooks::YawHook(uint32_t arg0)
     return 0;
 }
 
-uint32_t Hooks::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+uint32_t Hooks::CanSelectSchedule(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
 
-    if(arg1)
+    uint32_t offset_four = *(uint32_t*)(arg0+4);
+
+    if(offset_four)
     {
-        uint32_t refHandle = *(uint32_t*)(arg1+0x334);
-        uint32_t object = GetCBaseEntity(refHandle);
-
-        if(object)
-        {
-            //IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
-            uint32_t isMarked = pDynamicOneArgFunc(object+0x14);
-
-            if(isMarked)
-            {
-                rootconsole->ConsolePrint("Failed to check entity");
-                return 0;
-            }
-        }
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006AC000);
+        return pDynamicOneArgFunc(arg0);
     }
-    
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AE32C0);
-    return pDynamicThreeArgFunc(arg0, arg1, arg2);
+
+    rootconsole->ConsolePrint("Failed to service AI schedule");
+    return 0;
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
