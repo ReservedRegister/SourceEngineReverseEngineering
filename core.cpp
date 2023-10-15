@@ -29,7 +29,8 @@ bool isTicking;
 bool disable_delete_list;
 bool player_spawned;
 bool server_sleeping;
-ValueList deleteList;
+uint32_t mindist_counter;
+uint32_t mindist_frames;
 
 void InitCore()
 {

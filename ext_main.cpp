@@ -52,7 +52,8 @@ void InitExtension()
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x018711E0;
-    deleteList = AllocateValuesList();
+    mindist_counter = 0;
+    mindist_frames = 0;
     server_sleeping = false;
 
     PopulateHookExclusionLists();
@@ -225,6 +226,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006AC000), (void*)Hooks::CanSelectSchedule);
+    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011D8D0), (void*)Hooks::update_exact_mindist_events);
 }
 
 void DisableCacheCvars()
@@ -690,6 +692,8 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
 
     Hooks::CleanupDeleteListHook(0);
 
+    mindist_counter = 0;
+
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
     pDynamicOneArgFunc(0);
@@ -818,6 +822,31 @@ uint32_t Hooks::CanSelectSchedule(uint32_t arg0)
 
     rootconsole->ConsolePrint("Failed to service AI schedule");
     return 0;
+}
+
+uint32_t Hooks::update_exact_mindist_events(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    mindist_counter++;
+    mindist_frames++;
+
+    if(mindist_counter > 23000)
+    {
+        rootconsole->ConsolePrint("Mindist limit! [%d]", mindist_counter);
+        return 0;
+    }
+
+    if(mindist_frames >= 100)
+    {
+        //rootconsole->ConsolePrint("mindists: [%d]", mindist_counter);
+        mindist_frames = 0;
+    }
+
+    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv + 0x0011D8D0);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)

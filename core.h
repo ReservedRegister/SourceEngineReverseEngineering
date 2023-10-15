@@ -69,8 +69,9 @@ extern int normal_delete_counter;
 extern bool isTicking;
 extern bool disable_delete_list;
 extern bool player_spawned;
-extern ValueList deleteList;
 extern bool server_sleeping;
+extern uint32_t mindist_counter;
+extern uint32_t mindist_frames;
 
 void InitCore();
 void* copy_val(void* val, size_t copy_size);
