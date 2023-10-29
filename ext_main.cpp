@@ -78,6 +78,9 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
     *(uint32_t*)(eventqueue_hook+1) = offset;
 
+    uint32_t fix_destructor = vphysics_srv + 0x000471B4;
+    *(uint8_t*)(fix_destructor) = 0xEB;
+
     uint32_t remove_post_systems = server_srv + 0x00944FB4;
     memset((void*)remove_post_systems, 0x90, 5);
 
@@ -226,6 +229,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006AC000), (void*)Hooks::CanSelectSchedule);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005696E0), (void*)Hooks::VTableFixHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011D8D0), (void*)Hooks::update_exact_mindist_events);
 }
 
@@ -236,6 +240,26 @@ void DisableCacheCvars()
 
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
     //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+}
+
+uint32_t Hooks::VTableFixHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(arg1)
+    {
+        uint32_t refHandle = *(uint32_t*)(arg1+0x334);
+        uint32_t object = GetCBaseEntity(refHandle);
+
+        if(object)
+        {
+            *(uint32_t*)(arg0+0x9E4) = refHandle;
+            return 0;
+        }
+    }
+    
+    *(uint32_t*)(arg0+0x9E4) = 0xFFFFFFFF;
+    return 0;
 }
 
 uint32_t Hooks::UTIL_GetLocalPlayerHook()
@@ -414,6 +438,9 @@ uint32_t Hooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
         if(object_chk == 0)
         {
             *(uint32_t*)(arg0+0x35C) = 0;
+            
+            rootconsole->ConsolePrint("Execution halted because object is bad!");
+            return 0;
         }
     }
 
@@ -515,6 +542,8 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
     uint32_t cbaseobject_one = *(uint32_t*)(arg0+0x72C);
     uint32_t cbaseobject_two = *(uint32_t*)(arg0+0x730);
 
+    bool disallow_exec = false;
+
     if(cbaseobject_one)
     {
         uint32_t refHandle_one = *(uint32_t*)(cbaseobject_one+0x334);
@@ -523,6 +552,7 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
         if(check_one == 0)
         {
             *(uint32_t*)(arg0+0x72C) = 0;
+            disallow_exec = true;
         }
     }
 
@@ -534,7 +564,14 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
         if(check_two == 0)
         {
             *(uint32_t*)(arg0+0x730) = 0;
+            disallow_exec = true;
         }
+    }
+
+    if(disallow_exec)
+    {
+        rootconsole->ConsolePrint("Execution halted for bad entity!");
+        return 0;
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0082DFE0);

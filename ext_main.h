@@ -47,6 +47,7 @@ public:
 	static uint32_t UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CanSelectSchedule(uint32_t arg0);
 	static uint32_t update_exact_mindist_events(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t VTableFixHook(uint32_t arg0, uint32_t arg1);
 };
 
 #endif
