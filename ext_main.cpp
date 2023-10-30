@@ -438,9 +438,6 @@ uint32_t Hooks::InputApplySettingsHook(uint32_t arg0, uint32_t arg1)
         if(object_chk == 0)
         {
             *(uint32_t*)(arg0+0x35C) = 0;
-            
-            rootconsole->ConsolePrint("Execution halted because object is bad!");
-            return 0;
         }
     }
 
@@ -542,8 +539,6 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
     uint32_t cbaseobject_one = *(uint32_t*)(arg0+0x72C);
     uint32_t cbaseobject_two = *(uint32_t*)(arg0+0x730);
 
-    bool disallow_exec = false;
-
     if(cbaseobject_one)
     {
         uint32_t refHandle_one = *(uint32_t*)(cbaseobject_one+0x334);
@@ -552,7 +547,6 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
         if(check_one == 0)
         {
             *(uint32_t*)(arg0+0x72C) = 0;
-            disallow_exec = true;
         }
     }
 
@@ -564,14 +558,7 @@ uint32_t Hooks::CNihiBallzDestructor(uint32_t arg0)
         if(check_two == 0)
         {
             *(uint32_t*)(arg0+0x730) = 0;
-            disallow_exec = true;
         }
-    }
-
-    if(disallow_exec)
-    {
-        rootconsole->ConsolePrint("Execution halted for bad entity!");
-        return 0;
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0082DFE0);
