@@ -102,8 +102,8 @@ void ApplyPatches()
     //*(uint8_t*)(patch_remove) = 0x31;
     //*(uint8_t*)(patch_remove+1) = 0xC0;
 
-    uint32_t jmp_vphys = server_srv + 0x004E4146;
-    *(uint8_t*)(jmp_vphys) = 0xEB;
+    //uint32_t jmp_vphys = server_srv + 0x004E4146;
+    //*(uint8_t*)(jmp_vphys) = 0xEB;
 
     uint32_t sim_patch = server_srv + 0x00A7ADB4;
     memset((void*)sim_patch, 0x90, 6);
