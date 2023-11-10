@@ -368,7 +368,7 @@ void ForceMemoryAccess()
 
         if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
         {
-            rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+            //rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
 
             //SELINUX shite
 
@@ -377,7 +377,7 @@ void ForceMemoryAccess()
         }
         else
         {
-            rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+            //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
         }
     }
 }
@@ -624,7 +624,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
         if(isMarked)
         {
-            rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
+            //rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
             return;
         }
 
