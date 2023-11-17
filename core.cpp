@@ -30,6 +30,7 @@ bool disable_delete_list;
 bool player_spawned;
 bool server_sleeping;
 uint32_t mindist_counter;
+uint32_t mindist_event_counter;
 uint32_t mindist_frames;
 
 void InitCore()

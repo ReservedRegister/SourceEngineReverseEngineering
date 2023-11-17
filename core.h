@@ -71,6 +71,7 @@ extern bool disable_delete_list;
 extern bool player_spawned;
 extern bool server_sleeping;
 extern uint32_t mindist_counter;
+extern uint32_t mindist_event_counter;
 extern uint32_t mindist_frames;
 
 void InitCore();

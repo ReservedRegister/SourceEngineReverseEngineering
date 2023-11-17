@@ -31,7 +31,7 @@ public:
 	static uint32_t UTIL_GetLocalPlayerHook();
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t VphysicsUpdateWarningHook(uint32_t arg0);
-	static uint32_t HookFinalDeleteCall(uint32_t arg0);
+	static uint32_t LaunchMortarHook(uint32_t arg0);
 	static uint32_t CPropHevCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
 	static uint32_t CPropRadiationCharger_ShouldApplyEffect(uint32_t arg0, uint32_t arg1);
 	static uint32_t ScriptThinkEntCheck(uint32_t arg0);
@@ -48,6 +48,8 @@ public:
 	static uint32_t CanSelectSchedule(uint32_t arg0);
 	static uint32_t update_exact_mindist_events(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t VTableFixHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t recalc_exact_mindist_hook(uint32_t arg0, uint32_t arg1);
+	static uint32_t PhysEnableEntityCollisionsHook(uint32_t arg0, uint32_t arg1);
 };
 
 #endif
