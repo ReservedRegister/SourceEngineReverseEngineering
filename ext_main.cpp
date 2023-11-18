@@ -45,6 +45,7 @@ void InitExtension()
     datacache_srv_size = datacache_srv_lib->library_size;
 
     FindEntityByClassname = (pThreeArgProt)(server_srv + 0x008F3870);
+    SetSolidFlags = (pTwoArgProt)(server_srv + 0x004A7700);
 
     disable_delete_list = false;
     isTicking = false;
@@ -52,9 +53,6 @@ void InitExtension()
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x018711E0;
-    mindist_event_counter = 0;
-    mindist_counter = 0;
-    mindist_frames = 0;
     server_sleeping = false;
 
     PopulateHookExclusionLists();
@@ -236,8 +234,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005696E0), (void*)Hooks::VTableFixHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007C5F20), (void*)Hooks::LaunchMortarHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004E4C10), (void*)Hooks::PhysEnableEntityCollisionsHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011D8D0), (void*)Hooks::update_exact_mindist_events);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0011EB00), (void*)Hooks::recalc_exact_mindist_hook);
 }
 
 void DisableCacheCvars()
@@ -739,6 +735,8 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
 
     Hooks::CleanupDeleteListHook(0);
 
+    CheckForLocation();
+
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
     pDynamicOneArgFunc(arg0);
@@ -750,9 +748,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
-
-    mindist_counter = 0;
-    mindist_event_counter = 0;
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
@@ -882,40 +877,6 @@ uint32_t Hooks::CanSelectSchedule(uint32_t arg0)
 
     rootconsole->ConsolePrint("Failed to service AI schedule");
     return 0;
-}
-
-uint32_t Hooks::recalc_exact_mindist_hook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    mindist_counter++;
-
-    if(mindist_counter > 15000)
-    {
-        rootconsole->ConsolePrint("Mindist limit: [%d]", mindist_counter);
-        return 0;
-    }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(vphysics_srv + 0x0011EB00);
-    return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t Hooks::update_exact_mindist_events(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    mindist_event_counter++;
-
-    if(mindist_counter > 30000)
-    {
-        rootconsole->ConsolePrint("event limit! [%d]", mindist_counter);
-        return 0;
-    }
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(vphysics_srv + 0x0011D8D0);
-    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)

@@ -34,6 +34,12 @@ enum MDLCacheFlush_t
 	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
 };
 
+typedef struct _Vector {
+	float x;
+	float y;
+	float z;
+} Vector;
+
 typedef struct _Library {
 	char* library_signature;
 	uint32_t library_base_address;
@@ -62,6 +68,7 @@ extern uint32_t dedicated_srv_size;
 extern uint32_t datacache_srv_size;
 
 extern pThreeArgProt FindEntityByClassname;
+extern pTwoArgProt SetSolidFlags;
 
 extern uint32_t CGlobalEntityList;
 extern int hooked_delete_counter;
@@ -70,9 +77,6 @@ extern bool isTicking;
 extern bool disable_delete_list;
 extern bool player_spawned;
 extern bool server_sleeping;
-extern uint32_t mindist_counter;
-extern uint32_t mindist_event_counter;
-extern uint32_t mindist_frames;
 
 void InitCore();
 void* copy_val(void* val, size_t copy_size);
@@ -99,5 +103,7 @@ uint32_t IsEntityValid(uint32_t refHandle);
 void DestroyVObjectForMarkedEnts();
 void InstaKill(uint32_t entity_object, bool validate);
 void RemoveEntityNormal(uint32_t entity_object, bool validate);
+
+void CheckForLocation();
 
 #endif

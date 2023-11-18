@@ -21,6 +21,7 @@ uint32_t dedicated_srv_size;
 uint32_t datacache_srv_size;
 
 pThreeArgProt FindEntityByClassname;
+pTwoArgProt SetSolidFlags;
 
 uint32_t CGlobalEntityList;
 int hooked_delete_counter;
@@ -29,9 +30,6 @@ bool isTicking;
 bool disable_delete_list;
 bool player_spawned;
 bool server_sleeping;
-uint32_t mindist_counter;
-uint32_t mindist_event_counter;
-uint32_t mindist_frames;
 
 void InitCore()
 {
@@ -424,6 +422,64 @@ uint32_t IsEntityValid(uint32_t entity)
     }
 
     return 0;
+}
+
+void CheckForLocation()
+{
+    uint32_t sv = engine_srv + 0x003329C0;
+    uint32_t current_map = sv+0x11;
+
+    if(strcmp((char*)current_map, "bm_c2a3a") != 0)
+    {
+        //rootconsole->ConsolePrint("Location fix disabled!");
+        return;
+    }
+
+    uint32_t player = 0;
+
+    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    {
+        bool in_area = false;
+        uint32_t player_abs = player+0x294;
+        //rootconsole->ConsolePrint("[%f] [%f] [%f]", *(float*)(player_abs), *(float*)(player_abs+0x4), *(float*)(player_abs+0x8));
+
+        Vector* trigger_vecMinsAbs = (Vector*)(malloc(sizeof(Vector)));
+        trigger_vecMinsAbs->x = 1314.0;
+        trigger_vecMinsAbs->y = 106.0;
+        trigger_vecMinsAbs->z = -1349.0;
+
+        Vector* trigger_vecMaxsAbs = (Vector*)(malloc(sizeof(Vector)));
+        trigger_vecMaxsAbs->x = 2282.0;
+        trigger_vecMaxsAbs->y = 947.0;
+        trigger_vecMaxsAbs->z = -1102.0;
+
+        if(trigger_vecMinsAbs->x <= *(float*)(player_abs) && *(float*)(player_abs) <= trigger_vecMaxsAbs->x)
+        {
+            if(trigger_vecMinsAbs->y <= *(float*)(player_abs+0x4) && *(float*)(player_abs+0x4) <= trigger_vecMaxsAbs->y)
+            {
+                if(trigger_vecMinsAbs->z <= *(float*)(player_abs+0x8) && *(float*)(player_abs+0x8) <= trigger_vecMaxsAbs->z)
+                {
+                    uint32_t collision_property = player+0x160;
+                    uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
+
+                    SetSolidFlags(collision_property, 4);
+                    //rootconsole->ConsolePrint("bad area!");
+                    in_area = true;
+                }
+            }
+        }
+
+        if(!in_area)
+        {
+            uint32_t collision_property = player+0x160;
+            uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
+
+            SetSolidFlags(collision_property, 16);
+        }
+
+        free(trigger_vecMinsAbs);
+        free(trigger_vecMaxsAbs);
+    }
 }
 
 ValueList AllocateValuesList()
