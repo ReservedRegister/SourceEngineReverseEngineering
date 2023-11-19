@@ -224,12 +224,11 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0082DFE0), (void*)Hooks::CNihiBallzDestructor);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1F550), (void*)Hooks::InputApplySettingsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00905160), (void*)Hooks::InputSetCSMVolumeHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B08190), (void*)Hooks::HookFinalDeleteCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00643FE0), (void*)Hooks::AbsolutePosHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7CD50), (void*)Hooks::EnumElementHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005B4EB0), (void*)Hooks::YawHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006AC000), (void*)Hooks::CanSelectSchedule);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005696E0), (void*)Hooks::VTableFixHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007C5F20), (void*)Hooks::LaunchMortarHook);
@@ -267,7 +266,17 @@ uint32_t Hooks::VTableFixHook(uint32_t arg0, uint32_t arg1)
 
 uint32_t Hooks::UTIL_GetLocalPlayerHook()
 {
-    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    pZeroArgProt pDynamicZeroArgProt;
+
+    pDynamicZeroArgProt = (pZeroArgProt)(server_srv + 0x00B66E20);
+    uint32_t returnVal = pDynamicZeroArgProt();
+
+    if(!returnVal)
+    {
+        return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    }
+
+    return returnVal;
 }
 
 uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
@@ -776,8 +785,25 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
 uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-    char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
+
+    if(arg0 == 0)
+    {
+        rootconsole->ConsolePrint("Passed NULL simulation entity!");
+        exit(EXIT_FAILURE);
+        return 0;
+    }
+
     uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+    uint32_t object_check = GetCBaseEntity(refHandle);
+
+    if(object_check == 0)
+    {
+        rootconsole->ConsolePrint("Passed in non-existant simulation entity!");
+        exit(EXIT_FAILURE);
+        return 0;
+    }
+
+    char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
 
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
