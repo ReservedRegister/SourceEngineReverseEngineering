@@ -772,14 +772,7 @@ void InstaKill(uint32_t entity_object, bool validate)
         {
             // FAST DELETE ONLY
 
-            //IsInPhysCallback
-            pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
-            uint8_t returnVal = pDynamicZeroArgFunc();
-
-            if(returnVal == 0)
-            {
-                hooked_delete_counter++;
-            }
+            hooked_delete_counter++;
 
             //VphysicsDestroyObject
             //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );

@@ -300,6 +300,20 @@ uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
 
     if(piVar2 != 0)
     {
+        if((arg1 != 0) && (*(uint8_t*)arg1 != '\0'))
+        {
+            pTwoArgProt AllocPooledString = (pTwoArgProt)(server_srv + 0x004C86A0);
+            AllocPooledString((uint32_t)(&local_10), arg1);
+
+            //this[0x87] = local_10;
+            *(uint32_t*)(piVar2+0x21C) = local_10;
+
+            pOneArgProt DispatchUpdateTransmitState = (pOneArgProt)(server_srv + 0x00642940);
+            DispatchUpdateTransmitState(piVar2);
+
+            //pcVar2 = param_2;
+        }
+
         rootconsole->ConsolePrint("Precache %s", arg0);
         
         //Precache
@@ -545,10 +559,34 @@ uint32_t Hooks::LaunchMortarHook(uint32_t arg0)
 
 uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
 {
-    pOneArgProt pDynamicOneArgFunc;
+    if(arg0 == 0)
+    {
+        rootconsole->ConsolePrint("Vphysics warning was NULL");
+        exit(EXIT_FAILURE);
+    }
+    
+    uint32_t refHandle = *(uint32_t*)(arg0+0x334);
+    uint32_t object = GetCBaseEntity(refHandle);
 
-    rootconsole->ConsolePrint("Removing unreasonable entity [%s]", *(uint32_t*)(arg0+0x64));
-    Hooks::UTIL_RemoveHook(arg0+0x14);
+    if(object)
+    {
+        char* classname = (char*)(*(uint32_t*)(arg0+0x64));
+
+        if(classname)
+        {
+            rootconsole->ConsolePrint("Removing unreasonable entity! [%s]", classname);
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Removing unreasonable entity!");
+        }
+
+        Hooks::UTIL_RemoveHook(arg0+0x14);
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("Invalid Entity in vphysics!");
+    exit(EXIT_FAILURE);
     return 0;
 }
 
@@ -616,6 +654,12 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
 
 uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
 {
+    if(arg0 == 0)
+    {
+        rootconsole->ConsolePrint("Remove was NULL");
+        exit(EXIT_FAILURE);
+    }
+    
     uint32_t cbaseobject = arg0-0x14;
     RemoveEntityNormal(cbaseobject, true);
     return 0;
