@@ -657,7 +657,6 @@ uint32_t Hooks::UTIL_RemoveHook(uint32_t arg0)
     if(arg0 == 0)
     {
         rootconsole->ConsolePrint("Remove was NULL");
-        exit(EXIT_FAILURE);
     }
     
     uint32_t cbaseobject = arg0-0x14;
