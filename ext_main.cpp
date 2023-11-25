@@ -83,8 +83,8 @@ void ApplyPatches()
     uint32_t remove_post_systems = server_srv + 0x00944FB4;
     memset((void*)remove_post_systems, 0x90, 5);
 
-    uint32_t bypass_code_ragdoll = server_srv + 0x008A3BDC;
-    memset((void*)bypass_code_ragdoll, 0x90, 6);
+    //uint32_t bypass_code_ragdoll = server_srv + 0x008A3BDC;
+    //memset((void*)bypass_code_ragdoll, 0x90, 6);
 
     //uint32_t delete_list_call = server_srv + 0x00944F61;
     //memset((void*)delete_list_call, 0x90, 5);
@@ -202,7 +202,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
 
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00525F30), (void*)CalcPoseSingleHook);
