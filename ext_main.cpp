@@ -69,9 +69,6 @@ void InitExtension()
     snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
     snprintf(sdktools_path, max_path_length, "/extensions/sdktools.ext.2.sdk2013.so");
 
-    snprintf(last_map, 1024, "d1_trainstation_06");
-    snprintf(global_map, 1024, "d1_trainstation_06");
-
     Library* engine_srv_lib = FindLibrary(engine_srv_fullpath, false);
     Library* datacache_srv_lib = FindLibrary(datacache_srv_fullpath, false);
     Library* dedicated_srv_lib = FindLibrary(dedicated_srv_fullpath, false);
@@ -217,6 +214,11 @@ void InitExtension()
     new_operator_addr = (void*) ( *(uint32_t*)(server_srv + 0x0041CA39 + 1) + (server_srv + 0x0041CA39) + 5 );
 
     strcpy_chk_addr = (void*) ( *(uint32_t*)(server_srv + 0x0039D18E + 1) + (server_srv + 0x0039D18E) + 5 );
+
+    rootconsole->ConsolePrint("\n\nServer Map: [%s]\n\n", sv+0x11);
+
+    snprintf(last_map, 1024, "%s", (char*)(sv+0x11));
+    snprintf(global_map, 1024, "%s", (char*)(sv+0x11));
 
     PopulateHookPointers();
     PopulateHookExclusionLists();
