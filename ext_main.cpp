@@ -1242,7 +1242,6 @@ uint32_t Hooks::FrameLockHook(uint32_t arg0)
     }*/
 
     restore_start_delay = 201;
-    savegame = true;
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
@@ -2336,6 +2335,16 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
             }
         }
     }*/
+
+    if(strcmp((char*)arg2, (char*)last_map) == 0)
+    {
+        rootconsole->ConsolePrint("oldmap matched successfully!");
+    }
+    else
+    {
+        rootconsole->ConsolePrint("Failed to preserve oldmap: [%s] [%s]", arg2, last_map);
+        arg2 = (uint32_t)last_map;
+    }
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
     return returnVal;
