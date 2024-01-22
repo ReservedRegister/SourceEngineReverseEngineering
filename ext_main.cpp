@@ -1242,6 +1242,7 @@ uint32_t Hooks::FrameLockHook(uint32_t arg0)
     }*/
 
     restore_start_delay = 201;
+    savegame = true;
 
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
@@ -2214,6 +2215,21 @@ uint32_t Hooks::HelicopterCrashFix(uint32_t arg0)
     }
 
     rootconsole->ConsolePrint("Bad heli!");
+    return 0;
+}
+
+uint32_t Hooks::TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(arg1)
+    {
+        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x004B8F60);
+        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+    }
+
+    rootconsole->ConsolePrint("TakeDamage heli fix!");
+    //RemoveEntityNormal(arg0, true);
     return 0;
 }
 
@@ -3854,4 +3870,5 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00943FD0), (void*)Hooks::FixExplodeInputCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00622240), (void*)Hooks::HelicopterBadDetected);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00945B80), (void*)Hooks::PropCombineBall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004B8F60), (void*)Hooks::TakeDamageHeliFix);
 }

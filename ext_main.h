@@ -134,6 +134,7 @@ public:
 	static uint32_t ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1);
 	static uint32_t HelicopterBadDetected(uint32_t arg0);
 	static uint32_t PropCombineBall(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 };
 
 #endif
