@@ -2218,6 +2218,20 @@ uint32_t Hooks::HelicopterCrashFix(uint32_t arg0)
     return 0;
 }
 
+uint32_t Hooks::StringCmpHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+    
+    if(arg0 && arg1)
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B9CF00);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("NULL string detected!");
+    return 0;
+}
+
 uint32_t Hooks::TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
@@ -3871,4 +3885,5 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00622240), (void*)Hooks::HelicopterBadDetected);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00945B80), (void*)Hooks::PropCombineBall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004B8F60), (void*)Hooks::TakeDamageHeliFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B9CF00), (void*)Hooks::StringCmpHook);
 }
