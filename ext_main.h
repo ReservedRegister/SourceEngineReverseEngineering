@@ -97,15 +97,11 @@ public:
 	static uint32_t SV_FrameHook(uint32_t arg0);
 	static uint32_t FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t PlayerDeathHook(uint32_t arg0);
-	static uint32_t VPhysicsSetObjectPort(uint32_t arg0, uint32_t arg1);
-	static uint32_t VPhysicsInitShadowHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
-	static uint32_t CollisionRulesChangedHook(uint32_t arg0);
 	static uint32_t SetSolidFlagsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t PhysicsTouchTriggersHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t VphysicsUpdateWarningHook(uint32_t arg0);
 	static uint32_t Outland_07_Patch(uint32_t arg0, uint32_t arg1);
-	static uint32_t SV_TriggerMovedHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t AssaultNpcFix(uint32_t arg0, uint32_t arg1);
 	static uint32_t PackedStoreConstructorHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);

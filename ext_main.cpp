@@ -382,6 +382,8 @@ void ApplyPatches()
     //memset((void*)(engine_srv + 0x0012AA28), 0x90, 5);
     //memset((void*)(engine_srv + 0x001AF717), 0x90, 5);
 
+    memset((void*)(engine_srv + 0x00136812), 0x90, 3);
+
     /*uint32_t fix_null_ent_crash_cfire = server_srv + 0x007159A4;
     *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
     *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
@@ -648,6 +650,7 @@ uint32_t Hooks::ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1)
 
         if(object_one == 0)
         {
+            rootconsole->ConsolePrint("Manual correction: 0x0F88");
             *(uint32_t*)(arg0+0x0F88) = 0;
         }
     }
@@ -659,6 +662,7 @@ uint32_t Hooks::ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1)
 
         if(object_two == 0)
         {
+            rootconsole->ConsolePrint("Manual correction: 0x0F8C");
             *(uint32_t*)(arg0+0x0F8C) = 0;
         }
     }
@@ -768,7 +772,6 @@ uint32_t Hooks::WeaponGetHook(uint32_t arg0)
         {
             uint32_t newEntity = CreateEntityByName((uint32_t)"weapon_crowbar", (uint32_t)-1);
             pDispatchSpawnFunc(newEntity);
-            pActivateEntityFunc(newEntity);
 
             weapon_substitute = *(uint32_t*)(newEntity+0x350);
             isWeaponValid = newEntity;
@@ -1637,7 +1640,13 @@ uint32_t Hooks::SaveHookDirectMalloc(uint32_t size)
 
 uint32_t Hooks::SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size)
 {
-    uint32_t enlarged_size = new_size*5.0;
+    uint32_t enlarged_size = new_size;
+
+    if(new_size > 0)
+    {
+        uint32_t enlarged_size = new_size*5.0;
+    }
+    
     uint32_t ref = (uint32_t)realloc((void*)old_ptr, enlarged_size);
     //rootconsole->ConsolePrint("realloc() [Save Hook] " HOOK_MSG " size: [%d]", ref, enlarged_size);
 
@@ -1996,6 +2005,7 @@ uint32_t Hooks::OldRefUpdateFixOne(uint32_t arg0)
 
         if(verified_object == 0)
         {
+            rootconsole->ConsolePrint("Manual correction: 0x518");
             *(uint32_t*)(arg0+0x518) = 0;
         }
     }
@@ -2069,7 +2079,11 @@ uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
 
 uint32_t Hooks::FixNullCrash(uint32_t arg0)
 {
-    if(arg0 == 0) return 0;
+    if(arg0 == 0)
+    {
+        rootconsole->ConsolePrint("NULL was passed!");
+        return 0;
+    }
 
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
     return pDynamicOneArgFunc(arg0);
@@ -2088,6 +2102,7 @@ uint32_t Hooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
+    rootconsole->ConsolePrint("Fixed bugbait!");
     return 0;
 }
 
@@ -2140,11 +2155,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     if(isMarked)
     {
         rootconsole->ConsolePrint("Simulation ignored for [%s]", clsname);
-        return 0;
-    }
-
-    if(server_sleeping && firstplayer_hasjoined)
-    {
         return 0;
     }
     
@@ -2631,13 +2641,6 @@ uint32_t Hooks::FindEntityByHandle(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
     uint32_t object = pDynamicTwoArgFunc(arg0, arg1);
 
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-    if(object && pDynamicOneArgFunc(object+0x18))
-    {
-        rootconsole->ConsolePrint("WARNING: FOUND MARKED ENTITY (Handle) [%s]", (char*)(*(uint32_t*)(object+0x68)));
-    }
-
     return object;
 }
 
@@ -2647,13 +2650,6 @@ uint32_t Hooks::FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t
     pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x006B2740);
     uint32_t object = pDynamicThreeArgFunc(arg0, arg1, arg2);
 
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-    if(object && pDynamicOneArgFunc(object+0x18))
-    {
-        rootconsole->ConsolePrint("WARNING: FOUND MARKED ENTITY (Classname) [%s]", (char*) (  *(uint32_t*)(object+0x68) ));
-    }
-
     return object;
 }
 
@@ -2662,13 +2658,6 @@ uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, ui
     pOneArgProt pDynamicOneArgFunc;
     pSevenArgProt pDynamicSevenArgFunc = (pSevenArgProt)(server_srv + 0x006B2CA0);
     uint32_t object = pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-    if(object && pDynamicOneArgFunc(object+0x18))
-    {
-        rootconsole->ConsolePrint("WARNING: FOUND MARKED ENTITY (Name) [%s]", (char*)(*(uint32_t*)(object+0x68)));
-    }
 
     return object;
 }
@@ -2719,6 +2708,7 @@ uint32_t Hooks::TransitionFixTheSecond(uint32_t arg0)
         }
     }
 
+    rootconsole->ConsolePrint("Failed to validate resource!");
     return 0;
 }
 
@@ -2797,6 +2787,9 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     transition = false;
     mapHasEnded = false;
     mapHasEndedDelay = false;
+
+    uint32_t gpGlobals_i_think = *(uint32_t*)(server_srv + 0x00FA0CF0);
+    *(uint8_t*)(gpGlobals_i_think) = 0;
 
     uint32_t returnVal = pHostChangelevelFunc(arg1, arg2, arg3);
 
@@ -3091,6 +3084,10 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
+    SaveGame_Extension();
+
+    Hooks::CleanupDeleteListHook(0);
+
     FlushPlayerDeaths();
     ResetView();
     UpdatePlayersDonor();
@@ -3113,10 +3110,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    SaveGame_Extension();
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -3290,85 +3283,6 @@ uint32_t Hooks::IsAllowChangelevel()
     return pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
 }
 
-uint32_t Hooks::VPhysicsInitShadowHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-
-    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x003D8F30);
-    uint32_t returnObject = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-
-    if(returnObject)
-    {
-        //rootconsole->ConsolePrint("Updated collision rules!");
-        Hooks::CollisionRulesChangedHook(arg0);
-    }
-
-    return returnObject;
-}
-
-uint32_t Hooks::VPhysicsSetObjectPort(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t piVar1;
-    bool bVar4;
-
-    if( *(uint32_t*)(arg0+0x1FC) == 0 )
-    {
-        bVar4 = arg1 != 0;
-    }
-    else if(arg1 == 0)
-    {
-        bVar4 = false;
-    }
-    else
-    {
-        bVar4 = false;
-        uint32_t clsname = *(uint32_t*)(arg0+0x68);
-        rootconsole->ConsolePrint("Warning: Overwriting physics object for %s\n", clsname);
-    }
-
-    //rootconsole->ConsolePrint("Updating Vphysics object!");
-    *(uint32_t*)(arg0+0x1FC) = arg1;
-
-    uint32_t internal_arg0 = (arg0+0x164);
-    uint32_t internal_arg1 = (  (uint32_t)(ushort)((*(ushort*)(arg0 + 0x1A0) & 0xFF) | ((uint8_t)((uint32_t)*(ushort*)(arg0 + 0x1A0) >> 8) & 0xF7) << 8)  );
-    Hooks::SetSolidFlagsHook(internal_arg0, internal_arg1);
-
-    piVar1 = *(uint32_t*)(arg0+0x1FC);
-
-    if(piVar1 != 0)
-    {
-        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(piVar1))+8) );
-        uint8_t returnInternal = pDynamicOneArgFunc(piVar1);
-
-        if(returnInternal != 0)
-        {
-            uint32_t internal_arg0 = (arg0+0x164);
-            uint32_t internal_arg1 = (  (uint32_t)(ushort)((*(ushort*)(arg0 + 0x1A0) & 0xFF) | (ushort)(uint8_t)((uint32_t)*(ushort*)(arg0 + 0x1A0) >> 8) << 8 | 0x800)  );
-            Hooks::SetSolidFlagsHook(internal_arg0, internal_arg1);
-        }
-    }
-
-    if(bVar4)
-    {
-        //rootconsole->ConsolePrint("Updated collision rules #2");
-        Hooks::CollisionRulesChangedHook(arg0);
-    }
-
-    return 0;
-}
-
-uint32_t Hooks::CollisionRulesChangedHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x003D8D20);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t Hooks::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -3473,23 +3387,6 @@ uint32_t Hooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_
     }
 
     return 0;
-}
-
-uint32_t Hooks::SV_TriggerMovedHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(arg0)
-    {
-        uint32_t vTable = *(uint32_t*)(arg0+0xC);
-
-        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(vTable))+0x18) );
-        uint32_t CBaseEntity = pDynamicOneArgFunc(vTable);
-    }
-    
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001D8FD0);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
@@ -3873,12 +3770,8 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0090B2A0), (void*)EmptyCall);*/
 
 
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8DA0), (void*)Hooks::VPhysicsSetObjectPort);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8F30), (void*)Hooks::VPhysicsInitShadowHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)Hooks::CollisionRulesChangedHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)Hooks::Outland_07_Patch);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D4040), (void*)Hooks::Outland_07_Patch_Two);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001D8FD0), (void*)Hooks::SV_TriggerMovedHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006542A0), (void*)Hooks::PhysicsTouchTriggersHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00618AC0), (void*)Hooks::DropshipSimulationCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)Hooks::SetSolidFlagsHook);
