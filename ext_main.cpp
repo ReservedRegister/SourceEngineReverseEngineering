@@ -295,6 +295,10 @@ void ApplyPatches()
     *(uint8_t*)(fix_ai+2) = 0xFF;
     *(uint8_t*)(fix_ai+3) = 0xFF;
 
+    uint32_t hunter_fix_crash = server_srv + 0x005799BB;
+    offset = (uint32_t)Hooks::HunterCrashFixTwo - hunter_fix_crash - 5;
+    *(uint32_t*)(hunter_fix_crash+1) = offset;
+
     uint32_t jmp_vphys = server_srv + 0x00499346;
     *(uint8_t*)(jmp_vphys) = 0xEB;
 
@@ -582,6 +586,20 @@ void ApplyPatches()
     //*(uint32_t*)(disable_achievement_restoring) = (uint32_t)Hooks::EmptyCall;
 }
 
+uint32_t Hooks::HunterCrashFixTwo(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(server_sleeping)
+    {
+        rootconsole->ConsolePrint("Server Sleeping!");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00579750);
+    return pDynamicOneArgFunc(arg0);
+}
+
 uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
@@ -596,6 +614,20 @@ uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AF4110);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t Hooks::HunterThinkCrashFix(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(server_sleeping)
+    {
+        rootconsole->ConsolePrint("Hunter failed to think!");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006F98E0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::FixExplodeInputCrash(uint32_t arg0)
@@ -2261,9 +2293,12 @@ uint32_t Hooks::TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, u
 uint32_t Hooks::TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint(EXT_PREFIX "Restoring %s", arg1);
-
     uint32_t object = (uint32_t)CreateEntityByName(arg1, arg2);
-    uint32_t ref = *(uint32_t*)(object+0x350);
+
+    if(object)
+    {
+        uint32_t ref = *(uint32_t*)(object+0x350);
+    }
 
     return object;
 }
@@ -3389,6 +3424,20 @@ uint32_t Hooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_
     return 0;
 }
 
+uint32_t Hooks::FVisibleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(arg1)
+    {
+        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x006428F0);
+        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+    }
+
+    rootconsole->ConsolePrint("FVisible failed!");
+    return 0;
+}
+
 uint32_t Hooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
@@ -3790,4 +3839,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00945B80), (void*)Hooks::PropCombineBall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004B8F60), (void*)Hooks::TakeDamageHeliFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B9CF00), (void*)Hooks::StringCmpHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F98E0), (void*)Hooks::HunterThinkCrashFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006428F0), (void*)Hooks::FVisibleHook);
 }
