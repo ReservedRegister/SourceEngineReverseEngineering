@@ -1,5 +1,7 @@
-#include "ext_main.h"
+#include "extension.h"
 #include "core.h"
+#include "ext_main.h"
+#include "hooks_specific.h"
 
 void InitExtension()
 {
@@ -236,8 +238,9 @@ void InitExtension()
     HookSpawnServer();
     HookHostChangelevel();
     PatchOthers();
+
     HookFunctions();
-    DisableCacheCvars();
+    HookFunctionsSpecific();
 
 
     RestoreMemoryProtections();
@@ -475,16 +478,6 @@ void ApplyPatches()
     memset((void*)orig_dll_discovery_v2, 0x90, 6);
     RestoreMemoryProtections(orig_dll_discovery_v2, 6);*/
 
-    /*uint32_t patch_restore_stack = server_srv + 0x004AE5B0;
-    *(uint8_t*)(patch_restore_stack) = 0x89;
-    *(uint8_t*)(patch_restore_stack+1) = 0x1C;
-    *(uint8_t*)(patch_restore_stack+2) = 0x24;
-
-    uint32_t patch_restore_base = server_srv + 0x004AE5B3;
-    offset = (uint32_t)RestoreSystemPatchStart - patch_restore_base - 5;
-    *(uint8_t*)(patch_restore_base) = 0xE8;
-    *(uint32_t*)(patch_restore_base+1) = offset;*/
-
     uint32_t hook_game_frame_delete_list = server_srv + 0x00739B32;
     offset = (uint32_t)Hooks::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
@@ -631,131 +624,13 @@ uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
-uint32_t Hooks::HunterThinkCrashFix(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(server_sleeping)
-    {
-        rootconsole->ConsolePrint("Hunter failed to think!");
-        return 0;
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006F98E0);
-    return pDynamicOneArgFunc(arg0);
-}
-
-uint32_t Hooks::FixExplodeInputCrash(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(arg0)
-    {
-        uint32_t refHandle = *(uint32_t*)(arg0+0x350);
-        uint32_t object = GetCBaseEntity(refHandle);
-
-        if(object)
-        {
-            //IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-            uint32_t isMarked = pDynamicOneArgFunc(object+0x18);
-
-            if(isMarked)
-            {
-                rootconsole->ConsolePrint("Failed to service explode! [Marked]");
-                return 0;
-            }
-
-            rootconsole->ConsolePrint("Explode [%s]", *(uint32_t*)(object+0x68));
-
-            uint32_t refHandle_checktwo = *(uint32_t*)(arg0+0x4E8);
-            uint32_t object_two = GetCBaseEntity(refHandle_checktwo);
-
-            if(object_two)
-            {
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00943FD0);
-                return pDynamicOneArgFunc(arg0);
-            }
-        }
-    }
-
-    rootconsole->ConsolePrint("Failed to service explode!");
-    return 0;
-}
-
-uint32_t Hooks::ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t sprite_one_object = *(uint32_t*)(arg0+0x0F88);
-    uint32_t sprite_two_object = *(uint32_t*)(arg0+0x0F8C);
-
-    if(sprite_one_object)
-    {
-        uint32_t sprite_one_refhandle = *(uint32_t*)(sprite_one_object+0x350);
-        uint32_t object_one = GetCBaseEntity(sprite_one_refhandle);
-
-        if(object_one == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x0F88");
-            *(uint32_t*)(arg0+0x0F88) = 0;
-        }
-    }
-
-    if(sprite_two_object)
-    {
-        uint32_t sprite_two_refhandle = *(uint32_t*)(sprite_two_object+0x350);
-        uint32_t object_two = GetCBaseEntity(sprite_two_refhandle);
-
-        if(object_two == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x0F8C");
-            *(uint32_t*)(arg0+0x0F8C) = 0;
-        }
-    }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008B10D0);
-    return pDynamicTwoArgFunc(arg0, arg1);
-}
-
 uint32_t Hooks::AutosaveLoadHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     return 0;
 }
 
-uint32_t Hooks::StuckCrashFix(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(!arg1)
-    {
-        rootconsole->ConsolePrint("Failed to find entity!");
-        return 0;
-    }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B66AE0);
-    return pDynamicTwoArgFunc(arg0, arg1);
-}
-
 uint32_t Hooks::EmptyCall()
 {
-    return 0;
-}
-
-uint32_t Hooks::CitizenNullCrashFix(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00844EC0);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    rootconsole->ConsolePrint("Null ent!");
     return 0;
 }
 
@@ -1581,27 +1456,6 @@ void PatchOthers()
     offset = (uint32_t)pTransitionEntsHookPtr - patch_save_system_one - 5;
     *(uint32_t*)(patch_save_system_one+1) = offset;*/
 
-    /*uint32_t restore_patch_address_two = server_srv + 0x004AE788;
-    memset((void*)restore_patch_address_two, 0x90, 0x28);
-    *(uint8_t*)(restore_patch_address_two) = 0x89;
-    *(uint8_t*)(restore_patch_address_two+1) = 0x1C;
-    *(uint8_t*)(restore_patch_address_two+2) = 0x24;
-
-    uint32_t restore_patch_address_three = server_srv + 0x4AE78B;
-    offset = (uint32_t)RestoreSystemPatch - restore_patch_address_three - 5;
-    *(uint8_t*)(restore_patch_address_three) = 0xE8;
-    *(uint32_t*)(restore_patch_address_three+1) = offset;*/
-
-    /*uint32_t restore_patch_address_four = server_srv + 0x00AF41EF;
-    ChangeMemoryProtections(restore_patch_address_four, 2);
-    memset((void*)restore_patch_address_four, 0x90, 2);
-    RestoreMemoryProtections(restore_patch_address_four, 2);*/
-
-    /*uint32_t restore_patch_address_five = server_srv + 0x00AF429B;
-    ChangeMemoryProtections(restore_patch_address_five, 2);
-    memset((void*)restore_patch_address_five, 0x90, 2);
-    RestoreMemoryProtections(restore_patch_address_five, 2);*/
-
     uint32_t patch_another_cycle = server_srv + 0x00A95A9E;
     *(uint8_t*)(patch_another_cycle) = 0xEB;
 
@@ -1803,37 +1657,6 @@ uint32_t Hooks::SaveRestoreMemManage(uint32_t arg0, uint32_t arg1)
     ReleaseLeakedMemory(leakedResourcesSaveRestoreSystem, false, 0, 0, 100);
 
     return returnVal;
-}
-
-uint32_t Hooks::WeirdCrashPleaseFix(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProtOptLink pDynamicTwoArgFuncOptLink;
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(arg0)
-    {
-        uint32_t refHandle = *(uint32_t*)(arg0+0x350);
-        uint32_t object = GetCBaseEntity(refHandle);
-
-        if(object)
-        {
-            //IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-            uint32_t isMarked = pDynamicOneArgFunc(object+0x18);
-
-            if(!isMarked)
-            {
-                pDynamicTwoArgFuncOptLink = (pTwoArgProtOptLink)(server_srv + 0x00A184A0);
-                return pDynamicTwoArgFuncOptLink(arg0, arg1);
-            }
-        }
-
-        rootconsole->ConsolePrint("Passed in object but was freed already!");
-        return 0;
-    }
-    
-    pDynamicTwoArgFuncOptLink = (pTwoArgProtOptLink)(server_srv + 0x00A184A0);
-    return pDynamicTwoArgFuncOptLink(arg0, arg1);
 }
 
 uint32_t Hooks::RestoreOverride()
@@ -2039,28 +1862,6 @@ uint32_t Hooks::PackedStoreDestructorHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::OldRefUpdateFixOne(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    uint32_t real_object_from_struct = *(uint32_t*)(arg0+0x518);
-
-    if(real_object_from_struct)
-    {
-        uint32_t refHandle = *(uint32_t*)(real_object_from_struct+0x350);
-        uint32_t verified_object = GetCBaseEntity(refHandle);
-
-        if(verified_object == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x518");
-            *(uint32_t*)(arg0+0x518) = 0;
-        }
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00986B70);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t Hooks::SavegameInternalFunction(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -2102,28 +1903,6 @@ uint32_t Hooks::LevelChangedHookFrameSnaps(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::ChkHandle(uint32_t arg0, uint32_t arg1)
-{
-    if(arg1 == 0)
-    {
-        pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    uint32_t m_RefEHandle = *(uint32_t*)(arg1+0x350);
-    uint32_t object = GetCBaseEntity(m_RefEHandle);
-
-    if(object != 0)
-    {
-        //call orig function
-        pTwoArgProt pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
-        return pDynamicTwoArgFunc(arg0, object);
-    }
-
-    rootconsole->ConsolePrint("Invalid entity!!!");
-    return 0;
-}
-
 uint32_t Hooks::FixNullCrash(uint32_t arg0)
 {
     if(arg0 == 0)
@@ -2140,33 +1919,17 @@ uint32_t Hooks::FixNullCrash(uint32_t arg0)
 uint32_t Hooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
+
     uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
     uint32_t object = GetCBaseEntity(refHandle);
 
-    if(object)
+    if(IsEntityValid(object))
     {
         pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0063EB90);
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
     rootconsole->ConsolePrint("Fixed bugbait!");
-    return 0;
-}
-
-uint32_t Hooks::SpotlightHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t ref = *(uint32_t*)(arg1+0x0FD4);
-    uint32_t object = GetCBaseEntity(ref);
-
-    if(object)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008EFFF0);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Failed to service spotlight stuff!");
     return 0;
 }
 
@@ -2212,103 +1975,11 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::PropCombineBall(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    if(arg0)
-    {
-        uint32_t refHandle = *(uint32_t*)(arg0+0x350);
-        uint32_t object = GetCBaseEntity(refHandle);
-
-        if(object)
-        {
-            //IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-            uint32_t isMarked = pDynamicOneArgFunc(object+0x18);
-
-            if(!isMarked)
-            {
-                pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00945B80);
-                return pDynamicThreeArgFunc(arg0, arg1, arg2);
-            }
-        }
-    }
-
-    rootconsole->ConsolePrint("Failed to run function due to entity being marked!");
-    return 0;
-}
-
-uint32_t Hooks::HelicopterBadDetected(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x0EB0);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00622240);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    rootconsole->ConsolePrint("Eli_01 crash fix!");
-    RemoveEntityNormal(arg0, true);
-    return 0;
-}
-
-uint32_t Hooks::HelicopterCrashFix(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-    uint32_t isMarked = pDynamicOneArgFunc(arg0+0x18);
-
-    if(!isMarked)
-    {
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0076CFF0);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    rootconsole->ConsolePrint("Bad heli!");
-    return 0;
-}
-
-uint32_t Hooks::StringCmpHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-    
-    if(arg0 && arg1)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B9CF00);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("NULL string detected!");
-    return 0;
-}
-
-uint32_t Hooks::TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pFourArgProt pDynamicFourArgFunc;
-
-    if(arg1)
-    {
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x004B8F60);
-        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-    }
-
-    rootconsole->ConsolePrint("TakeDamage heli fix!");
-    //RemoveEntityNormal(arg0, true);
-    return 0;
-}
-
 uint32_t Hooks::TransitionEntityCreateCall(uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint(EXT_PREFIX "Restoring %s", arg1);
-    uint32_t object = (uint32_t)CreateEntityByName(arg1, arg2);
+
+    uint32_t object = Hooks::CreateEntityByNameHook(arg1, arg2);
 
     if(object)
     {
@@ -2529,16 +2200,8 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
     return returnVal;
 }
 
-void DisableCacheCvars()
-{
-    EnqueueCommandFunc((uint32_t)"mod_forcetouchdata 0");
-    EnqueueCommandFunc((uint32_t)"mod_forcedata 0");
-}
-
 uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
 {
-    DisableCacheCvars();
-
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
@@ -2557,13 +2220,15 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     {
         //UnloadAllModels
         pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0014D480);
-        pDynamicTwoArgFunc(engine_srv + 0x00317380, 1);
+        pDynamicTwoArgFunc(engine_srv + 0x00317380, 0);
 
         //ReloadAllMaterials
         //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003E440);
         //pDynamicTwoArgFunc(materialsystem_srv + 0x00134B20, 0);
 
-        UnmountPaths(arg0);
+        //UnmountPaths
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
+        pDynamicOneArgFunc(arg0);
         
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C9AF0);
         pDynamicOneArgFunc(arg0);
@@ -2712,95 +2377,6 @@ uint32_t Hooks::FindEntityByName(uint32_t arg0, uint32_t arg1, uint32_t arg2, ui
     return object;
 }
 
-uint32_t Hooks::UnmountPaths(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5CA0);
-    return pDynamicOneArgFunc(arg0);
-}
-
-uint32_t Hooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    uint32_t deref_arg4 = *(uint32_t*)(arg1);
-
-    if(deref_arg4)
-    {
-        uint32_t eHandle = *(uint32_t*)(deref_arg4+0x4);
-        uint32_t object = GetCBaseEntity(eHandle);
-
-        if(object)
-        {
-            //Call orig func
-            pThreeArgProt pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0057D930);
-            return pDynamicThreeArgFunc(arg0, arg1, arg2);
-        }
-    }
-
-    rootconsole->ConsolePrint("Failed to obtain object!");
-    return 0;
-}
-
-uint32_t Hooks::TransitionFixTheSecond(uint32_t arg0)
-{
-    if(arg0)
-    {
-        uint32_t eax = *(uint32_t*)(arg0+0x150);
-        uint32_t object = GetCBaseEntity(eax);
-
-        if(object)
-        {
-            uint32_t vphysics_object = *(uint32_t*)(object+0x1FC);
-
-            if(vphysics_object)
-            {
-                pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005A8680);
-                return pDynamicOneArgFunc(arg0);
-            }
-        }
-    }
-
-    rootconsole->ConsolePrint("Failed to validate resource!");
-    return 0;
-}
-
-uint32_t Hooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
-{
-    uint32_t npc_combine_s = *(uint32_t*)(arg0+0x4);
-
-    if(npc_combine_s)
-    {
-        pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(npc_combine_s))+0x180)    );
-        uint32_t returnVal = pDynamicOneArgFunc(npc_combine_s); 
-
-        if(returnVal)
-        {
-            //Call orig
-            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0058FBD0);
-            return pDynamicOneArgFunc(arg0);
-        }
-    }
-
-    //rootconsole->ConsolePrint("nah");
-    return 0;
-}
-
-uint32_t Hooks::PatchMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(arg1)) +0x180 ) );
-    uint32_t entity_object = pDynamicOneArgFunc(arg1);
-
-    if(entity_object)
-    {
-        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008BF9D0);
-        return pDynamicThreeArgFunc(arg0, arg1, arg2);
-    }
-
-    rootconsole->ConsolePrint("Warning: Failed to obtain the object");
-    return 0;
-}
-
 uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
 {
     pZeroArgProt pDynamicZeroArgFunc;
@@ -2901,7 +2477,6 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     }*/
 
     ReleasePlayerSavedList();
-    DisableCacheCvars();
 
     //Remove soundent forever
     //pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00ADDAC0);
@@ -3191,98 +2766,6 @@ uint32_t Hooks::GetClientSteamIDHook(uint32_t arg0, uint32_t arg1)
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t Hooks::PhysicsTouchTriggersHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006542A0);
-    return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t Hooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-
-    short sVar1;
-    uint32_t uVar2;
-    int iVar3;
-    uint32_t piVar4;
-
-    if(*(uint32_t*)(arg0 + 0x24) == 0 )
-    {
-        uVar2 = 1;
-        iVar3 = 0;
-    }
-    else
-    {
-        sVar1 = *(short*)( *(uint32_t*)(arg0 + 0x24) + 6);
-        uVar2 = 1 << ((uint8_t)sVar1 & 0x1F);
-        iVar3 = ((uint32_t)(int)sVar1 >> 5) << 2;
-    }
-
-    if( ( *(uint32_t*) (*(uint32_t*)(arg1 + 0x2008) + iVar3) & uVar2  ) == 0  )
-    {
-        arg2 = arg2 & 0xFF;
-
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0076B680);
-        pDynamicFourArgFunc(arg0, arg1, arg2, arg2);
-
-        if(0 < *(uint32_t*)(arg0 + 0x10C0))
-        {
-            iVar3 = 0;
-            
-            do
-            {
-                uVar2 = *(uint32_t*)(arg0 + 0x10AC + iVar3 * 4);
-                piVar4 = GetCBaseEntity(uVar2);
-
-                iVar3 = iVar3 + 1;
-
-                if(piVar4)
-                {
-                    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)(piVar4))+0x54));
-                    pDynamicThreeArgFunc(piVar4, arg1, arg2);
-
-                    //rootconsole->ConsolePrint("NEW FUNC HOOK WORKED!");
-                }
-                else
-                {
-                    rootconsole->ConsolePrint(EXT_PREFIX "BaseEntity null crash fixed!");
-                }
-
-            }
-            while(iVar3 < *(int*)(arg0 + 0x10C0));
-        }
-    }
-
-    return 0;
-}
-
-uint32_t Hooks::AiHintNpcCombinePatch(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-    
-    if(arg1 == 0)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00566CA0);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-    
-    uint32_t refHandle = *(uint32_t*)(arg1+0x350);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00566CA0);
-        return pDynamicTwoArgFunc(arg0, object);
-    }
-
-    rootconsole->ConsolePrint("Broken entity!");
-    return 0;
-}
-
 uint32_t Hooks::IsAllowChangelevel()
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -3345,149 +2828,6 @@ uint32_t Hooks::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t Hooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-    
-    uint32_t uVar1;
-    int *piVar2;
-    int iVar3;
-    
-    if(0 < *(int*)(arg0 + 0x48))
-    {
-        iVar3 = 0;
-
-        if(arg1 == 0)
-        {
-            do
-            {
-                while(uVar1 = *(uint32_t*)(arg0 + 8 + iVar3 * 4), uVar1 == 0xFFFFFFFF)
-                {
-                    //LAB_00628b70:
-
-                    iVar3 = iVar3 + 1;
-
-                    if(*(int*)(arg0 + 0x48) <= iVar3)
-                    {
-                        return 0;
-                    }
-                }
-                
-                uint32_t object = GetCBaseEntity(uVar1);
-
-                if(object)
-                {
-                    pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(object))+0x7CC)  );
-                    pDynamicFourArgFunc(object, arg2, arg3, 0);
-                }
-
-                /*if (*(uint *)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 8) == uVar1 >> 0xc)
-                {
-                    piVar2 = *(int **)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 4);
-                    
-                    if (piVar2 != (int *)0x0)
-                    {
-                        (**(code **)(*piVar2 + 0x7cc))(piVar2,param_3,param_4,0);
-                    }
-                    
-                    goto LAB_00628b70;
-                }*/
-                
-                iVar3 = iVar3 + 1;
-                
-                if(*(int*)(arg0 + 0x48) <= iVar3)
-                {
-                    return 0;
-                }
-            }
-            while(true);
-        }
-        
-        do
-        {
-            uVar1 = *(uint32_t*)(arg0 + 8 + iVar3 * 4);
-
-            uint32_t object = GetCBaseEntity(uVar1);
-
-            if(object && (object != arg1))
-            {
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(object))+0x7CC)  );
-                pDynamicFourArgFunc(object, arg2, arg3, arg1);
-            }
-            
-            /*if (uVar1 == 0xffffffff)
-            {
-                piVar2 = (int *)0x0;
-                LAB_00628b0b:
-                (**(code **)(*piVar2 + 0x7cc))(piVar2,param_3,param_4,param_2);
-            }
-            else
-            {
-                piVar2 = (int *)0x0;
-                
-                if ((*(uint *)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 8) != uVar1 >> 0xc) ||
-                (piVar2 = *(int **)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 4), param_2 != piVar2))
-                goto LAB_00628b0b;
-            }*/
-            
-            iVar3 = iVar3 + 1;
-        }
-        while(*(int*)(arg0 + 0x48) != iVar3 && iVar3 <= *(int*)(arg0 + 0x48));
-    }
-
-    return 0;
-}
-
-uint32_t Hooks::FVisibleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pFourArgProt pDynamicFourArgFunc;
-
-    if(arg1)
-    {
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x006428F0);
-        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-    }
-
-    rootconsole->ConsolePrint("FVisible failed!");
-    return 0;
-}
-
-uint32_t Hooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pFourArgProt pDynamicFourArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x006D4040);
-        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-    }
-
-    rootconsole->ConsolePrint("Missing Entity! - Two");
-    return 0;
-}
-
-uint32_t Hooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0058BC50);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Missing entity!");
-    return 0;
-}
-
 uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
 {
     uint32_t refHandle = *(uint32_t*)(arg0+0x350);
@@ -3512,42 +2852,6 @@ uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
 
     rootconsole->ConsolePrint("Invalid Entity in vphysics!");
     exit(EXIT_FAILURE);
-    return 0;
-}
-
-uint32_t Hooks::AssaultNpcFix(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(arg0)
-    {
-        uint32_t refCheck = *(uint32_t*)(arg0+0x14);
-        uint32_t object = GetCBaseEntity(refCheck);
-
-        if(object)
-        {
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00576230);
-            return pDynamicTwoArgFunc(arg0, arg1);
-        }
-    }
-
-    rootconsole->ConsolePrint("Failed to find valid entity!");
-    return 0;
-}
-
-uint32_t Hooks::BaseNPCHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(IsEntityValid(arg0) && !server_sleeping)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0056C350);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    //rootconsole->ConsolePrint("Start Task failed!");
     return 0;
 }
 
@@ -3601,22 +2905,6 @@ uint32_t Hooks::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     return 0;
 }
 
-uint32_t Hooks::AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    uint32_t validEnt = IsEntityValid(arg0);
-
-    if(validEnt)
-    {
-        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A38660);
-        return pDynamicThreeArgFunc(arg0, arg1, arg2);
-    }
-
-    rootconsole->ConsolePrint("Entity is NOT valid!");
-    return 0;
-}
-
 void HookFunctions()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009B09F0), (void*)Hooks::ParseMapEntities);
@@ -3624,19 +2912,11 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AFCA0), (void*)Hooks::CreateEntityByNameHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEF9E0), (void*)Hooks::PreEdtLoad);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001A5FB0), (void*)Hooks::LevelChangedHookFrameSnaps);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00566CA0), (void*)Hooks::AiHintNpcCombinePatch);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001CC730), (void*)Hooks::GetClientSteamIDHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x000D6820), (void*)Hooks::fix_wheels_hook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008EFFF0), (void*)Hooks::SpotlightHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AE0), (void*)Hooks::StuckCrashFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A184A0), (void*)Hooks::WeirdCrashPleaseFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)Hooks::CitizenNullCrashFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00986B70), (void*)Hooks::OldRefUpdateFixOne);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0076CFF0), (void*)Hooks::HelicopterCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF4530), (void*)Hooks::AutosaveLoadHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00652B10), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074A4A0), (void*)Hooks::SetGlobalState);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008BF9D0), (void*)Hooks::PatchMissingCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF4110), (void*)Hooks::MainPlayerRestoreHook);
 
     /*rootconsole->ConsolePrint("patching calloc()");
@@ -3805,10 +3085,7 @@ void HookFunctions()
 
 
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004C5CA0), (void*)Hooks::UnmountPaths);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), (void*)Hooks::PlayerloadSavedHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005A8680), (void*)Hooks::TransitionFixTheSecond);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), (void*)Hooks::PatchAnotherPlayerAccessCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B043C0), (void*)Hooks::PlayerSpawnDirectHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), (void*)Hooks::GivePlayerWeaponsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), (void*)Hooks::FindEntityByHandle);
@@ -3822,8 +3099,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), (void*)Hooks::PlayerSpawnHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0019C860), (void*)Hooks::PlayerLoadHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)Hooks::SavegameInternalFunction);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)Hooks::ChkHandle);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), (void*)Hooks::BarneyThinkHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A311D0), (void*)Hooks::PhysSimEnt);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), (void*)Hooks::EmptyCall);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), (void*)Hooks::EmptyCall);
@@ -3833,7 +3108,6 @@ void HookFunctions()
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), (void*)Hooks::LevelChangeSafeHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), (void*)Hooks::SV_FrameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), (void*)Hooks::FixBaseEntityNullCrash);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098D1A0), (void*)Hooks::PlayerDeathHook);
 
 
@@ -3851,27 +3125,11 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0090B2A0), (void*)EmptyCall);*/
 
 
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)Hooks::Outland_07_Patch);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D4040), (void*)Hooks::Outland_07_Patch_Two);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006542A0), (void*)Hooks::PhysicsTouchTriggersHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00618AC0), (void*)Hooks::DropshipSimulationCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)Hooks::SetSolidFlagsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0086A6A0), (void*)Hooks::DropshipSpawnHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00576230), (void*)Hooks::AssaultNpcFix);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BD1B0), (void*)Hooks::PackedStoreConstructorHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BAE80), (void*)Hooks::PackedStoreDestructorHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00654F80), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065BD80), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B67F10), (void*)Hooks::UTIL_PrecacheOther_Hook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)Hooks::BaseNPCHook);
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B10D0), (void*)Hooks::ManhackSpriteEntVerify);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00943FD0), (void*)Hooks::FixExplodeInputCrash);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00622240), (void*)Hooks::HelicopterBadDetected);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00945B80), (void*)Hooks::PropCombineBall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004B8F60), (void*)Hooks::TakeDamageHeliFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B9CF00), (void*)Hooks::StringCmpHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F98E0), (void*)Hooks::HunterThinkCrashFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006428F0), (void*)Hooks::FVisibleHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A38660), (void*)Hooks::AnotherObjectMissingCheck);
 }

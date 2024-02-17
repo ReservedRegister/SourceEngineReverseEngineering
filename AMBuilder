@@ -7,7 +7,8 @@ projectName = 'synergy_utils'
 sourceFiles = [
   'extension.cpp',
   'core.cpp',
-  'ext_main.cpp'
+  'ext_main.cpp',
+  'hooks_specific.cpp'
 ]
 
 ###############

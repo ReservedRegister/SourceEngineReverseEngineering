@@ -1,3 +1,4 @@
+#include "extension.h"
 #include "core.h"
 #include "ext_main.h"
 
