@@ -3592,7 +3592,9 @@ uint32_t Hooks::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     // arg0 is scrubbed
 
-    rootconsole->ConsolePrint("Restore failed for [%s]", arg2);
+    uint32_t classname = *(uint32_t*)(arg1+0x68);
+
+    rootconsole->ConsolePrint("Restore failed for [%s] [%s]", classname, arg2);
     RemoveEntityNormal(arg1, true);
 
     player_restore_failed = true;
