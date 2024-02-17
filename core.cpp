@@ -138,6 +138,7 @@ int car_delay_for_save;
 bool removing_ents_restore;
 int restore_start_delay;
 uint32_t fake_sequence_mem;
+bool player_restore_failed;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -3166,8 +3167,10 @@ void RestorePlayers()
         //Restore Player
         uint8_t returnVal = MainPlayerRestore__External((*(uint32_t*)(server_srv + 0x00FA0CF0)), playerEnt, 1);
 
-        if(returnVal == 0)
+        if(returnVal == 0 || player_restore_failed)
         {
+            player_restore_failed = false;
+
             PlayerSpawnHook__External(playerEnt, 1, 1);
 
             pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)(playerEnt))+0x5C));

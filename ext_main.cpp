@@ -37,6 +37,7 @@ void InitExtension()
     removing_ents_restore = false;
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
+    player_restore_failed = false;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -267,7 +268,10 @@ void ApplyPatches()
         0x009B56B4,5,0x00B027D5,8,
 
         //post systems remove
-        0x00739B37,5
+        0x00739B37,5,
+
+        //restore
+        0x00AF4361,0x14
 
         //CleanupDeleteList calls
         /*0x00739AF1,5,0x00A316F0,5,0x00739B48,5*/
@@ -294,6 +298,10 @@ void ApplyPatches()
     *(uint8_t*)(fix_ai+1) = 0xFF;
     *(uint8_t*)(fix_ai+2) = 0xFF;
     *(uint8_t*)(fix_ai+3) = 0xFF;
+
+    uint32_t restore_fix = server_srv + 0x00AF4380;
+    offset = (uint32_t)Hooks::RepairPlayerRestore - restore_fix - 5;
+    *(uint32_t*)(restore_fix+1) = offset;
 
     uint32_t hunter_fix_crash = server_srv + 0x005799BB;
     offset = (uint32_t)Hooks::HunterCrashFixTwo - hunter_fix_crash - 5;
@@ -492,6 +500,14 @@ void ApplyPatches()
     uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
     offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_one - 5;
     *(uint32_t*)(weapon_hook_one+1) = offset;
+
+    uint32_t weapon_hook_two = server_srv + 0x0084F2A3;
+    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_two - 5;
+    *(uint32_t*)(weapon_hook_two+1) = offset;
+
+    uint32_t weapon_hook_three = server_srv + 0x0084F2BC;
+    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_three - 5;
+    *(uint32_t*)(weapon_hook_three+1) = offset;
 
     /*uint32_t changelevel_patch = server_srv + 0x004CB2FE;
     memset((void*)changelevel_patch, 0x90, 0xF);
@@ -3529,7 +3545,7 @@ uint32_t Hooks::BaseNPCHook(uint32_t arg0, uint32_t arg1)
     uint32_t refHandle = *(uint32_t*)(arg0+0x350);
     uint32_t object = GetCBaseEntity(refHandle);
 
-    if(object)
+    if(object && !server_sleeping)
     {
         //IsMarkedForDeletion
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
@@ -3583,6 +3599,33 @@ uint32_t Hooks::SetGlobalState(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0074A4A0);
     return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t Hooks::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    // arg0 is scrubbed
+
+    rootconsole->ConsolePrint("Restore failed for [%s]", arg2);
+    RemoveEntityNormal(arg1, true);
+
+    player_restore_failed = true;
+    return 0;
+}
+
+uint32_t Hooks::AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    uint32_t validEnt = IsEntityValid(arg0);
+
+    if(validEnt)
+    {
+        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A38660);
+        pDynamicThreeArgFunc(arg0, arg1, arg2);
+    }
+
+    rootconsole->ConsolePrint("Entity is NOT valid!");
+    return 0;
 }
 
 void HookFunctions()
@@ -3841,4 +3884,5 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B9CF00), (void*)Hooks::StringCmpHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F98E0), (void*)Hooks::HunterThinkCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006428F0), (void*)Hooks::FVisibleHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A38660), (void*)Hooks::AnotherObjectMissingCheck);
 }
