@@ -3608,7 +3608,7 @@ uint32_t Hooks::AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t
     if(validEnt)
     {
         pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A38660);
-        pDynamicThreeArgFunc(arg0, arg1, arg2);
+        return pDynamicThreeArgFunc(arg0, arg1, arg2);
     }
 
     rootconsole->ConsolePrint("Entity is NOT valid!");
