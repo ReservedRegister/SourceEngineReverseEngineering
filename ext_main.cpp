@@ -35,7 +35,7 @@ void InitExtension()
     saving_game_rightnow = false;
     weapon_substitute = 0xFFFFFFFF;
     server_sleeping = false;
-    car_delay_for_save = 10;
+    car_delay_for_save = 15;
     removing_ents_restore = false;
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
@@ -2530,7 +2530,7 @@ uint32_t Hooks::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(car_delay_for_save < 10)
+    if(car_delay_for_save < 15)
     {
         rootconsole->ConsolePrint("Prevented vehicle exit!");
         return 0;
@@ -2578,7 +2578,7 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     if(mapHasEndedDelayFrames >= 500) mapHasEndedDelayFrames = 0;
     if(after_restore_frames >= 500) after_restore_frames = 0;
     if(game_start_frames >= 1000) game_start_frames = 1000;
-    if(car_delay_for_save >= 1000) car_delay_for_save = 10;
+    if(car_delay_for_save >= 1000) car_delay_for_save = 15;
     if(restore_start_delay >= 1000) restore_start_delay = 201;
 
     if(restore_delay && !restore_delay_lock)
