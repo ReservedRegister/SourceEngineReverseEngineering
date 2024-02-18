@@ -31,6 +31,22 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006F98E0), (void*)NativeHooks::HunterThinkCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006428F0), (void*)NativeHooks::FVisibleHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A38660), (void*)NativeHooks::AnotherObjectMissingCheck);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1E540), (void*)NativeHooks::InterPenetrationFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::AiThinkFix);
+}
+
+uint32_t NativeHooks::InterPenetrationFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
+{
+    pFiveArgProt pDynamicFiveArgProt;
+
+    if(restoring)
+    {
+        rootconsole->ConsolePrint("Penetration disabled while restoring!");
+        return 0;
+    }
+
+    pDynamicFiveArgProt = (pFiveArgProt)(server_srv + 0x00A1E540);
+    return pDynamicFiveArgProt(arg0, arg1, arg2, arg3, arg4);
 }
 
 uint32_t NativeHooks::AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -145,28 +161,16 @@ uint32_t NativeHooks::ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1)
     uint32_t sprite_one_object = *(uint32_t*)(arg0+0x0F88);
     uint32_t sprite_two_object = *(uint32_t*)(arg0+0x0F8C);
 
-    if(sprite_one_object)
+    if(IsEntityValid(sprite_one_object) == 0)
     {
-        uint32_t sprite_one_refhandle = *(uint32_t*)(sprite_one_object+0x350);
-        uint32_t object_one = GetCBaseEntity(sprite_one_refhandle);
-
-        if(object_one == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x0F88");
-            *(uint32_t*)(arg0+0x0F88) = 0;
-        }
+        rootconsole->ConsolePrint("Manual correction: 0x0F88");
+        *(uint32_t*)(arg0+0x0F88) = 0;
     }
 
-    if(sprite_two_object)
+    if(IsEntityValid(sprite_two_object) == 0)
     {
-        uint32_t sprite_two_refhandle = *(uint32_t*)(sprite_two_object+0x350);
-        uint32_t object_two = GetCBaseEntity(sprite_two_refhandle);
-
-        if(object_two == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x0F8C");
-            *(uint32_t*)(arg0+0x0F8C) = 0;
-        }
+        rootconsole->ConsolePrint("Manual correction: 0x0F8C");
+        *(uint32_t*)(arg0+0x0F8C) = 0;
     }
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008B10D0);
@@ -177,33 +181,17 @@ uint32_t NativeHooks::FixExplodeInputCrash(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(arg0)
+    if(IsEntityValid(arg0))
     {
-        uint32_t refHandle = *(uint32_t*)(arg0+0x350);
-        uint32_t object = GetCBaseEntity(refHandle);
+        rootconsole->ConsolePrint("Explode [%s]", *(uint32_t*)(arg0+0x68));
 
-        if(object)
+        uint32_t refHandle_checktwo = *(uint32_t*)(arg0+0x4E8);
+        uint32_t object_two = GetCBaseEntity(refHandle_checktwo);
+
+        if(IsEntityValid(object_two))
         {
-            //IsMarkedForDeletion
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-            uint32_t isMarked = pDynamicOneArgFunc(object+0x18);
-
-            if(isMarked)
-            {
-                rootconsole->ConsolePrint("Failed to service explode! [Marked]");
-                return 0;
-            }
-
-            rootconsole->ConsolePrint("Explode [%s]", *(uint32_t*)(object+0x68));
-
-            uint32_t refHandle_checktwo = *(uint32_t*)(arg0+0x4E8);
-            uint32_t object_two = GetCBaseEntity(refHandle_checktwo);
-
-            if(object_two)
-            {
-                pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00943FD0);
-                return pDynamicOneArgFunc(arg0);
-            }
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00943FD0);
+            return pDynamicOneArgFunc(arg0);
         }
     }
 
@@ -252,16 +240,10 @@ uint32_t NativeHooks::OldRefUpdateFixOne(uint32_t arg0)
 
     uint32_t real_object_from_struct = *(uint32_t*)(arg0+0x518);
 
-    if(real_object_from_struct)
+    if(IsEntityValid(real_object_from_struct) == 0)
     {
-        uint32_t refHandle = *(uint32_t*)(real_object_from_struct+0x350);
-        uint32_t verified_object = GetCBaseEntity(refHandle);
-
-        if(verified_object == 0)
-        {
-            rootconsole->ConsolePrint("Manual correction: 0x518");
-            *(uint32_t*)(arg0+0x518) = 0;
-        }
+        rootconsole->ConsolePrint("Manual correction: 0x518");
+        *(uint32_t*)(arg0+0x518) = 0;
     }
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00986B70);
@@ -330,28 +312,31 @@ uint32_t NativeHooks::SpotlightHook(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t NativeHooks::BaseNPCHook(uint32_t arg0, uint32_t arg1)
+uint32_t NativeHooks::AiThinkFix(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(server_sleeping && !firstplayer_hasjoined)
+    if(server_sleeping)
+    {
+        rootconsole->ConsolePrint("Blocked while server sleeps!");
+        return 0;
+    }
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0056C350);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t NativeHooks::BaseNPCHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg0))
     {
         pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0056C350);
         return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    if(IsEntityValid(arg0) && !server_sleeping)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0056C350);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    if(!server_sleeping)
-    {
-        rootconsole->ConsolePrint("Start Task failed!");
     }
     
+    rootconsole->ConsolePrint("Start Task failed!");
     return 0;
 }
 
@@ -365,7 +350,7 @@ uint32_t NativeHooks::AssaultNpcFix(uint32_t arg0, uint32_t arg1)
         uint32_t refCheck = *(uint32_t*)(arg0+0x14);
         uint32_t object = GetCBaseEntity(refCheck);
 
-        if(object)
+        if(IsEntityValid(object))
         {
             pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00576230);
             return pDynamicTwoArgFunc(arg0, arg1);
@@ -384,7 +369,7 @@ uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
     uint32_t refHandle = *(uint32_t*)(arg0+0x44);
     uint32_t object = GetCBaseEntity(refHandle);
 
-    if(object)
+    if(IsEntityValid(object))
     {
         pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0058BC50);
         return pDynamicTwoArgFunc(arg0, arg1);
@@ -425,7 +410,7 @@ uint32_t NativeHooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, u
                 
                 uint32_t object = GetCBaseEntity(uVar1);
 
-                if(object)
+                if(IsEntityValid(object))
                 {
                     pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(object))+0x7CC)  );
                     pDynamicFourArgFunc(object, arg2, arg3, 0);
@@ -458,6 +443,7 @@ uint32_t NativeHooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, u
             uVar1 = *(uint32_t*)(arg0 + 8 + iVar3 * 4);
 
             uint32_t object = GetCBaseEntity(uVar1);
+            object = IsEntityValid(object);
 
             if(object && (object != arg1))
             {
@@ -528,7 +514,7 @@ uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint3
 
                 iVar3 = iVar3 + 1;
 
-                if(piVar4)
+                if(IsEntityValid(piVar4))
                 {
                     pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)(piVar4))+0x54));
                     pDynamicThreeArgFunc(piVar4, arg1, arg2);

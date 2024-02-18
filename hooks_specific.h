@@ -33,6 +33,8 @@ public:
 	static uint32_t HunterThinkCrashFix(uint32_t arg0);
 	static uint32_t FVisibleHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t InterPenetrationFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
+	static uint32_t AiThinkFix(uint32_t arg0, uint32_t arg1);
 };
 
 #endif
