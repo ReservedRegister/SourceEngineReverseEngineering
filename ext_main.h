@@ -69,11 +69,9 @@ public:
 	static uint32_t HookEntityDelete(uint32_t arg0);
 	static uint32_t SaveOverride(uint32_t arg1);
 	static uint32_t SavegameInternalFunction(uint32_t arg0);
-	static uint32_t PlayerLoadHook(uint32_t arg0);
 	static uint32_t PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t LevelChangeSafeHook(uint32_t arg0);
 	static uint32_t PhysSimEnt(uint32_t arg0);
-	static uint32_t GivePlayerWeaponsHook(uint32_t arg0);
 	static uint32_t FindEntityByHandle(uint32_t arg0, uint32_t arg1);
 	static uint32_t FindEntityByClassnameHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t CleanupDeleteListHook(uint32_t arg0);

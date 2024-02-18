@@ -2301,15 +2301,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     //return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::PlayerLoadHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x0019C860);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t Hooks::PlayerSpawnHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     rootconsole->ConsolePrint("called the main spawn info sender!");
@@ -2342,12 +2333,6 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
 
     firstplayer_hasjoined = true;
     return returnVal;
-}
-
-uint32_t Hooks::GivePlayerWeaponsHook(uint32_t arg0)
-{
-    GivePlayerWeapons(arg0, false);
-    return 0;
 }
 
 uint32_t Hooks::FindEntityByHandle(uint32_t arg0, uint32_t arg1)
@@ -3087,7 +3072,6 @@ void HookFunctions()
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A4B8C0), (void*)Hooks::PlayerloadSavedHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B043C0), (void*)Hooks::PlayerSpawnDirectHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098ECC0), (void*)Hooks::GivePlayerWeaponsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B26B0), (void*)Hooks::FindEntityByHandle);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2740), (void*)Hooks::FindEntityByClassnameHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006B2CA0), (void*)Hooks::FindEntityByName);
@@ -3097,7 +3081,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B64630), (void*)Hooks::HookInstaKill);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3990), (void*)Hooks::SaveOverride);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B01A90), (void*)Hooks::PlayerSpawnHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0019C860), (void*)Hooks::PlayerLoadHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)Hooks::SavegameInternalFunction);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A311D0), (void*)Hooks::PhysSimEnt);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), (void*)Hooks::EmptyCall);
