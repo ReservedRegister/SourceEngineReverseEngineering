@@ -33,6 +33,21 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A38660), (void*)NativeHooks::AnotherObjectMissingCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1E540), (void*)NativeHooks::InterPenetrationFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::AiThinkFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
+}
+
+uint32_t NativeHooks::CrashFixForHibernation(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(server_sleeping)
+    {
+        rootconsole->ConsolePrint("Do not run while server sleeps!");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008DA5A0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t NativeHooks::InterPenetrationFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)

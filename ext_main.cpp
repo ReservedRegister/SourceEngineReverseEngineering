@@ -618,7 +618,10 @@ uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg
     if(playerID == 0)
     {
         rootconsole->ConsolePrint("Player was not authenticated properly");
+        return 0;
     }
+
+    rootconsole->ConsolePrint("Restore Player ID: [%p]", playerID);
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00AF4110);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -1663,7 +1666,7 @@ uint32_t Hooks::RestoreOverride()
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(savegame || restoring || mapHasEnded) return 0;
+    if(savegame || restoring || mapHasEnded || server_sleeping) return 0;
 
     if(!hasSavedOnce)
     {
@@ -2367,7 +2370,7 @@ uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
-    if(savegame || restoring || mapHasEnded) return 0;
+    if(savegame || restoring || mapHasEnded || server_sleeping) return 0;
 
     if(!hasSavedOnce)
     {
