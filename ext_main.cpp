@@ -502,6 +502,10 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_three - 5;
     *(uint32_t*)(weapon_hook_three+1) = offset;
 
+    uint32_t weapon_hook_four = server_srv + 0x0085584D;
+    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_four - 5;
+    *(uint32_t*)(weapon_hook_four+1) = offset;
+
     /*uint32_t changelevel_patch = server_srv + 0x004CB2FE;
     memset((void*)changelevel_patch, 0x90, 0xF);
     offset = (uint32_t)Hooks::IsAllowChangelevel - changelevel_patch - 5;
