@@ -34,6 +34,22 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A1E540), (void*)NativeHooks::InterPenetrationFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::AiThinkFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
+}
+
+uint32_t NativeHooks::FixMissingObjectHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00625A30);
+        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+    }
+
+    rootconsole->ConsolePrint("Failed because entity was marked!");
+    return 0;
 }
 
 uint32_t NativeHooks::CrashFixForHibernation(uint32_t arg0)
@@ -214,6 +230,23 @@ uint32_t NativeHooks::FixExplodeInputCrash(uint32_t arg0)
     return 0;
 }
 
+uint32_t NativeHooks::PatchMissingCheckTwo(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(arg0)) +0x180 ) );
+    uint32_t entity_object = pDynamicOneArgFunc(arg0);
+
+    if(IsEntityValid(entity_object))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0081E0C0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Warning: Failed to obtain the object");
+    return 0;
+}
+
 uint32_t NativeHooks::PatchMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -222,7 +255,7 @@ uint32_t NativeHooks::PatchMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t a
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)( (*(uint32_t*)(arg1)) +0x180 ) );
     uint32_t entity_object = pDynamicOneArgFunc(arg1);
 
-    if(entity_object)
+    if(IsEntityValid(entity_object))
     {
         pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x008BF9D0);
         return pDynamicThreeArgFunc(arg0, arg1, arg2);

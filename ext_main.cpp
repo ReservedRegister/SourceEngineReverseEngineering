@@ -243,6 +243,16 @@ void InitExtension()
     HookFunctionsSpecific();
 
 
+    //FORCE MEMORY
+    *(uint8_t*)((server_srv + 0x00544C51)+0) = 0xF3;
+    *(uint8_t*)((server_srv + 0x00544C51)+1) = 0x0F;
+    *(uint8_t*)((server_srv + 0x00544C51)+2) = 0x10;
+    *(uint8_t*)((server_srv + 0x00544C51)+3) = 0x05;
+    *(uint8_t*)((server_srv + 0x00544C51)+4) = 0x1C;
+    *(uint8_t*)((server_srv + 0x00544C51)+5) = 0x11;
+    *(uint8_t*)((server_srv + 0x00544C51)+6) = 0xC3;
+    *(uint8_t*)((server_srv + 0x00544C51)+7) = 0x00;
+
     RestoreMemoryProtections();
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
 }
@@ -1147,6 +1157,30 @@ uint32_t Hooks::FrameLockHook(uint32_t arg0)
     restoring = false;
     isTicking = false;
     hasSavedOnce = false;
+
+
+    bool mem_pass_one = *(uint8_t*)((server_srv + 0x00544C51)+0) == 0xF3;
+    bool mem_pass_two = *(uint8_t*)((server_srv + 0x00544C51)+1) == 0x0F;
+    bool mem_pass_three = *(uint8_t*)((server_srv + 0x00544C51)+2) == 0x10;
+    bool mem_pass_four = *(uint8_t*)((server_srv + 0x00544C51)+3) == 0x05;
+    bool mem_pass_five = *(uint8_t*)((server_srv + 0x00544C51)+4) == 0x1C;
+    bool mem_pass_six = *(uint8_t*)((server_srv + 0x00544C51)+5) == 0x11;
+    bool mem_pass_seven = *(uint8_t*)((server_srv + 0x00544C51)+6) == 0xC3;
+    bool mem_pass_eight = *(uint8_t*)((server_srv + 0x00544C51)+7) == 0x00;
+
+    if(!(mem_pass_one && 
+    mem_pass_two && 
+    mem_pass_three && 
+    mem_pass_four && 
+    mem_pass_five &&
+    mem_pass_six &&
+    mem_pass_seven &&
+    mem_pass_eight))
+    {
+        rootconsole->ConsolePrint("Virtual Memory Failed Integrity Checks Exiting...");
+        exit(EXIT_FAILURE);
+    }
+
 
     LogVpkMemoryLeaks();
 
