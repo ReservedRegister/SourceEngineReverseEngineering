@@ -111,8 +111,13 @@ uint32_t NativeHooks::FixMissingObjectHook(uint32_t arg0, uint32_t arg1, uint32_
 
     if(IsEntityValid(arg0))
     {
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00625A30);
-        return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+        uint32_t vphysics_object = *(uint32_t*)(arg0+0x1FC);
+
+        if(vphysics_object)
+        {
+            pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00625A30);
+            return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+        }
     }
 
     rootconsole->ConsolePrint("Failed because entity was marked!");
