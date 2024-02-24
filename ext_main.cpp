@@ -8,7 +8,6 @@ void InitExtension()
     InitCore();
     AllowWriteToMappedMemory();
 
-
     transition = false;
     savegame = false;
     savegame_lock = false;
@@ -136,9 +135,9 @@ void InitExtension()
     saved_triggers = AllocateValuesList();
     new_player_join_ref = AllocateValuesList();
 
-    pOneArgProt pDynamicOneArgFunc;
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
-    uint32_t currentTag = pDynamicOneArgFunc(server_srv + 0x00FE17E0);
+    //pOneArgProt pDynamicOneArgFunc;
+    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5950);
+    //uint32_t currentTag = pDynamicOneArgFunc(server_srv + 0x00FE17E0);
 
     //rootconsole->ConsolePrint("\n\n\nCURRENT TAG: %s", currentTag);
 
@@ -157,21 +156,14 @@ void InitExtension()
     LookupPoseParameterAddr = server_srv + 0x00628220;
     sub_654260_addr = server_srv + 0x00654260;
     sub_628F00_addr = server_srv + 0x00628F00;
-    CreateEntityByNameAddr = server_srv + 0x009AFCA0;
     SaveGameStateAddr = server_srv + 0x00AF3990;
     TransitionRestoreMainCallOrigAddr = server_srv + 0x00AF46C0;
     VehicleRollermineFunctionAddr = server_srv + 0x00654970;
-    OrigSaveCallAddr = server_srv + 0x00AF33F0;
     OriginalTriggerMovedAddr = engine_srv + 0x001D8FD0;
     DoorFinalFunctionAddr = server_srv + 0x00A94600;
     GetNumClientsAddr = engine_srv + 0x000D3030;
     GetNumProxiesAddr = engine_srv + 0x000D3080;
-    origAutosaveCall = server_srv + 0x00AF3990;
-    origRestoreCall = server_srv + 0x00AF2A60;
-    UnloadUnreferencedModelsFuncAddr = engine_srv + 0x0014D6E0;
     EnqueueCommandAddr = engine_srv + 0x000DE9C0;
-    CreateEntityCallAddr = server_srv + 0x00B62220;
-    OrigManhackFuncAddr = server_srv + 0x0047E5D0;
     DispatchSpawnAddr = server_srv + 0x00B68190;
     ActivateEntityAddr = server_srv + 0x0065DB30;
     MakeEntityDormantAddr = server_srv + 0x00652B10;
@@ -187,23 +179,16 @@ void InitExtension()
     LookupPoseParameter = (pThreeArgProt)LookupPoseParameterAddr;
     sub_654260 = (pOneArgProt)sub_654260_addr;
     sub_628F00 = (pOneArgProt)sub_628F00_addr;
-    CreateEntityByName = (pTwoArgProt)CreateEntityByNameAddr;
     SaveGameState = (pThreeArgProt)SaveGameStateAddr;
     pTransitionRestoreMainCall = (pFourArgProt)TransitionRestoreMainCallOrigAddr;
     pCallVehicleRollermineFunction = (pOneArgProt)VehicleRollermineFunctionAddr;
-    pCallOrigSaveFunction = (pOneArgProt)OrigSaveCallAddr;
     pCallOriginalTriggerMoved = (pTwoArgProt)OriginalTriggerMovedAddr;
     pDoorFinalFunction = (pFiveArgProt)DoorFinalFunctionAddr;
     GetNumClients = (pOneArgProt)GetNumClientsAddr;
     GetNumProxies = (pOneArgProt)GetNumProxiesAddr;
-    pOrigAutosaveCallFunc = (pThreeArgProt)origAutosaveCall;
-    UnloadUnreferencedModels = (pOneArgProt)UnloadUnreferencedModelsFuncAddr;
     EnqueueCommandFunc = (pOneArgProt)EnqueueCommandAddr;
-    CreateEntityCallFunc = (pTwoArgProt)CreateEntityCallAddr;
-    OrigManhackFunc = (pOneArgProt)OrigManhackFuncAddr;
     pDispatchSpawnFunc = (pOneArgProt)DispatchSpawnAddr;
     pActivateEntityFunc = (pOneArgProt)ActivateEntityAddr;
-    pRestoreFileCallFunc = (pTwoArgProt)origRestoreCall;
     AutosaveLoadOrig = (pThreeArgProt)AutosaveLoadOrigAddr;
     InactivateClients = (pOneArgProt)InactivateClientsAddr;
     ReconnectClients = (pOneArgProt)ReconnectClientsAddr;
@@ -227,6 +212,8 @@ void InitExtension()
     PopulateHookExclusionLists();
 
     ApplyPatches();
+    ApplyPatchesSpecific();
+
     HookSaveRestoreOne();
     HookSaveRestoreTwo();
     HookSaveRestoreThree();
@@ -241,17 +228,6 @@ void InitExtension()
 
     HookFunctions();
     HookFunctionsSpecific();
-
-
-    //FORCE MEMORY
-    *(uint8_t*)((server_srv + 0x00544C51)+0) = 0xF3;
-    *(uint8_t*)((server_srv + 0x00544C51)+1) = 0x0F;
-    *(uint8_t*)((server_srv + 0x00544C51)+2) = 0x10;
-    *(uint8_t*)((server_srv + 0x00544C51)+3) = 0x05;
-    *(uint8_t*)((server_srv + 0x00544C51)+4) = 0x1C;
-    *(uint8_t*)((server_srv + 0x00544C51)+5) = 0x11;
-    *(uint8_t*)((server_srv + 0x00544C51)+6) = 0xC3;
-    *(uint8_t*)((server_srv + 0x00544C51)+7) = 0x00;
 
     RestoreMemoryProtections();
     rootconsole->ConsolePrint("----------------------  " SMEXT_CONF_NAME " loaded!" "  ----------------------");
@@ -496,26 +472,6 @@ void ApplyPatches()
     offset = (uint32_t)Hooks::ServiceEventQueueHook - hook_event_queue - 5;
     *(uint32_t*)(hook_event_queue+1) = offset;
 
-    uint32_t weapon_bug_one = server_srv + 0x00934E4E;
-    offset = (uint32_t)Hooks::WeaponBugbaitFixHook - weapon_bug_one - 5;
-    *(uint32_t*)(weapon_bug_one+1) = offset;
-
-    uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
-    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_one - 5;
-    *(uint32_t*)(weapon_hook_one+1) = offset;
-
-    uint32_t weapon_hook_two = server_srv + 0x0084F2A3;
-    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_two - 5;
-    *(uint32_t*)(weapon_hook_two+1) = offset;
-
-    uint32_t weapon_hook_three = server_srv + 0x0084F2BC;
-    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_three - 5;
-    *(uint32_t*)(weapon_hook_three+1) = offset;
-
-    uint32_t weapon_hook_four = server_srv + 0x0085584D;
-    offset = (uint32_t)Hooks::WeaponGetHook - weapon_hook_four - 5;
-    *(uint32_t*)(weapon_hook_four+1) = offset;
-
     /*uint32_t changelevel_patch = server_srv + 0x004CB2FE;
     memset((void*)changelevel_patch, 0x90, 0xF);
     offset = (uint32_t)Hooks::IsAllowChangelevel - changelevel_patch - 5;
@@ -696,31 +652,6 @@ uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
     }
 
     return 0;
-}
-
-uint32_t Hooks::WeaponGetHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x003C2120);
-    uint32_t weapon_ent = pDynamicOneArgFunc(arg0);
-
-    if(!weapon_ent)
-    {
-        uint32_t isWeaponValid = GetCBaseEntity(weapon_substitute);
-
-        if(!isWeaponValid)
-        {
-            uint32_t newEntity = CreateEntityByName((uint32_t)"weapon_crowbar", (uint32_t)-1);
-            pDispatchSpawnFunc(newEntity);
-
-            weapon_substitute = *(uint32_t*)(newEntity+0x350);
-            isWeaponValid = newEntity;
-        }
-
-        rootconsole->ConsolePrint("Warning: failed to find a valid weapon entity!");
-        return isWeaponValid;
-    }
-
-    return weapon_ent;
 }
 
 uint32_t Hooks::HookEntityDelete(uint32_t arg0)
@@ -1157,30 +1088,6 @@ uint32_t Hooks::FrameLockHook(uint32_t arg0)
     restoring = false;
     isTicking = false;
     hasSavedOnce = false;
-
-
-    bool mem_pass_one = *(uint8_t*)((server_srv + 0x00544C51)+0) == 0xF3;
-    bool mem_pass_two = *(uint8_t*)((server_srv + 0x00544C51)+1) == 0x0F;
-    bool mem_pass_three = *(uint8_t*)((server_srv + 0x00544C51)+2) == 0x10;
-    bool mem_pass_four = *(uint8_t*)((server_srv + 0x00544C51)+3) == 0x05;
-    bool mem_pass_five = *(uint8_t*)((server_srv + 0x00544C51)+4) == 0x1C;
-    bool mem_pass_six = *(uint8_t*)((server_srv + 0x00544C51)+5) == 0x11;
-    bool mem_pass_seven = *(uint8_t*)((server_srv + 0x00544C51)+6) == 0xC3;
-    bool mem_pass_eight = *(uint8_t*)((server_srv + 0x00544C51)+7) == 0x00;
-
-    if(!(mem_pass_one && 
-    mem_pass_two && 
-    mem_pass_three && 
-    mem_pass_four && 
-    mem_pass_five &&
-    mem_pass_six &&
-    mem_pass_seven &&
-    mem_pass_eight))
-    {
-        rootconsole->ConsolePrint("Virtual Memory Failed Integrity Checks Exiting...");
-        exit(EXIT_FAILURE);
-    }
-
 
     LogVpkMemoryLeaks();
 
@@ -1662,6 +1569,10 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         
         AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
         *(uint8_t*)(server_srv + 0x01012130) = 1;
+
+        //EndRestoreEntities
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
+        pDynamicOneArgFunc(0);
     }
 
     return returnVal;
@@ -1924,7 +1835,10 @@ uint32_t Hooks::SavegameInternalFunction(uint32_t arg0)
         rootconsole->ConsolePrint("Save-system determined its safe to make a save file!");
 
         saving_game_rightnow = true;
-        uint32_t returnVal = pCallOrigSaveFunction(arg0);
+
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF33F0);
+        uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
         saving_game_rightnow = false;
         
         return returnVal;
@@ -1954,24 +1868,6 @@ uint32_t Hooks::FixNullCrash(uint32_t arg0)
 
     pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
     return pDynamicOneArgFunc(arg0);
-}
-
-
-uint32_t Hooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(IsEntityValid(object))
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0063EB90);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Fixed bugbait!");
-    return 0;
 }
 
 uint32_t Hooks::PhysSimEnt(uint32_t arg0)
@@ -2121,6 +2017,11 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
     }
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
+
+    //EndRestoreEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
+    pDynamicOneArgFunc(0);
+
     return returnVal;
 }
 
@@ -2509,6 +2410,12 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
     //pDynamicOneArgFunc(0);
 
     restoring = false;
+
+    if(!IsSynergyMemoryCorrect())
+    {
+        ForceSynergyMemoryCorrection();
+        rootconsole->ConsolePrint("\n\nSynergy memory integrity failure\n\n");
+    }
 
     ReleaseSavedTriggers();
     game_start_frames = 0;

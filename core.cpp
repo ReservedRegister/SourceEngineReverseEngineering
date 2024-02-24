@@ -39,21 +39,14 @@ uint32_t SpawnServer;
 uint32_t LookupPoseParameterAddr;
 uint32_t sub_654260_addr;
 uint32_t sub_628F00_addr;
-uint32_t CreateEntityByNameAddr;
 uint32_t SaveGameStateAddr;
 uint32_t TransitionRestoreMainCallOrigAddr;
 uint32_t VehicleRollermineFunctionAddr;
-uint32_t OrigSaveCallAddr;
 uint32_t OriginalTriggerMovedAddr;
 uint32_t DoorFinalFunctionAddr;
 uint32_t GetNumClientsAddr;
 uint32_t GetNumProxiesAddr;
-uint32_t origAutosaveCall;
-uint32_t origRestoreCall;
-uint32_t UnloadUnreferencedModelsFuncAddr;
 uint32_t EnqueueCommandAddr;
-uint32_t CreateEntityCallAddr;
-uint32_t OrigManhackFuncAddr;
 uint32_t DispatchSpawnAddr;
 uint32_t ActivateEntityAddr;
 uint32_t AutosaveLoadOrigAddr;
@@ -69,23 +62,16 @@ pThreeArgProt pSpawnServerFunc;
 pThreeArgProt LookupPoseParameter;
 pOneArgProt sub_654260;
 pOneArgProt sub_628F00;
-pTwoArgProt CreateEntityByName;
 pThreeArgProt SaveGameState;
 pFourArgProt pTransitionRestoreMainCall;
 pOneArgProt pCallVehicleRollermineFunction;
-pOneArgProt pCallOrigSaveFunction;
 pTwoArgProt pCallOriginalTriggerMoved;
 pFiveArgProt pDoorFinalFunction;
 pOneArgProt GetNumClients;
 pOneArgProt GetNumProxies;
-pThreeArgProt pOrigAutosaveCallFunc;
-pOneArgProt UnloadUnreferencedModels;
 pOneArgProt EnqueueCommandFunc;
-pTwoArgProt CreateEntityCallFunc;
-pOneArgProt OrigManhackFunc;
 pOneArgProt pDispatchSpawnFunc;
 pOneArgProt pActivateEntityFunc;
-pTwoArgProt pRestoreFileCallFunc;
 pThreeArgProt AutosaveLoadOrig;
 pOneArgProt InactivateClients;
 pOneArgProt ReconnectClients;
@@ -433,7 +419,7 @@ void ForceMemoryAccess()
         }
         else
         {
-            rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
+            //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
         }
     }
 }
@@ -2154,6 +2140,44 @@ void SaveTriggersDatamaps()
     }
 }
 
+bool IsSynergyMemoryCorrect()
+{
+    bool mem_pass_one = *(uint8_t*)((server_srv + 0x00544C51)+0) == 0xF3;
+    bool mem_pass_two = *(uint8_t*)((server_srv + 0x00544C51)+1) == 0x0F;
+    bool mem_pass_three = *(uint8_t*)((server_srv + 0x00544C51)+2) == 0x10;
+    bool mem_pass_four = *(uint8_t*)((server_srv + 0x00544C51)+3) == 0x05;
+
+    bool mem_pass_address = *(uint32_t*)((server_srv + 0x00544C51)+4) == (server_srv + 0x00C3111C);
+
+    if
+    (
+    mem_pass_one    && 
+    mem_pass_two    && 
+    mem_pass_three  && 
+    mem_pass_four   && 
+    mem_pass_address
+    )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void ForceSynergyMemoryCorrection()
+{
+    AllowWriteToMappedMemory();
+
+    //FORCE MEMORY
+    *(uint8_t*)((server_srv + 0x00544C51)+0) = 0xF3;
+    *(uint8_t*)((server_srv + 0x00544C51)+1) = 0x0F;
+    *(uint8_t*)((server_srv + 0x00544C51)+2) = 0x10;
+    *(uint8_t*)((server_srv + 0x00544C51)+3) = 0x05;
+    *(uint32_t*)((server_srv + 0x00544C51)+4) = (server_srv + 0x00C3111C);
+
+    RestoreMemoryProtections();
+}
+
 void ReleaseSavedTriggers()
 {
     rootconsole->ConsolePrint("Releasing saved triggers...");
@@ -2340,11 +2364,11 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
         if(isMarked)
         {
-            rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_Remove(CBaseEntity*)");
+            //rootconsole->ConsolePrint("Attempted to kill an entity twice in UTIL_Remove(CBaseEntity*)");
             return;
         }
 
-        if(strcmp(classname, "player") == 0 && protect_player)
+        if(strcmp(classname, "player") == 0)
         {
             rootconsole->ConsolePrint(EXT_PREFIX "Tried killing player but was protected!");
             return;

@@ -84,13 +84,11 @@ public:
 	static uint32_t PackedStoreConstructorHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
 	static uint32_t UTIL_RemoveHookFailsafe(uint32_t arg0);
-	static uint32_t WeaponGetHook(uint32_t arg0);
 	static uint32_t AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t UpdateOnRemove(uint32_t arg0);
 	static uint32_t UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1);
 	static uint32_t GetClientSteamIDHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-	static uint32_t WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t AutosaveLoadHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t SetGlobalState(uint32_t arg0, uint32_t arg1);
 	static uint32_t ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2);

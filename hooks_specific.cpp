@@ -2,6 +2,31 @@
 #include "core.h"
 #include "hooks_specific.h"
 
+void ApplyPatchesSpecific()
+{
+    uint32_t offset = 0;
+
+    uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
+    offset = (uint32_t)NativeHooks::WeaponGetHook - weapon_hook_one - 5;
+    *(uint32_t*)(weapon_hook_one+1) = offset;
+
+    uint32_t weapon_hook_two = server_srv + 0x0084F2A3;
+    offset = (uint32_t)NativeHooks::WeaponGetHook - weapon_hook_two - 5;
+    *(uint32_t*)(weapon_hook_two+1) = offset;
+
+    uint32_t weapon_hook_three = server_srv + 0x0084F2BC;
+    offset = (uint32_t)NativeHooks::WeaponGetHook - weapon_hook_three - 5;
+    *(uint32_t*)(weapon_hook_three+1) = offset;
+
+    uint32_t weapon_hook_four = server_srv + 0x0085584D;
+    offset = (uint32_t)NativeHooks::WeaponGetHook - weapon_hook_four - 5;
+    *(uint32_t*)(weapon_hook_four+1) = offset;
+
+    uint32_t weapon_bug_one = server_srv + 0x00934E4E;
+    offset = (uint32_t)NativeHooks::WeaponBugbaitFixHook - weapon_bug_one - 5;
+    *(uint32_t*)(weapon_bug_one+1) = offset;
+}
+
 void HookFunctionsSpecific()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0076CFF0), (void*)NativeHooks::HelicopterCrashFix);
@@ -36,6 +61,48 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
+}
+
+uint32_t NativeHooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0063EB90);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Fixed bugbait!");
+    return 0;
+}
+
+uint32_t NativeHooks::WeaponGetHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x003C2120);
+    uint32_t weapon_ent = pDynamicOneArgFunc(arg0);
+
+    if(!weapon_ent)
+    {
+        uint32_t isWeaponValid = GetCBaseEntity(weapon_substitute);
+
+        if(!isWeaponValid)
+        {
+            uint32_t newEntity = CreateEntityByNameHook__External((uint32_t)"weapon_crowbar", (uint32_t)-1);
+            pDispatchSpawnFunc(newEntity);
+
+            weapon_substitute = *(uint32_t*)(newEntity+0x350);
+            isWeaponValid = newEntity;
+        }
+
+        rootconsole->ConsolePrint("Warning: failed to find a valid weapon entity!");
+        return isWeaponValid;
+    }
+
+    return weapon_ent;
 }
 
 uint32_t NativeHooks::FixMissingObjectHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
@@ -305,7 +372,7 @@ uint32_t NativeHooks::CitizenNullCrashFix(uint32_t arg0)
     uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
     uint32_t object = GetCBaseEntity(refHandle);
 
-    if(object)
+    if(IsEntityValid(object))
     {
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00844EC0);
         return pDynamicOneArgFunc(arg0);
@@ -661,7 +728,7 @@ uint32_t NativeHooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
 {
     uint32_t npc_combine_s = *(uint32_t*)(arg0+0x4);
 
-    if(npc_combine_s)
+    if(IsEntityValid(npc_combine_s))
     {
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(npc_combine_s))+0x180)    );
         uint32_t returnVal = pDynamicOneArgFunc(npc_combine_s); 

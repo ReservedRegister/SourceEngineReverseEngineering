@@ -343,5 +343,7 @@ void InstaKill(uint32_t entity_object, bool validate);
 void LogVpkMemoryLeaks();
 void AttemptToRestoreGame();
 void ResetView();
+bool IsSynergyMemoryCorrect();
+void ForceSynergyMemoryCorrection();
 
 #endif
