@@ -39,7 +39,6 @@ public:
 	static uint32_t MemmoveHook(uint32_t dest, uint32_t src, uint32_t size);
 	static uint32_t StrncpyHook(uint32_t dest, uint32_t src, uint32_t size);
 	static uint32_t StrcpyHook(uint32_t dest, uint32_t src);
-	static uint32_t FrameLockHook(uint32_t arg0);
 	static uint32_t SaveHookDirectMalloc(uint32_t size);
 	static uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size);
 	static uint32_t EdtSystemHookFunc(uint32_t arg1);

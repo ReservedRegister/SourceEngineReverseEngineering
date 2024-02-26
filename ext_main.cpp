@@ -411,9 +411,6 @@ void ApplyPatches()
     uint32_t it_said_it_causes_corruption = server_srv + 0x00A5436D;
     *(uint8_t*)(it_said_it_causes_corruption) = 0xC3;
 
-    uint32_t begin_map_load_patch = datacache_srv + 0x0005A4CC;
-    *(uint32_t*)(begin_map_load_patch) = (uint32_t)Hooks::FrameLockHook;
-
     /*uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
     *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;*/
 
@@ -997,14 +994,6 @@ uint32_t Hooks::StrcpyHook(uint32_t dest, uint32_t src)
     }
 
     return (uint32_t)strcpy((char*)dest, (const char*)src);
-}
-
-uint32_t Hooks::FrameLockHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
-    return pDynamicOneArgFunc(arg0);
 }
 
 void PatchRestore()
@@ -2667,7 +2656,7 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(failure)
     {
-        rootconsole->ConsolePrint("AcceptInput blocked on marked entity");
+        //rootconsole->ConsolePrint("AcceptInput blocked on marked entity");
         return 0;
     }
 
