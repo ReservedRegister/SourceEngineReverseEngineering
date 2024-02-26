@@ -260,7 +260,10 @@ void ApplyPatches()
         0x00739B37,5,
 
         //restore
-        0x00AF4361,0x14
+        0x00AF4361,0x14,
+
+        //bug
+        //0x00B02DCF,6
 
         //CleanupDeleteList calls
         /*0x00739AF1,5,0x00A316F0,5,0x00739B48,5*/
@@ -287,6 +290,10 @@ void ApplyPatches()
     *(uint8_t*)(fix_ai+1) = 0xFF;
     *(uint8_t*)(fix_ai+2) = 0xFF;
     *(uint8_t*)(fix_ai+3) = 0xFF;
+
+    uint32_t save_fix = server_srv + 0x004AF323;
+    offset = (uint32_t)Hooks::MainSaveEntitiesFunc - save_fix - 5;
+    *(uint32_t*)(save_fix+1) = offset;
 
     uint32_t restore_fix = server_srv + 0x00AF4380;
     offset = (uint32_t)Hooks::RepairPlayerRestore - restore_fix - 5;
@@ -366,10 +373,6 @@ void ApplyPatches()
     uint32_t dropship_patch_two = server_srv + 0x0085F266;
     offset = (uint32_t)Hooks::LookupPoseParameterDropshipHook - dropship_patch_two - 5;
     *(uint32_t*)(dropship_patch_two+1) = offset;
-
-    uint32_t sequence_patch = server_srv + 0x003BFA1F;
-    offset = (uint32_t)Hooks::pSeqdescHook - sequence_patch - 5;
-    *(uint32_t*)(sequence_patch+1) = offset;
 
     *(uint16_t*)((server_srv + 0x0096026E)) = 0xC031;
     *(uint16_t*)((server_srv + 0x00815EF0)) = 0xC031;
@@ -455,15 +458,6 @@ void ApplyPatches()
     uint32_t clientActiveRestoreCancel = server_srv + 0x00B031F7;
     *(uint8_t*)(clientActiveRestoreCancel) = 0xEB;
 
-    /*uint32_t orig_dll_discovery_v1 = server_srv + 0x004AE30E;
-    *(uint8_t*)(orig_dll_discovery_v1) = 0xE9;
-    *(uint32_t*)(orig_dll_discovery_v1+1) = 0x4C;*/
-
-    /*uint32_t orig_dll_discovery_v2 = server_srv + 0x004AE78D;
-    ChangeMemoryProtections(orig_dll_discovery_v2, 6);
-    memset((void*)orig_dll_discovery_v2, 0x90, 6);
-    RestoreMemoryProtections(orig_dll_discovery_v2, 6);*/
-
     uint32_t hook_game_frame_delete_list = server_srv + 0x00739B32;
     offset = (uint32_t)Hooks::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
@@ -487,82 +481,6 @@ void ApplyPatches()
     *(uint8_t*)(changelevel_patch_two) = 0x0F;
     *(uint8_t*)(changelevel_patch_two+1) = 0x84;
     *(uint32_t*)(changelevel_patch_two+2) = offset;*/
-
-    /*uint32_t JMP_DIRECT = server_srv + 0x004AE682;
-    *(uint8_t*)(JMP_DIRECT) = 0xE9;
-    *(uint32_t*)(JMP_DIRECT+1) = -0xDD;*/
-
-    /*uint32_t JMP_PATCH_GLOBALRESTORE_ONE = server_srv + 0x00AF45D0;
-    *(uint8_t*)(JMP_PATCH_GLOBALRESTORE_ONE) = 0xE9;
-    *(uint32_t*)(JMP_PATCH_GLOBALRESTORE_ONE+1) = 0x45;*/
-
-    /*uint32_t remove_end_of_ent_restore = server_srv + 0x004AE434;
-    memset((void*)remove_end_of_ent_restore, 0x90, 5);
-
-    *(uint8_t*)(remove_end_of_ent_restore) = 0xBE;
-    *(uint8_t*)(remove_end_of_ent_restore+1) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+2) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+3) = 0x00;
-    *(uint8_t*)(remove_end_of_ent_restore+4) = 0x00;
-
-    uint32_t jmp_to_end_restore_func = server_srv + (0x004AE434+5);
-    *(uint8_t*)(jmp_to_end_restore_func) = 0xE9;
-    *(uint32_t*)(jmp_to_end_restore_func+1) = 0x62;*/
-
-
-    //Disable ResponseSystem saving
-    //uint32_t disable_response_saving = server_srv + 0x00C70710;
-    //*(uint32_t*)(disable_response_saving) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable EventQueue saving
-    /*uint32_t disable_event_queue_saving = server_srv + 0x00C817B0;
-    ChangeMemoryProtections(disable_event_queue_saving, 4);
-    *(uint32_t*)(disable_event_queue_saving) = (uint32_t)pEmptyCallOneArgPtr;
-    RestoreMemoryProtections(disable_event_queue_saving, 4);*/
-
-    //Disable Achievement saving
-    //uint32_t disable_achievement_saving = server_srv + 0x00C17570;
-    //*(uint32_t*)(disable_achievement_saving) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable SOMETHING saving
-    //uint32_t disable_something_saving = server_srv + 0x00D7DE90;
-    //*(uint32_t*)(disable_something_saving) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable SOMETHING saving
-    //uint32_t disable_something_saving_two = server_srv + 0x00C84630;
-    //*(uint32_t*)(disable_something_saving_two) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable SOMETHING saving
-    //uint32_t disable_something_saving_three = server_srv + 0x00C709F0;
-    //*(uint32_t*)(disable_something_saving_three) = (uint32_t)Hooks::EmptyCall;
-
-
-
-    //Disable AI restoring
-    //uint32_t disable_ai_restoring = server_srv + 0x00C70A04;
-    //*(uint32_t*)(disable_ai_restoring) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable Template restoring
-    //uint32_t disable_template_restoring = server_srv + 0x00D7DEA4;
-    //*(uint32_t*)(disable_template_restoring) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable ResponseSystem restoring
-    //uint32_t disable_response_restoring = server_srv + 0x00C70724;
-    //*(uint32_t*)(disable_response_restoring) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable Commentary restoring
-    //uint32_t disable_commentary_restoring = server_srv + 0x00C84644;
-    //*(uint32_t*)(disable_commentary_restoring) = (uint32_t)Hooks::EmptyCall;
-
-    //Disable EventQueue restoring
-    /*uint32_t disable_event_queue_restoring = server_srv + 0x00C817C4;
-    ChangeMemoryProtections(disable_event_queue_restoring, 4);
-    *(uint32_t*)(disable_event_queue_restoring) = (uint32_t)pEmptyCallOneArgPtr;
-    RestoreMemoryProtections(disable_event_queue_restoring, 4);*/
-
-    //Disable Achievement restoring
-    //uint32_t disable_achievement_restoring = server_srv + 0x00C17584;
-    //*(uint32_t*)(disable_achievement_restoring) = (uint32_t)Hooks::EmptyCall;
 }
 
 uint32_t Hooks::HunterCrashFixTwo(uint32_t arg0)
@@ -1085,39 +1003,6 @@ uint32_t Hooks::FrameLockHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    restoring = false;
-    isTicking = false;
-    hasSavedOnce = false;
-
-    LogVpkMemoryLeaks();
-
-    DeleteAllValuesInList(cmdbufflist, &cmdbufflistlock, true);
-
-    uint32_t player = 0;
-
-    while((player = Hooks::FindEntityByClassnameHook(CGlobalEntityList, player, (uint32_t)"player")) != 0)
-    {
-        //Ragdoll
-        //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0098D1A0);
-        //pDynamicOneArgFunc(player);
-
-        uint32_t ragdoll_ref = *(uint32_t*)(player+0x1594);
-        uint32_t ragdoll = GetCBaseEntity(ragdoll_ref);
-        Hooks::HookInstaKill(ragdoll);
-
-        //*(uint32_t*)(player+0x1594) = 0xFFFFFFFF;
-    }
-
-    /*pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF2770);
-    uint8_t isTransition = pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x00FA0CF0));
-
-    if(isTransition)
-    {
-        SaveGameSafe(true);
-    }*/
-
-    restore_start_delay = 201;
-
     pDynamicOneArgFunc = (pOneArgProt)(datacache_srv + 0x00038060);
     return pDynamicOneArgFunc(arg0);
 }
@@ -1438,39 +1323,6 @@ void PatchOthers()
     offset = (uint32_t)Hooks::memcpyNetworkHook - memcpy_hook_two - 5;
     *(uint32_t*)(memcpy_hook_two+1) = offset;
 
-    //avoid causes high mem usage
-    //0x00489F53
-    //0x00489F17
-
-    //0x003AEAB3
-    //0x003AEA72
-
-    //0x00A8441B
-    //0x00A843C7
-
-    //0x00486E83
-    //0x00486E42
-
-    //0x0039C673
-    //0x0039C632
-
-    //0x0060F783
-    //0x0060F742
-
-    //weird memory leak
-    //0x004BBD43
-    //0x004BBD02
-
-    //0x005BEE23
-    //0x005BEDEE
-
-    //0x0083297B
-    //0x00832904
-
-    //Potential memory leak
-    //0x00472723
-    //0x004726E1
-
     rootconsole->ConsolePrint("--------------------- Other save system parts patched ---------------------");
 }
 
@@ -1572,6 +1424,10 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
         //EndRestoreEntities
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
+        pDynamicOneArgFunc(0);
+
+        //BeginRestoreEntities
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
         pDynamicOneArgFunc(0);
     }
 
@@ -2277,6 +2133,45 @@ uint32_t Hooks::PlayerSpawnDirectHook(uint32_t arg0)
     return returnVal;
 }
 
+uint32_t Hooks::MainSaveEntitiesFunc(uint32_t arg0, uint32_t arg1)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
+    uint32_t object = pDynamicTwoArgFunc(arg0, arg1);
+
+    while(true)
+    {
+        if(object)
+        {
+            char* classname = (char*)(*(uint32_t*)(object+0x68));
+
+            if(classname)
+            {
+                if(strcmp(classname, "player") == 0)
+                {
+                    uint32_t playerID = *(uint32_t*)(object+0x974);
+
+                    if(playerID == 0)
+                    {
+                        rootconsole->ConsolePrint("Player was not valid for saving!");
+
+                        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006B26B0);
+                        object = pDynamicTwoArgFunc(arg0, object);
+
+                        continue;
+                    }
+                }
+            }
+        }
+
+        break;
+    }
+
+    return object;
+}
+
 uint32_t Hooks::FindEntityByHandle(uint32_t arg0, uint32_t arg1)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -2336,6 +2231,32 @@ uint32_t Hooks::SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pOneArgProt pDynamicOneArgFunc;
+
+    restoring = false;
+    isTicking = false;
+    hasSavedOnce = false;
+
+    LogVpkMemoryLeaks();
+
+    DeleteAllValuesInList(cmdbufflist, &cmdbufflistlock, true);
+
+    uint32_t player = 0;
+
+    while((player = Hooks::FindEntityByClassnameHook(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    {
+        //Ragdoll
+        //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0098D1A0);
+        //pDynamicOneArgFunc(player);
+
+        uint32_t ragdoll_ref = *(uint32_t*)(player+0x1594);
+        uint32_t ragdoll = GetCBaseEntity(ragdoll_ref);
+        Hooks::HookInstaKill(ragdoll);
+
+        //*(uint32_t*)(player+0x1594) = 0xFFFFFFFF;
+    }
+
+    restore_start_delay = 201;
+
     firstplayer_hasjoined = false;
     transition = false;
     mapHasEnded = false;
@@ -2545,62 +2466,6 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::pSeqdescHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    int iVar1;
-    int iVar2;
-    int iVar3;
-    
-    iVar2 = *(int *)(arg0 + 4);
-    
-    if(-1 < (int)arg1)
-    {
-        if (iVar2 == 0)
-        {
-            iVar3 = *(int *)(*(int *)arg0 + 0x0BC);
-        }
-        else
-        {
-            iVar3 = *(int *)(iVar2 + 0x14);
-        }
-        
-        if((int)arg1 < iVar3)
-        {
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x005246D0);
-            return pDynamicTwoArgFunc(arg0, arg1);
-            //goto LAB_0054e115;
-        }
-    }
-    
-    if(iVar2 == 0)
-    {
-        iVar3 = *(int *)(*(int *)arg0 + 0x0BC);
-    }
-    else
-    {
-        iVar3 = *(int *)(iVar2 + 0x14);
-    }
-    
-    arg1 = 0;
-    
-    if(iVar3 < 1)
-    {
-        //create fake memory
-        
-        rootconsole->ConsolePrint("\n\nERROR: fake sequence forced!\n\n");
-
-        *(uint32_t*)(fake_sequence_mem+4) = (uint32_t)"";
-        return fake_sequence_mem;
-    }
-
-    rootconsole->ConsolePrint("pSeq param_1 set to 0");
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x005246D0);
-    return pDynamicTwoArgFunc(arg0, arg1);
-}
-
 uint32_t Hooks::ServiceEventQueueHook()
 {
     pZeroArgProt pDynamicZeroArgFunc;
@@ -2691,7 +2556,7 @@ uint32_t Hooks::GetClientSteamIDHook(uint32_t arg0, uint32_t arg1)
 
     if(!arg1)
     {
-        rootconsole->ConsolePrint("GetClientSteamID failed NULL edict_t passed!");
+        rootconsole->ConsolePrint("GetClientSteamID failed NULL edict_t passed! [%p]", (uint32_t)__builtin_return_address(0) - server_srv);
         return 0;
     }
 

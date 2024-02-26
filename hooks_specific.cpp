@@ -25,6 +25,10 @@ void ApplyPatchesSpecific()
     uint32_t weapon_bug_one = server_srv + 0x00934E4E;
     offset = (uint32_t)NativeHooks::WeaponBugbaitFixHook - weapon_bug_one - 5;
     *(uint32_t*)(weapon_bug_one+1) = offset;
+
+    uint32_t sequence_patch = server_srv + 0x003BFA1F;
+    offset = (uint32_t)NativeHooks::pSeqdescHook - sequence_patch - 5;
+    *(uint32_t*)(sequence_patch+1) = offset;
 }
 
 void HookFunctionsSpecific()
@@ -61,6 +65,62 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
+}
+
+uint32_t NativeHooks::pSeqdescHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    int iVar1;
+    int iVar2;
+    int iVar3;
+    
+    iVar2 = *(int *)(arg0 + 4);
+    
+    if(-1 < (int)arg1)
+    {
+        if (iVar2 == 0)
+        {
+            iVar3 = *(int *)(*(int *)arg0 + 0x0BC);
+        }
+        else
+        {
+            iVar3 = *(int *)(iVar2 + 0x14);
+        }
+        
+        if((int)arg1 < iVar3)
+        {
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x005246D0);
+            return pDynamicTwoArgFunc(arg0, arg1);
+            //goto LAB_0054e115;
+        }
+    }
+    
+    if(iVar2 == 0)
+    {
+        iVar3 = *(int *)(*(int *)arg0 + 0x0BC);
+    }
+    else
+    {
+        iVar3 = *(int *)(iVar2 + 0x14);
+    }
+    
+    arg1 = 0;
+    
+    if(iVar3 < 1)
+    {
+        //create fake memory
+        
+        rootconsole->ConsolePrint("\n\nERROR: fake sequence forced!\n\n");
+
+        *(uint32_t*)(fake_sequence_mem+4) = (uint32_t)"";
+        return fake_sequence_mem;
+    }
+
+    rootconsole->ConsolePrint("pSeq param_1 set to 0");
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x005246D0);
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t NativeHooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)

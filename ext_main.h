@@ -93,9 +93,9 @@ public:
 	static uint32_t SetGlobalState(uint32_t arg0, uint32_t arg1);
 	static uint32_t ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
-	static uint32_t pSeqdescHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t HunterCrashFixTwo(uint32_t arg0);
 	static uint32_t RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2);
+	static uint32_t MainSaveEntitiesFunc(uint32_t arg0, uint32_t arg1);
 };
 
 #endif
