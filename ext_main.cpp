@@ -1491,7 +1491,15 @@ uint32_t Hooks::RestoreOverride()
 
         if(allowEntRestore)
         {
+            //Lock
+            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)main_engine_global)+0x64));
+            pDynamicOneArgFunc(main_engine_global);
+
             Hooks::HookEntityDelete(mainEnt);
+
+            //Unlock
+            pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)main_engine_global)+0x68));
+            pDynamicOneArgFunc(main_engine_global);
         }
     }
 
@@ -1508,6 +1516,7 @@ uint32_t Hooks::RestoreOverride()
     pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
     pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
 
+    //BeginRestoreEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
     pDynamicOneArgFunc(0);
 
@@ -1516,6 +1525,7 @@ uint32_t Hooks::RestoreOverride()
 
     *(uint8_t*)(server_srv + 0x01012130) = 1;
 
+    //EndRestoreEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
     pDynamicOneArgFunc(0);
     
@@ -1529,24 +1539,6 @@ uint32_t Hooks::RestoreOverride()
 
     protect_player = false;
     restore_delay = true;
-
-    Hooks::CleanupDeleteListHook(0);
-
-    savegame = true;
-    savegame_lock = true;
-    save_frames = 3;
-
-    restoring = false;
-
-    SaveGame_Extension();
-
-    savegame = false;
-    savegame_lock = false;
-    save_frames = 0;
-
-    restoring = true;
-
-    Hooks::CleanupDeleteListHook(0);
 
     return 0;
 }
