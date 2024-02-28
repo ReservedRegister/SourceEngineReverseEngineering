@@ -285,6 +285,10 @@ void ApplyPatches()
 
     uint32_t offset = 0;
 
+    uint32_t fix_weapons = server_srv + 0x004FD53F;
+    *(uint8_t*)(fix_weapons) = 0xE9;
+    *(uint32_t*)(fix_weapons+1) = 0xD2;
+
     uint32_t fix_ai = server_srv + 0x005703B2;
     *(uint8_t*)(fix_ai) = 0xB8;
     *(uint8_t*)(fix_ai+1) = 0xFF;
