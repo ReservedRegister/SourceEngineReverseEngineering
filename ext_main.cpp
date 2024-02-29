@@ -265,6 +265,9 @@ void ApplyPatches()
         //bug
         //0x00B02DCF,6
 
+        //weapons
+        0x004FD574,2
+
         //CleanupDeleteList calls
         /*0x00739AF1,5,0x00A316F0,5,0x00739B48,5*/
     };
@@ -284,10 +287,6 @@ void ApplyPatches()
     }
 
     uint32_t offset = 0;
-
-    uint32_t fix_weapons = server_srv + 0x004FD53F;
-    *(uint8_t*)(fix_weapons) = 0xE9;
-    *(uint32_t*)(fix_weapons+1) = 0xD2;
 
     uint32_t fix_ai = server_srv + 0x005703B2;
     *(uint8_t*)(fix_ai) = 0xB8;
