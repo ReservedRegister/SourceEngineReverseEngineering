@@ -66,6 +66,7 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069F180), (void*)NativeHooks::InputShootHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009014F0), (void*)NativeHooks::StriderCrashFix);
 }
 
 uint32_t NativeHooks::pSeqdescHook(uint32_t arg0, uint32_t arg1)
@@ -170,7 +171,7 @@ uint32_t NativeHooks::InputShootHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     
-    if(waiting_shoot_frames >= 50)
+    if(waiting_shoot_frames >= 300)
     {
         waiting_shoot_frames = 0;
 
@@ -181,6 +182,23 @@ uint32_t NativeHooks::InputShootHook(uint32_t arg0)
     }
 
     rootconsole->ConsolePrint("Shoot delayed!");
+    return 0;
+}
+
+uint32_t NativeHooks::StriderCrashFix(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t refCheck = *(uint32_t*)(arg0+0x1F0);
+    uint32_t object = GetCBaseEntity(refCheck);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009014F0);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Failed to run strider function!");
     return 0;
 }
 
@@ -199,6 +217,9 @@ uint32_t NativeHooks::FixMissingObjectHook(uint32_t arg0, uint32_t arg1, uint32_
                 pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x00625A30);
                 return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
             }
+
+            rootconsole->ConsolePrint("Failed because object missing!");
+            return 0;
         }
         else
         {
