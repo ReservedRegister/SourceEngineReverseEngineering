@@ -39,6 +39,7 @@ void InitExtension()
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
+    waiting_shoot_frames = 51;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -2423,6 +2424,7 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     game_start_frames++;
     car_delay_for_save++;
     restore_start_delay++;
+    waiting_shoot_frames++;
 
     if(save_frames >= 500) save_frames = 0;
     if(restore_frames >= 500) restore_frames = 0;
@@ -2433,6 +2435,7 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
     if(game_start_frames >= 1000) game_start_frames = 1000;
     if(car_delay_for_save >= 1000) car_delay_for_save = 15;
     if(restore_start_delay >= 1000) restore_start_delay = 201;
+    if(waiting_shoot_frames >= 1000) waiting_shoot_frames = 51;
 
     if(restore_delay && !restore_delay_lock)
     {

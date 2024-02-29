@@ -65,6 +65,7 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069F180), (void*)NativeHooks::InputShootHook);
 }
 
 uint32_t NativeHooks::pSeqdescHook(uint32_t arg0, uint32_t arg1)
@@ -163,6 +164,24 @@ uint32_t NativeHooks::WeaponGetHook(uint32_t arg0)
     }
 
     return weapon_ent;
+}
+
+uint32_t NativeHooks::InputShootHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    
+    if(waiting_shoot_frames >= 50)
+    {
+        waiting_shoot_frames = 0;
+
+        rootconsole->ConsolePrint("Shoot");
+
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069F180);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Shoot delayed!");
+    return 0;
 }
 
 uint32_t NativeHooks::FixMissingObjectHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)

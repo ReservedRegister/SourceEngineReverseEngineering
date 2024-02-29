@@ -126,6 +126,7 @@ bool removing_ents_restore;
 int restore_start_delay;
 uint32_t fake_sequence_mem;
 bool player_restore_failed;
+int waiting_shoot_frames;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
