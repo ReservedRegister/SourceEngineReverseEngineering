@@ -126,7 +126,6 @@ void InitExtension()
     SaveProcessId();
     
     antiCycleListDoors = AllocateValuesList();
-    mallocAllocations = AllocateMallocRefList();
     playerSaveList = AllocatePlayerSaveList();
     entityDeleteList = AllocateValuesList();
     playerDeathQueue = AllocateValuesList();
@@ -159,7 +158,6 @@ void InitExtension()
     sub_628F00_addr = server_srv + 0x00628F00;
     SaveGameStateAddr = server_srv + 0x00AF3990;
     TransitionRestoreMainCallOrigAddr = server_srv + 0x00AF46C0;
-    VehicleRollermineFunctionAddr = server_srv + 0x00654970;
     OriginalTriggerMovedAddr = engine_srv + 0x001D8FD0;
     DoorFinalFunctionAddr = server_srv + 0x00A94600;
     GetNumClientsAddr = engine_srv + 0x000D3030;
@@ -182,7 +180,6 @@ void InitExtension()
     sub_628F00 = (pOneArgProt)sub_628F00_addr;
     SaveGameState = (pThreeArgProt)SaveGameStateAddr;
     pTransitionRestoreMainCall = (pFourArgProt)TransitionRestoreMainCallOrigAddr;
-    pCallVehicleRollermineFunction = (pOneArgProt)VehicleRollermineFunctionAddr;
     pCallOriginalTriggerMoved = (pTwoArgProt)OriginalTriggerMovedAddr;
     pDoorFinalFunction = (pFiveArgProt)DoorFinalFunctionAddr;
     GetNumClients = (pOneArgProt)GetNumClientsAddr;
@@ -249,7 +246,10 @@ void ApplyPatches()
 {
     uint32_t nop_patch_list[128] = 
     {
-        0x009924F3,0x3B,0x009927E1,0xF,0x008C1DC0,0x8,
+        //player patch
+        0x009924F3,0x3B,0x009927E1,0xF,
+
+        //heli patch
         0x0096026E,5,0x00815EF0,5,
 
         //0x00739AF6,5,0x00739B37,5,0x00739B3C,5,
@@ -262,9 +262,6 @@ void ApplyPatches()
 
         //restore
         0x00AF4361,0x14,
-
-        //bug
-        //0x00B02DCF,6
 
         //weapons
         0x004FD574,2
@@ -302,10 +299,6 @@ void ApplyPatches()
     uint32_t restore_fix = server_srv + 0x00AF4380;
     offset = (uint32_t)Hooks::RepairPlayerRestore - restore_fix - 5;
     *(uint32_t*)(restore_fix+1) = offset;
-
-    uint32_t hunter_fix_crash = server_srv + 0x005799BB;
-    offset = (uint32_t)Hooks::HunterCrashFixTwo - hunter_fix_crash - 5;
-    *(uint32_t*)(hunter_fix_crash+1) = offset;
 
     uint32_t jmp_vphys = server_srv + 0x00499346;
     *(uint8_t*)(jmp_vphys) = 0xEB;
@@ -392,17 +385,9 @@ void ApplyPatches()
 
     memset((void*)(engine_srv + 0x00136812), 0x90, 3);
 
-    /*uint32_t fix_null_ent_crash_cfire = server_srv + 0x007159A4;
-    *(uint8_t*)(fix_null_ent_crash_cfire) = 0xE9;
-    *(uint32_t*)(fix_null_ent_crash_cfire+1) = 0x2D;*/
-
     /*uint32_t save_system_ent_list_patch = server_srv + 0x004AF339;
     *(uint8_t*)(save_system_ent_list_patch) = 0xE9;
     *(uint32_t*)(save_system_ent_list_patch+1) = 0xFB;*/
-
-    /*uint32_t jmp_to_touch = server_srv + 0x0047D7C2;
-    *(uint8_t*)(jmp_to_touch) = 0xE9;
-    *(uint32_t*)(jmp_to_touch+1) = 0xD;*/
 
     uint32_t jmp_to_fix_heli = server_srv + 0x00960275;
     *(uint8_t*)(jmp_to_fix_heli) = 0xE9;
@@ -417,10 +402,6 @@ void ApplyPatches()
 
     /*uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
     *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;*/
-
-    uint32_t null_manhack_patch = server_srv + 0x008C1DC8;
-    *(uint8_t*)(null_manhack_patch) = 0xE9;
-    *(uint32_t*)(null_manhack_patch+1) = 0xAC;
 
     /*uint32_t skip_end_clear_global_list = server_srv + 0x006B3FE5;
     *(uint8_t*)(skip_end_clear_global_list) = 0xE9;
@@ -437,21 +418,6 @@ void ApplyPatches()
     /*uint32_t save_system_patch_one = server_srv + 0x00AF3410;
     *(uint8_t*)(save_system_patch_one) = 0xE9;
     *(uint32_t*)(save_system_patch_one+1) = 0x169;*/
-
-    /*uint32_t player_restore_full_remove = server_srv + 0x00AF4E12;
-    *(uint8_t*)(player_restore_full_remove) = 0xE9;
-    *(uint32_t*)(player_restore_full_remove+1) = 0x89;
-
-    uint32_t remove_player_file_restoring = server_srv + 0x00AF4E79;
-    memset((void*)remove_player_file_restoring, 0x90, 5);
-    *(uint16_t*)(remove_player_file_restoring) = 0xC031;*/
-
-    //uint32_t mainPlayersRestorePatch = server_srv + 0x00AF4124;
-    //*(uint8_t*)(mainPlayersRestorePatch) = 0xEB;
-
-    /*uint32_t patch_player_restore_asm = server_srv + 0x00AF408B;
-    *(uint8_t*)(patch_player_restore_asm) = 0xE9;
-    *(uint32_t*)(patch_player_restore_asm+1) = -0x1F7;*/
 
     uint32_t clientPutInServerRestoreCancel = server_srv + 0x00B030A1;
     *(uint8_t*)(clientPutInServerRestoreCancel) = 0xEB;
@@ -482,20 +448,6 @@ void ApplyPatches()
     *(uint8_t*)(changelevel_patch_two) = 0x0F;
     *(uint8_t*)(changelevel_patch_two+1) = 0x84;
     *(uint32_t*)(changelevel_patch_two+2) = offset;*/
-}
-
-uint32_t Hooks::HunterCrashFixTwo(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    if(server_sleeping)
-    {
-        rootconsole->ConsolePrint("Server Sleeping!");
-        return 0;
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00579750);
-    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -647,12 +599,6 @@ uint32_t Hooks::CallocHook(uint32_t nitems, uint32_t size)
 
     uint32_t enlarged_size = nitems*5.0;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
-
-    /*void* returnAddr = __builtin_return_address(0);
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return newRef;
 }
@@ -662,13 +608,6 @@ uint32_t Hooks::MallocHook(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
 
     uint32_t newRef = (uint32_t)malloc(size*5.0);
-    
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
-
-    /*void* returnAddr = __builtin_return_address(0);
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)enlarged_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
 
     return newRef;
 }
@@ -676,12 +615,8 @@ uint32_t Hooks::MallocHook(uint32_t size)
 uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*5.0);
 
-    /*void* returnAddr = __builtin_return_address(0);
-    RemoveAllocationRef(mallocAllocations, (void*)old_ptr, true);
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)new_ref, (void*)new_size, (void*)((uint32_t)returnAddr - 5), (void*)"malloc");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*5.0);
 
     return new_ref;
 }
@@ -689,13 +624,8 @@ uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 uint32_t Hooks::OperatorNewHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
-    /*void* returnAddr = __builtin_return_address(0);
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+    uint32_t newRef = (uint32_t)malloc(size*5.0);
 
     return newRef;
 }
@@ -703,301 +633,10 @@ uint32_t Hooks::OperatorNewHook(uint32_t size)
 uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X] list_size [%d]", newRef, size, MallocRefListSize(mallocAllocations));
-    //rootconsole->ConsolePrint("malloc() ref: [%X] size: [%X]", newRef, size);
 
-    /*void* returnAddr = __builtin_return_address(0);
-    MallocRef* new_ref_value = CreateNewMallocRef((void*)newRef, (void*)size, (void*)((uint32_t)returnAddr - 5), (void*)"operator_new_array");
-    InsertToMallocRefList(mallocAllocations, new_ref_value, true);*/
+    uint32_t newRef = (uint32_t)malloc(size*5.0);
 
     return newRef;
-}
-
-uint32_t Hooks::FreeHook(uint32_t ref_tofree)
-{
-    if(ref_tofree == 0)
-        return 0;
-
-    operator delete((void*)ref_tofree);
-    return 0;
-
-    void* returnAddr = __builtin_return_address(0);
-
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
-
-    if(searchResult)
-    {
-        if(searchResult->alloc_type == (void*)"malloc")
-        {
-            free((void*)ref_tofree);
-        }
-        else if(searchResult->alloc_type == (void*)"operator_new")
-        {
-            operator delete ((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used free() - should be operator delete ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-        else
-        {
-            operator delete[] ((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used free() - should be operator delete[] ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
-        return 0;
-    }
-
-    //rootconsole->ConsolePrint("error in free detected - [%X]", ((uint32_t)returnAddr - 5));
-    free((void*)ref_tofree);
-    return 0;
-}
-
-uint32_t Hooks::DeleteOperatorHook(uint32_t ref_tofree)
-{
-    if(ref_tofree == 0)
-        return 0;
-        
-    free((void*)ref_tofree);
-    return 0;
-
-    void* returnAddr = __builtin_return_address(0);
-
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
-
-    if(searchResult)
-    {
-        if(searchResult->alloc_type == (void*)"malloc")
-        {
-            free((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used operator delete - should be free() ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-        else if(searchResult->alloc_type == (void*)"operator_new")
-        {
-            operator delete ((void*)ref_tofree);
-        }
-        else
-        {
-            operator delete[] ((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used operator delete - should be operator delete[] ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
-        return 0;
-    }
-
-    //rootconsole->ConsolePrint("error in delete detected - [%X]", ((uint32_t)returnAddr - 5));
-    operator delete ((void*)ref_tofree);
-    return 0;
-}
-
-uint32_t Hooks::DeleteOperatorArrayHook(uint32_t ref_tofree)
-{
-    if(ref_tofree == 0)
-        return 0;
-
-    free((void*)ref_tofree);
-    return 0;
-        
-    void* returnAddr = __builtin_return_address(0);
-
-    MallocRef* searchResult = SearchForMallocRef(mallocAllocations, (void*)ref_tofree, NULL);
-
-    if(searchResult)
-    {
-        if(searchResult->alloc_type == (void*)"malloc")
-        {
-            free((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used operator delete[] - should be free() ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-        else if(searchResult->alloc_type == (void*)"operator_new")
-        {
-            operator delete ((void*)ref_tofree);
-            rootconsole->ConsolePrint("     Used wrong deallocation type - corrected!");
-            rootconsole->ConsolePrint("used operator delete[] - should be operator delete ->[%X] alloc_src->[%X]\n\n", ((uint32_t)returnAddr - 5), searchResult->alloc_location);
-        }
-        else
-        {
-            operator delete[] ((void*)ref_tofree);
-        }
-
-        RemoveAllocationRef(mallocAllocations, (void*)ref_tofree, NULL);
-        return 0;
-    }
-    
-    //rootconsole->ConsolePrint("error in delete[] detected - [%X]", ((uint32_t)returnAddr - 5));
-    operator delete[] ((void*)ref_tofree);
-    return 0;
-}
-
-uint32_t Hooks::MemcpyHook(uint32_t dest, uint32_t src, uint32_t size)
-{
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
-
-    if(searchResult)
-    {
-        uint32_t max_write_size = (uint32_t)searchResult->ref+(uint32_t)searchResult->ref_size;
-        uint32_t actual_write_size = dest+size;
-
-        if(actual_write_size > max_write_size)
-        {
-            void* one = __builtin_return_address(0);
-            uint32_t one_file_offset = (uint32_t)one - server_srv;
-
-            //rootconsole->ConsolePrint("orig ref: [%X] offset ref: [%X] correct size: [%X] promgrmr size: [%X]\n", searchResult->ref, dest, searchResult->ref_size, size);
-
-            //save resource to heap corruption list
-            /*Value* new_heap_corruption = CreateNewValue(searchResult->alloc_location);
-            InsertToValuesList(heapCorruptionsList, new_heap_corruption);*/
-            rootconsole->ConsolePrint("-<>-     Buffer overflow detected - prevented heap corruption!!! memcpy() alloc_src: [%X]", searchResult->alloc_location);
-            rootconsole->ConsolePrint("alloc_ref: [%X] last_func: [%X] base_ref: [%X] max_size: [%X] dest: [%X] dest_size: [%X]\n\n", searchResult->ref, one_file_offset, searchResult->ref, searchResult->ref_size, dest, size);
-
-            /*uint32_t pointer_offset = dest - (uint32_t)searchResult->ref;
-            uint32_t overflow_size = actual_write_size - max_write_size;
-            rootconsole->ConsolePrint("FREEING LEAK!");
-            free(searchResult->ref);
-            rootconsole->ConsolePrint("FREED LEAK!");
-            uint32_t new_ptr = (uint32_t)realloc(searchResult->ref, (uint32_t)searchResult->ref_size+overflow_size);
-
-            rootconsole->ConsolePrint("updated old: [%X] to new: [%X]", searchResult->ref, new_ptr);
-
-            searchResult->ref = (void*)new_ptr;
-            searchResult->ref_size = (void*)size;
-
-            uint32_t save_node = (uint32_t)searchResult->save_point;
-            uint32_t offset = (uint32_t)searchResult->save_point_offset;*/
-
-            //uint32_t returnVal = (uint32_t)memcpy((void*)(new_ptr+pointer_offset), (const void*)src, (size_t)size);
-            //*(uint32_t*)(save_node+offset) = new_ptr;
-            //return returnVal;
-            return 0;
-        }
-    }
-
-    return (uint32_t)memcpy((void*)dest, (const void*)src, (size_t)size);
-}
-
-uint32_t Hooks::MemsetHook(uint32_t dest, uint32_t byte, uint32_t size)
-{   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
-
-    if(searchResult)
-    {
-        uint32_t max_write_size = (uint32_t)searchResult->ref+(uint32_t)searchResult->ref_size;
-        uint32_t actual_write_size = dest+size;
-
-        if(actual_write_size > max_write_size)
-        {
-            void* one = __builtin_return_address(0);
-            uint32_t one_file_offset = (uint32_t)one - server_srv;
-            //rootconsole->ConsolePrint("orig ref: [%X] offset ref: [%X] correct size: [%X] promgrmr size: [%X]\n", searchResult->ref, dest, searchResult->ref_size, size);
-
-            //save resource to heap corruption list
-            /*Value* new_heap_corruption = CreateNewValue(searchResult->alloc_location);
-            InsertToValuesList(heapCorruptionsList, new_heap_corruption);*/
-            rootconsole->ConsolePrint("-<>-     Buffer overflow detected - prevented heap corruption!!! memset() alloc_src: [%X]", searchResult->alloc_location);
-            rootconsole->ConsolePrint("alloc_ref: [%X] last_func: [%X] base_ref: [%X] max_size: [%X] dest: [%X] dest_size: [%X]\n\n", searchResult->ref, one_file_offset, searchResult->ref, searchResult->ref_size, dest, size);
-
-            /*uint32_t pointer_offset = dest - (uint32_t)searchResult->ref;
-            uint32_t overflow_size = actual_write_size - max_write_size;
-            uint32_t new_ptr = (uint32_t)realloc(searchResult->ref, (uint32_t)searchResult->ref_size+overflow_size);
-            searchResult->ref = (void*)new_ptr;
-            searchResult->ref_size = (void*)size;
-
-            uint32_t save_node = (uint32_t)searchResult->save_point;
-            uint32_t offset = (uint32_t)searchResult->save_point_offset;
-
-            uint32_t returnVal = (uint32_t)memset((void*)(new_ptr+pointer_offset), (int)byte, (size_t)size);
-            *(uint32_t*)(save_node+offset) = new_ptr;
-            rootconsole->ConsolePrint("updated old: [%X] to new: [%X]", searchResult->ref, new_ptr);
-            return returnVal;*/
-            return 0;
-        }
-    }
-
-    return (uint32_t)memset((void*)dest, (int)byte, (size_t)size);
-}
-
-uint32_t Hooks::MemmoveHook(uint32_t dest, uint32_t src, uint32_t size)
-{   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
-
-    if(searchResult)
-    {
-        uint32_t max_write_size = (uint32_t)searchResult->ref+(uint32_t)searchResult->ref_size;
-        uint32_t actual_write_size = dest+size;
-
-        if(actual_write_size > max_write_size)
-        {
-            //save resource to heap corruption list
-            /*Value* new_heap_corruption = CreateNewValue(searchResult->alloc_location);
-            InsertToValuesList(heapCorruptionsList, new_heap_corruption);*/
-            rootconsole->ConsolePrint("-<>-     Buffer overflow detected - prevented heap corruption!!! memmove() alloc_src: [%X]", searchResult->alloc_location);
-            return 0;
-        }
-    }
-
-    return (uint32_t)memmove((void*)dest, (const void*)src, (size_t)size);
-}
-
-uint32_t Hooks::StrncpyHook(uint32_t dest, uint32_t src, uint32_t size)
-{   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
-
-    if(searchResult)
-    {
-        uint32_t max_write_size = (uint32_t)searchResult->ref+(uint32_t)searchResult->ref_size;
-        uint32_t actual_write_size = dest+size;
-
-        if(actual_write_size > max_write_size)
-        {
-            //void* one = __builtin_return_address(0);
-            //void* two = __builtin_return_address(1);
-            //void* three = __builtin_return_address(2);
-            //void* four = __builtin_return_address(3);
-
-            //rootconsole->ConsolePrint("call stack: [%X] [%X] [%X] [%X]", one);//, two, three, four);
-            //rootconsole->ConsolePrint("orig ref: [%X] offset ref: [%X] correct size: [%X] promgrmr size: [%X]\n\n", searchResult->ref, dest, searchResult->ref_size, size);
-            /*Value* new_heap_corruption = CreateNewValue(searchResult->alloc_location);
-            InsertToValuesList(heapCorruptionsList, new_heap_corruption);*/
-            rootconsole->ConsolePrint("-<>-     Buffer overflow detected - prevented heap corruption!!! strncpy() alloc_src: [%X]", searchResult->alloc_location);
-            return 0;
-        }
-    }
-
-    return (uint32_t)strncpy((char*)dest, (const char*)src, (size_t)size);
-}
-
-uint32_t Hooks::StrcpyHook(uint32_t dest, uint32_t src)
-{   
-    MallocRef* searchResult = SearchForMallocRefInRange(mallocAllocations, (void*)dest, NULL);
-
-    if(searchResult)
-    {
-        uint32_t max_write_size = (uint32_t)searchResult->ref+(uint32_t)searchResult->ref_size;
-        uint32_t actual_write_size = strlen((char*)src)+1;
-
-        if(actual_write_size > max_write_size)
-        {
-            //void* one = __builtin_return_address(0);
-            //void* two = __builtin_return_address(1);
-            //void* three = __builtin_return_address(2);
-            //void* four = __builtin_return_address(3);
-
-            //rootconsole->ConsolePrint("call stack: [%X] [%X] [%X] [%X]", one);//, two, three, four);
-            //rootconsole->ConsolePrint("orig ref: [%X] offset ref: [%X] correct size: [%X] promgrmr size: [%X]\n\n", searchResult->ref, dest, searchResult->ref_size, size);
-            /*Value* new_heap_corruption = CreateNewValue(searchResult->alloc_location);
-            InsertToValuesList(heapCorruptionsList, new_heap_corruption);*/
-            rootconsole->ConsolePrint("-<>-     Buffer overflow detected - prevented heap corruption!!! strcpy() alloc_src: [%X]", searchResult->alloc_location);
-            return 0;
-        }
-    }
-
-    return (uint32_t)strcpy((char*)dest, (const char*)src);
 }
 
 void PatchRestore()
@@ -1148,139 +787,27 @@ void HookHostChangelevel()
 
 void PatchOthers()
 {
-    int length_one = 5;
-    int length_two = 145;
-    int length_three = 5;
-    int length_four = 4;
-    int length_five = 2;
-    int length_six = 2;
-    int length_seven = 0x6;
-    int length_eight = 5;
-    int length_nine = 3;
-    int length_ten = 5;
-    int length_eleven = 5;
-    int length_twelve = 5;
-    int length_thirteen = 5;
-    int length_fourteen = 5;
-    int length_fifthteen = 4;
-    int length_sixteen = 5;
-    int length_seventeen = 4;
-    int length_eighteen = 6;
-    int length_nineteen = 0x11;
-    int length_twenty = 0xE;
-    int length_twentyone = 2;
-    int length_enlarge = 5;
-
-    uint32_t patch_location_one = server_srv + 0x004AF470;
-    uint32_t patch_location_two = server_srv + 0x00AF24F8;
-    uint32_t patch_location_three = engine_srv + 0x00148ACD;
-    uint32_t patch_location_four = server_srv + 0x00D8AABC;
-    uint32_t patch_location_five = server_srv + 0x008B6787;
-    uint32_t patch_location_six = server_srv +  0x009AFD30;
-    uint32_t patch_location_seven = server_srv + 0x00AF4918;
-    uint32_t patch_location_eight = server_srv + 0x008B675F;
-    uint32_t patch_location_nine = server_srv + 0x008B6796;
     uint32_t patch_location_ten = server_srv + 0x0073C7CB;
-    uint32_t patch_location_eleven = server_srv + 0x00B02FDC;
     uint32_t patch_location_twelve = server_srv + 0x004AE993;
-    uint32_t patch_location_fourteen = server_srv + 0x00AF4D91;
     uint32_t patch_location_fifthteen = server_srv + 0x00D65010;
     uint32_t patch_location_sixteen = engine_srv + 0x001CB601;
     uint32_t patch_location_seventeen = server_srv + 0x00D65550;
-    uint32_t patch_location_eighteen = server_srv + 0x008B2A8C;
-    uint32_t patch_location_nineteen = server_srv + 0x008E7D32;
-    uint32_t patch_location_twenty = server_srv + 0x008E7D35;
-    uint32_t patch_location_twentyone = server_srv + 0x008B2A7B;
-
 
     uint32_t offset = 0;
-
-    //*(uint8_t*)(patch_location_one + 1) = 0xA7;
-
-
-    
-    //uint32_t offset = (uint32_t)SaveRestoreMemManage - patch_location_two - 5;
-    //*(uint8_t*)(patch_location_two) = 0xE8;
-    //*(uint32_t*)(patch_location_two+1) = offset;
-    //memset((void*)(patch_location_two+5), 0x90, length_two - 5);
-
-
-    //*(uint8_t*)(patch_location_three) = 0xE9;
-    //*(uint32_t*)(patch_location_three + 1) = -0x148;
-
-    //memset((void*)patch_location_four, 0x90, length_four);
-    //*(uint16_t*)(patch_location_four) = 0xC031;
-    
-    //*(uint32_t*)(patch_location_four) = (uint32_t)CreateEntityByNameHook;
-
-    //*(uint32_t*)(patch_location_four) = (uint32_t)phook_53D20FPtr;
-
-    //offset = ((uint32_t)pMapInitEndPtr) - patch_location_five - 5;
-    //*(uint32_t*)(patch_location_five + 1) = offset;
-
-    //memset((void*)patch_location_five, 0x90, length_five);
-    //*(uint16_t*)(patch_location_five) = 0xC031;
-
-    //memset((void*)patch_location_six, 0x90, length_six);
-
-    //memset((void*)patch_location_seven, 0x90, length_seven);
-
-
-    //offset = (uint32_t)Hooks::FixManhackCrash - patch_location_eight - 5;
-    //*(uint32_t*)(patch_location_eight + 1) = offset;
-    //*(uint8_t*)(patch_location_eight) = 0xE9;
-    //*(uint32_t*)(patch_location_eight + 1) = 0x364;
-    //memset((void*)patch_location_eight, 0x90, length_eight);
-    //*(uint8_t*)(patch_location_eight) = 0xEB;
-    //*(uint8_t*)(patch_location_eight+1) = -0x47;
-
-    //memset((void*)patch_location_nine, 0x90, length_nine);
-    //*(uint16_t*)(patch_location_nine) = 0xC031;
-
-    //memset((void*)patch_location_eleven, 0x90, length_eleven);
-    //*(uint16_t*)(patch_location_eleven) = 0xC031;
 
     offset = (uint32_t)Hooks::SV_TriggerMovedFix - patch_location_sixteen - 5;
     *(uint32_t*)(patch_location_sixteen + 1) = offset;
 
-
-    *(uint8_t*)(patch_location_fourteen) = 0xE9;
-    *(uint32_t*)(patch_location_fourteen + 1) = 0x1F0;
-
-    uint32_t offset_three = (uint32_t)Hooks::TransitionEntityCreateCall - patch_location_twelve - 5;
+    offset = (uint32_t)Hooks::TransitionEntityCreateCall - patch_location_twelve - 5;
     *(uint8_t*)(patch_location_twelve) = 0xE8;
-    *(uint32_t*)(patch_location_twelve + 1) = offset_three;
+    *(uint32_t*)(patch_location_twelve + 1) = offset;
 
-    uint32_t offset_four = (uint32_t)Hooks::TransitionRestoreMain - patch_location_ten - 5;
+    offset = (uint32_t)Hooks::TransitionRestoreMain - patch_location_ten - 5;
     *(uint8_t*)(patch_location_ten) = 0xE8;
-    *(uint32_t*)(patch_location_ten + 1) = offset_four;
+    *(uint32_t*)(patch_location_ten + 1) = offset;
 
     *(uint32_t*)(patch_location_fifthteen) = (uint32_t)Hooks::DoorCycleResolve;
     *(uint32_t*)(patch_location_seventeen) = (uint32_t)Hooks::DoorCycleResolve;
-
-    //memset((void*)patch_location_eighteen, 0x90, length_eighteen);
-    //offset = (uint32_t)Hooks::FixTransitionCrash - patch_location_eighteen - 5;
-    //*(uint32_t*)(patch_location_eighteen) = 0xE8;
-    //*(uint32_t*)(patch_location_eighteen + 1) = offset;
-
-    memset((void*)patch_location_nineteen, 0x90, length_nineteen);
-    *(uint8_t*)(patch_location_nineteen) = 0x89;
-    *(uint8_t*)(patch_location_nineteen + 1) = 0x34;
-    *(uint8_t*)(patch_location_nineteen + 2) = 0x24;
-
-
-    uint32_t offset_five = (uint32_t)Hooks::VehicleRollermineCheck - patch_location_twenty - 5;
-    *(uint8_t*)(patch_location_twenty) = 0xE8;
-    *(uint32_t*)(patch_location_twenty + 1) = offset_five;
-    *(uint16_t*)(patch_location_twenty + 5) = 0xC085;
-    *(uint16_t*)(patch_location_twenty + 7) = 0x840F;
-    *(uint32_t*)(patch_location_twenty + 9) = 0x2CD;
-
-    //memset((void*)patch_location_twentyone, 0x90, length_twentyone);
-
-    /*uint32_t patch_save_system_one = server_srv + 0x004AED69;
-    offset = (uint32_t)pTransitionEntsHookPtr - patch_save_system_one - 5;
-    *(uint32_t*)(patch_save_system_one+1) = offset;*/
 
     uint32_t patch_another_cycle = server_srv + 0x00A95A9E;
     *(uint8_t*)(patch_another_cycle) = 0xEB;
@@ -1288,14 +815,9 @@ void PatchOthers()
     uint32_t yet_another_cycle = server_srv + 0x00A8653B;
     *(uint8_t*)(yet_another_cycle) = 0xEB;
 
-    uint32_t fix_null_crash_patch = server_srv + 0x0075B9B8;
-    offset = (uint32_t)Hooks::FixNullCrash - fix_null_crash_patch - 5;
-    *(uint32_t*)(fix_null_crash_patch+1) = offset;
-
     uint32_t scripted_sequence_patch_crash = server_srv + 0x00AC3F09;
     *(uint8_t*)(scripted_sequence_patch_crash) = 0xE9;
     *(uint32_t*)(scripted_sequence_patch_crash+1) = 0x70;
-
 
     //PATCH NETWORK EXPLOIT ONE
     uint32_t bf_read_base = engine_srv + 0x001DBE93;
@@ -1316,7 +838,7 @@ void PatchOthers()
     offset = (uint32_t)Hooks::memcpyNetworkHook - memcpy_hook_two - 5;
     *(uint32_t*)(memcpy_hook_two+1) = offset;
 
-    rootconsole->ConsolePrint("--------------------- Other save system parts patched ---------------------");
+    rootconsole->ConsolePrint("--------------------- Other parts patched ---------------------");
 }
 
 uint32_t Hooks::SaveHookDirectMalloc(uint32_t size)
@@ -1699,18 +1221,6 @@ uint32_t Hooks::LevelChangedHookFrameSnaps(uint32_t arg0)
     return pDynamicOneArgFunc(arg0);
 }
 
-uint32_t Hooks::FixNullCrash(uint32_t arg0)
-{
-    if(arg0 == 0)
-    {
-        rootconsole->ConsolePrint("NULL was passed!");
-        return 0;
-    }
-
-    pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t Hooks::PhysSimEnt(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -1866,23 +1376,6 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
     return returnVal;
 }
 
-uint32_t Hooks::VehicleRollermineCheck(uint32_t arg1)
-{
-    //0 = failure
-    //1 = success
-
-    if(arg1 != 0)
-    {
-        if( ( (*(uint8_t*)(arg1+0x11D)) & 8) != 0 )
-            pCallVehicleRollermineFunction(arg1);
-        
-        return 1;
-    }
-
-    rootconsole->ConsolePrint(EXT_PREFIX "Failed to jolt vehicle - crash prevented");
-    return 0;
-}
-
 uint32_t Hooks::SaveOverride(uint32_t arg1)
 {
     savegame = true;
@@ -1989,7 +1482,6 @@ uint32_t Hooks::LevelChangeSafeHook(uint32_t arg0)
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
     
-
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004C5C20);
     pDynamicOneArgFunc(arg0);
 
@@ -2764,109 +2256,6 @@ void HookFunctions()
     HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
 
-    /*rootconsole->ConsolePrint("patching free()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)free, (void*)FreeHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)free, (void*)FreeHook);*/
-
-    /*rootconsole->ConsolePrint("patching operator delete");
-    HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_addr, (void*)DeleteOperatorHook);
-
-    rootconsole->ConsolePrint("patching operator delete[]");
-    HookFunctionInSharedObject(server_srv, server_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, delete_operator_array_addr, (void*)DeleteOperatorArrayHook);*/
-
-
-    /*rootconsole->ConsolePrint("patching memcpy()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pMemcpyPtr, pMemcpyHookPtr);
-    rootconsole->ConsolePrint("patching memset()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pMemsetPtr, pMemsetHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pMemsetPtr, pMemsetHookPtr);
-    rootconsole->ConsolePrint("patching memmove()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pMemmovePtr, pMemmoveHookPtr);
-    rootconsole->ConsolePrint("patching strncpy()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pStrncpyPtr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pStrncpyPtr, pStrncpyHookPtr);*/
-    /*rootconsole->ConsolePrint("patching strcpy_chk()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, strcpy_chk_addr, pStrncpyHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, strcpy_chk_addr, pStrncpyHookPtr);*/
-    /*rootconsole->ConsolePrint("patching strcpy()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, pStrcpyPtr, pStrcpyHookPtr);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, pStrcpyPtr, pStrcpyHookPtr);*/
 
 
 

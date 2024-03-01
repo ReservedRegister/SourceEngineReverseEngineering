@@ -44,6 +44,9 @@ public:
 	static uint32_t pSeqdescHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t InputShootHook(uint32_t arg0);
 	static uint32_t StriderCrashFix(uint32_t arg0);
+	static uint32_t HibernateCrashMore(uint32_t arg0);
+	static uint32_t HunterCrashFixTwo(uint32_t arg0);
+	static uint32_t VehicleRollermineFix(uint32_t arg0);
 };
 
 #endif

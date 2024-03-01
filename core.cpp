@@ -41,7 +41,6 @@ uint32_t sub_654260_addr;
 uint32_t sub_628F00_addr;
 uint32_t SaveGameStateAddr;
 uint32_t TransitionRestoreMainCallOrigAddr;
-uint32_t VehicleRollermineFunctionAddr;
 uint32_t OriginalTriggerMovedAddr;
 uint32_t DoorFinalFunctionAddr;
 uint32_t GetNumClientsAddr;
@@ -64,7 +63,6 @@ pOneArgProt sub_654260;
 pOneArgProt sub_628F00;
 pThreeArgProt SaveGameState;
 pFourArgProt pTransitionRestoreMainCall;
-pOneArgProt pCallVehicleRollermineFunction;
 pTwoArgProt pCallOriginalTriggerMoved;
 pFiveArgProt pDoorFinalFunction;
 pOneArgProt GetNumClients;
@@ -90,7 +88,6 @@ ValueList viewcontrolresetlist;
 ValueList saved_triggers;
 ValueList new_player_join_ref;
 PlayerSaveList playerSaveList;
-MallocRefList mallocAllocations;
 
 char global_map[1024];
 char last_map[1024];
@@ -567,33 +564,6 @@ void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* targ
     }
 }
 
-void InsertToMallocRefList(MallocRefList list, MallocRef* head, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-
-    while(aValue)
-    {
-        if((uint32_t)aValue->ref == (uint32_t)head->ref)
-        {
-            aValue->ref = head->ref;
-            aValue->ref_size = head->ref_size;
-            aValue->alloc_location = head->alloc_location;
-            aValue->alloc_type = head->alloc_type;
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return;
-        }
-        
-        aValue = aValue->nextRef;
-    }
-
-    head->nextRef = *list;
-    *list = head;
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-}
-
 ValueList AllocateValuesList()
 {
     ValueList list = (ValueList) malloc(sizeof(ValueList));
@@ -606,13 +576,6 @@ FieldList AllocateFieldList()
     FieldList list = (FieldList) malloc(sizeof(FieldList));
   	*list = NULL;
   	return list;
-}
-
-MallocRefList AllocateMallocRefList()
-{
-    MallocRefList list = (MallocRefList) malloc(sizeof(MallocRefList));
-    *list = NULL;
-    return list;
 }
 
 PlayerSaveList AllocatePlayerSaveList()
@@ -667,19 +630,6 @@ PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input)
     return player_save;
 }
 
-MallocRef* CreateNewMallocRef(void* ref_input, void* size_input, void* alloc_location_input, void* alloc_type_input)
-{
-    MallocRef* new_ref = (MallocRef*) malloc(sizeof(MallocRef));
-
-    new_ref->ref = ref_input;
-    new_ref->ref_size = size_input;
-    new_ref->alloc_location = alloc_location_input;
-    new_ref->alloc_type = alloc_type_input;
-    new_ref->nextRef = NULL;
-
-    return new_ref;
-}
-
 Value* CreateNewValue(void* valueInput)
 {
     Value* val = (Value*) malloc(sizeof(Value));
@@ -722,29 +672,6 @@ int DeleteAllValuesInList(ValueList list, pthread_mutex_t* passed_lock, bool fre
     
     if(passed_lock) pthread_mutex_unlock(passed_lock);
     return removed_items;
-}
-
-void DeleteAllValuesInMallocRefList(MallocRefList list, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    if(!list || !*list)
-    {
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return;
-    }
-    
-    MallocRef* aValue = *list;
-
-    while(aValue)
-    {
-        MallocRef* detachedValue = aValue->nextRef;
-        free(aValue);
-        aValue = detachedValue;
-    }
-
-    *list = NULL;
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
 }
 
 void* copy_val(void* val, size_t copy_size) {
@@ -873,130 +800,6 @@ void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head)
 {
     head->nextPlayer = *list;
     *list = head;
-}
-
-bool IsInMallocRefList(MallocRefList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-
-    while(aValue)
-    {
-        if((uint32_t)aValue->ref == (uint32_t)searchVal)
-        {
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return true;
-        }
-        
-        aValue = aValue->nextRef;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return false;
-}
-
-uint32_t RemoveAllocationRef(MallocRefList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-
-    if(aValue == NULL)
-    {
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return -1;
-    }
-
-    //search at the start of the list
-    if(((uint32_t)aValue->ref) == ((uint32_t)searchVal))
-    {
-        MallocRef* detachedValue = aValue->nextRef;
-        uint32_t itemSize = (uint32_t)aValue->ref_size;
-        free(*list);
-        *list = detachedValue;
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return 0;
-    }
-
-    //search the rest of the list
-    while(aValue->nextRef)
-    {
-        if(((uint32_t)aValue->nextRef->ref) == ((uint32_t)searchVal))
-        {
-            MallocRef* detachedValue = aValue->nextRef->nextRef;
-
-            uint32_t itemSize = (uint32_t)aValue->nextRef->ref_size;
-            free(aValue->nextRef);
-            aValue->nextRef = detachedValue;
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return 0;
-        }
-
-        aValue = aValue->nextRef;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return -1;
-}
-
-MallocRef* SearchForMallocRef(MallocRefList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-
-    while(aValue)
-    {
-        if((uint32_t)aValue->ref == (uint32_t)searchVal)
-        {
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return aValue;
-        }
-        
-        aValue = aValue->nextRef;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return NULL;
-}
-
-MallocRef* SearchForMallocRefInRange(MallocRefList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-
-    while(aValue)
-    {
-        if( (  (uint32_t)searchVal >= (uint32_t)aValue->ref  )  &&  ( (uint32_t)searchVal <= ((uint32_t)aValue->ref+(uint32_t)aValue->ref_size)  )  )
-        {
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return aValue;
-        }
-        
-        aValue = aValue->nextRef;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return NULL;
-}
-
-int MallocRefListSize(MallocRefList list, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    MallocRef* aValue = *list;
-    int counter = 0;
-
-    while(aValue)
-    {
-        counter++;
-        aValue = aValue->nextRef;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return counter;
 }
 
 int ValueListItems(ValueList list, pthread_mutex_t* passed_lock)

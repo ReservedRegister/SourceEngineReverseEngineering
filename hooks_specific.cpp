@@ -29,6 +29,10 @@ void ApplyPatchesSpecific()
     uint32_t sequence_patch = server_srv + 0x003BFA1F;
     offset = (uint32_t)NativeHooks::pSeqdescHook - sequence_patch - 5;
     *(uint32_t*)(sequence_patch+1) = offset;
+
+    uint32_t hunter_fix_crash = server_srv + 0x005799BB;
+    offset = (uint32_t)NativeHooks::HunterCrashFixTwo - hunter_fix_crash - 5;
+    *(uint32_t*)(hunter_fix_crash+1) = offset;
 }
 
 void HookFunctionsSpecific()
@@ -67,6 +71,53 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069F180), (void*)NativeHooks::InputShootHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009014F0), (void*)NativeHooks::StriderCrashFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054A440), (void*)NativeHooks::HibernateCrashMore);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008E7C70), (void*)NativeHooks::VehicleRollermineFix);
+}
+
+uint32_t NativeHooks::VehicleRollermineFix(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x0F58);
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008E7C70);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Vehicle was invalid!");
+    return 0;
+}
+
+uint32_t NativeHooks::HunterCrashFixTwo(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(server_sleeping && firstplayer_hasjoined)
+    {
+        rootconsole->ConsolePrint("Server Sleeping!");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00579750);
+    return pDynamicOneArgFunc(arg0);
+}
+
+uint32_t NativeHooks::HibernateCrashMore(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(server_sleeping && firstplayer_hasjoined)
+    {
+        rootconsole->ConsolePrint("Invalid Ent Hibernation!!");
+        return 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0054A440);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t NativeHooks::pSeqdescHook(uint32_t arg0, uint32_t arg1)
@@ -226,7 +277,7 @@ uint32_t NativeHooks::CrashFixForHibernation(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(server_sleeping)
+    if(server_sleeping && firstplayer_hasjoined)
     {
         rootconsole->ConsolePrint("Do not run while server sleeps!");
         return 0;
@@ -284,7 +335,7 @@ uint32_t NativeHooks::HunterThinkCrashFix(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(server_sleeping)
+    if(server_sleeping && firstplayer_hasjoined)
     {
         rootconsole->ConsolePrint("Hunter failed to think!");
         return 0;
@@ -534,7 +585,7 @@ uint32_t NativeHooks::AiThinkFix(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    if(server_sleeping)
+    if(server_sleeping && firstplayer_hasjoined)
     {
         rootconsole->ConsolePrint("Blocked while server sleeps!");
         return 0;
