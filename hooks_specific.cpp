@@ -170,19 +170,9 @@ uint32_t NativeHooks::WeaponGetHook(uint32_t arg0)
 uint32_t NativeHooks::InputShootHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-    
-    if(waiting_shoot_frames >= 300)
-    {
-        waiting_shoot_frames = 0;
 
-        rootconsole->ConsolePrint("Shoot");
-
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069F180);
-        return pDynamicOneArgFunc(arg0);
-    }
-
-    rootconsole->ConsolePrint("Shoot delayed!");
-    return 0;
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069F180);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t NativeHooks::StriderCrashFix(uint32_t arg0)
