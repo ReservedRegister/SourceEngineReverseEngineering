@@ -2196,53 +2196,53 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074A4A0), (void*)Hooks::SetGlobalState);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF4110), (void*)Hooks::MainPlayerRestoreHook);
 
-    /*rootconsole->ConsolePrint("patching calloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    rootconsole->ConsolePrint("patching calloc()");
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);*/
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
 
     rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    /*HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)Hooks::MallocHook);*/
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
 
-    /*rootconsole->ConsolePrint("patching realloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    rootconsole->ConsolePrint("patching realloc()");
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);*/
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     
-    /*rootconsole->ConsolePrint("patching operator new");
-    HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    rootconsole->ConsolePrint("patching operator new");
+    //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);*/
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
 
     rootconsole->ConsolePrint("patching operator new[]");
     HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);

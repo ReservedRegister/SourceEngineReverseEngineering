@@ -1946,20 +1946,21 @@ void SaveTriggersDatamaps()
 
 bool IsSynergyMemoryCorrect()
 {
-    bool mem_pass_one = *(uint8_t*)((server_srv + 0x00544C51)+0) == 0xF3;
-    bool mem_pass_two = *(uint8_t*)((server_srv + 0x00544C51)+1) == 0x0F;
-    bool mem_pass_three = *(uint8_t*)((server_srv + 0x00544C51)+2) == 0x10;
-    bool mem_pass_four = *(uint8_t*)((server_srv + 0x00544C51)+3) == 0x05;
-
-    bool mem_pass_address = *(uint32_t*)((server_srv + 0x00544C51)+4) == (server_srv + 0x00C3111C);
-
     if
     (
-    mem_pass_one    && 
-    mem_pass_two    && 
-    mem_pass_three  && 
-    mem_pass_four   && 
-    mem_pass_address
+    *(uint8_t*)((server_srv + 0x00544C51)+0) == 0xF3    && 
+    *(uint8_t*)((server_srv + 0x00544C51)+1) == 0x0F    && 
+    *(uint8_t*)((server_srv + 0x00544C51)+2) == 0x10    && 
+    *(uint8_t*)((server_srv + 0x00544C51)+3) == 0x05    && 
+
+    *(uint32_t*)((server_srv + 0x00544C51)+4) == (server_srv + 0x00C3111C) &&
+
+    *(uint8_t*)((server_srv + 0x00440693)+0) == 0xF3   &&
+    *(uint8_t*)((server_srv + 0x00440693)+1) == 0x0F   &&
+    *(uint8_t*)((server_srv + 0x00440693)+2) == 0x10   &&
+    *(uint8_t*)((server_srv + 0x00440693)+3) == 0x05   &&
+
+    *(uint32_t*)((server_srv + 0x00440693)+4) == (server_srv + 0x00C3111C)
     )
     {
         return true;
@@ -1978,6 +1979,12 @@ void ForceSynergyMemoryCorrection()
     *(uint8_t*)((server_srv + 0x00544C51)+2) = 0x10;
     *(uint8_t*)((server_srv + 0x00544C51)+3) = 0x05;
     *(uint32_t*)((server_srv + 0x00544C51)+4) = (server_srv + 0x00C3111C);
+
+    *(uint8_t*)((server_srv + 0x00440693)+0) = 0xF3;
+    *(uint8_t*)((server_srv + 0x00440693)+1) = 0x0F;
+    *(uint8_t*)((server_srv + 0x00440693)+2) = 0x10;
+    *(uint8_t*)((server_srv + 0x00440693)+3) = 0x05;
+    *(uint32_t*)((server_srv + 0x00440693)+4) = (server_srv + 0x00C3111C);
 
     RestoreMemoryProtections();
 }
