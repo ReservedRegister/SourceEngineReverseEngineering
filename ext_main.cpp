@@ -303,62 +303,6 @@ void ApplyPatches()
     uint32_t jmp_vphys = server_srv + 0x00499346;
     *(uint8_t*)(jmp_vphys) = 0xEB;
 
-    uint32_t vphysicsupdatepatch = server_srv + 0x003D97EB;
-    memset((void*)vphysicsupdatepatch, 0x90, 12);
-
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch+2) = 0x24;
-
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch = server_srv + 0x003D97F2;
-    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch - 5;
-    *(uint8_t*)(vphysicsupdatepatch) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch+1) = offset;
-
-    uint32_t vphysicsupdatepatch_two = server_srv + 0x003D9822;
-    memset((void*)vphysicsupdatepatch_two, 0x90, 7);
-
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_two) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_two+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch_two+2) = 0x24;
-
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_two = server_srv + 0x003D9852;
-    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_two - 5;
-    *(uint8_t*)(vphysicsupdatepatch_two) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_two+1) = offset;
-
-    uint32_t vphysicsupdatepatch_three = server_srv + 0x00657ED3;
-    memset((void*)vphysicsupdatepatch_three, 0x90, 7);
-
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_three) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_three+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch_three+2) = 0x24;
-
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_three = server_srv + 0x00657EE3;
-    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_three - 5;
-    *(uint8_t*)(vphysicsupdatepatch_three) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_three+1) = offset;
-
-    uint32_t vphysicsupdatepatch_four = server_srv + 0x00658E2C;
-    memset((void*)vphysicsupdatepatch_four, 0x90, 7);
-
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_four) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_four+1) = 0x34;
-    *(uint8_t*)(vphysicsupdatepatch_four+2) = 0x24;
-
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_four = server_srv + 0x00658E33;
-    offset = (uint32_t)Hooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_four - 5;
-    *(uint8_t*)(vphysicsupdatepatch_four) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_four+1) = offset;
-
     /*uint32_t player_think_patch_two = server_srv + 0x0098FFF3;
     *(uint8_t*)(player_think_patch_two) = 0xE9;
     *(uint32_t*)(player_think_patch_two+1) = 0xC8;*/
@@ -2103,33 +2047,6 @@ uint32_t Hooks::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003F98A0);
     return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t Hooks::VphysicsUpdateWarningHook(uint32_t arg0)
-{
-    uint32_t refHandle = *(uint32_t*)(arg0+0x350);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(object)
-    {
-        char* classname = (char*)(*(uint32_t*)(arg0+0x68));
-
-        if(classname)
-        {
-            rootconsole->ConsolePrint("Removing unreasonable entity! [%s]", classname);
-        }
-        else
-        {
-            rootconsole->ConsolePrint("Removing unreasonable entity!");
-        }
-
-        Hooks::HookEntityDelete(arg0);
-        return 0;
-    }
-
-    rootconsole->ConsolePrint("Invalid Entity in vphysics!");
-    exit(EXIT_FAILURE);
-    return 0;
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)

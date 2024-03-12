@@ -33,6 +33,62 @@ void ApplyPatchesSpecific()
     uint32_t hunter_fix_crash = server_srv + 0x005799BB;
     offset = (uint32_t)NativeHooks::HunterCrashFixTwo - hunter_fix_crash - 5;
     *(uint32_t*)(hunter_fix_crash+1) = offset;
+
+    uint32_t vphysicsupdatepatch = server_srv + 0x003D97EB;
+    memset((void*)vphysicsupdatepatch, 0x90, 12);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch+1) = 0x1C;
+    *(uint8_t*)(vphysicsupdatepatch+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch = server_srv + 0x003D97F2;
+    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch - 5;
+    *(uint8_t*)(vphysicsupdatepatch) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch+1) = offset;
+
+    uint32_t vphysicsupdatepatch_two = server_srv + 0x003D9822;
+    memset((void*)vphysicsupdatepatch_two, 0x90, 7);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch_two) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch_two+1) = 0x1C;
+    *(uint8_t*)(vphysicsupdatepatch_two+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch_two = server_srv + 0x003D9852;
+    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_two - 5;
+    *(uint8_t*)(vphysicsupdatepatch_two) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch_two+1) = offset;
+
+    uint32_t vphysicsupdatepatch_three = server_srv + 0x00657ED3;
+    memset((void*)vphysicsupdatepatch_three, 0x90, 7);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch_three) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch_three+1) = 0x1C;
+    *(uint8_t*)(vphysicsupdatepatch_three+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch_three = server_srv + 0x00657EE3;
+    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_three - 5;
+    *(uint8_t*)(vphysicsupdatepatch_three) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch_three+1) = offset;
+
+    uint32_t vphysicsupdatepatch_four = server_srv + 0x00658E2C;
+    memset((void*)vphysicsupdatepatch_four, 0x90, 7);
+
+    // SET STACK POINTER
+    *(uint8_t*)(vphysicsupdatepatch_four) = 0x89;
+    *(uint8_t*)(vphysicsupdatepatch_four+1) = 0x34;
+    *(uint8_t*)(vphysicsupdatepatch_four+2) = 0x24;
+
+    // SET HOOK ADDRESS
+    vphysicsupdatepatch_four = server_srv + 0x00658E33;
+    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_four - 5;
+    *(uint8_t*)(vphysicsupdatepatch_four) = 0xE8;
+    *(uint32_t*)(vphysicsupdatepatch_four+1) = offset;
 }
 
 void HookFunctionsSpecific()
@@ -73,6 +129,57 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009014F0), (void*)NativeHooks::StriderCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054A440), (void*)NativeHooks::HibernateCrashMore);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008E7C70), (void*)NativeHooks::VehicleRollermineFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00609F90), (void*)NativeHooks::FixStructNullCrash);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D540), (void*)NativeHooks::FixNullCrash);
+}
+
+uint32_t NativeHooks::FixNullCrash(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D540);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Found NULL!");
+    return 0;
+}
+
+uint32_t NativeHooks::FixStructNullCrash(uint32_t arg0)
+{
+    if(*(uint32_t*)(arg0) != 0)
+    {
+        return *(uint32_t*)((*(uint32_t*)(arg0))+0x20) >> 3 & 1;
+    }
+
+    rootconsole->ConsolePrint("AI ROUTE DIVERT DETECTED!");
+    //DONT RETURN 0 WHEN NULL
+    return -1;
+}
+
+uint32_t NativeHooks::VphysicsUpdateWarningHook(uint32_t arg0)
+{
+    if(IsEntityValid(arg0))
+    {
+        char* classname = (char*)(*(uint32_t*)(arg0+0x68));
+
+        if(classname)
+        {
+            rootconsole->ConsolePrint("Removing unreasonable entity! [%s]", classname);
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Removing unreasonable entity!");
+        }
+
+        RemoveEntityNormal(arg0, true);
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("Invalid Entity in vphysics!");
+    return 0;
 }
 
 uint32_t NativeHooks::VehicleRollermineFix(uint32_t arg0)
@@ -370,7 +477,6 @@ uint32_t NativeHooks::TakeDamageHeliFix(uint32_t arg0, uint32_t arg1, uint32_t a
     }
 
     rootconsole->ConsolePrint("TakeDamage heli fix!");
-    //RemoveEntityNormal(arg0, true);
     return 0;
 }
 

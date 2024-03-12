@@ -47,6 +47,9 @@ public:
 	static uint32_t HibernateCrashMore(uint32_t arg0);
 	static uint32_t HunterCrashFixTwo(uint32_t arg0);
 	static uint32_t VehicleRollermineFix(uint32_t arg0);
+	static uint32_t VphysicsUpdateWarningHook(uint32_t arg0);
+	static uint32_t FixStructNullCrash(uint32_t arg0);
+	static uint32_t FixNullCrash(uint32_t arg0);
 };
 
 #endif

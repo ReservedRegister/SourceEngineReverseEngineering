@@ -69,7 +69,6 @@ public:
 	static uint32_t SV_FrameHook(uint32_t arg0);
 	static uint32_t PlayerDeathHook(uint32_t arg0);
 	static uint32_t SetSolidFlagsHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t VphysicsUpdateWarningHook(uint32_t arg0);
 	static uint32_t PackedStoreConstructorHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4);
 	static uint32_t PackedStoreDestructorHook(uint32_t arg0);
 	static uint32_t UTIL_RemoveHookFailsafe(uint32_t arg0);
