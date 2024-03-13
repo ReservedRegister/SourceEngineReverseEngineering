@@ -131,6 +131,24 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008E7C70), (void*)NativeHooks::VehicleRollermineFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00609F90), (void*)NativeHooks::FixStructNullCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D540), (void*)NativeHooks::FixNullCrash);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C1D60), (void*)NativeHooks::FixOldManhackCrash);
+}
+
+uint32_t NativeHooks::FixOldManhackCrash(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t ref = *(uint32_t*)(arg0+0x11B8);
+    uint32_t object = GetCBaseEntity(ref);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C1D60);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Manhack NULL");
+    return 0;
 }
 
 uint32_t NativeHooks::FixNullCrash(uint32_t arg0)

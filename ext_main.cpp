@@ -541,7 +541,7 @@ uint32_t Hooks::CallocHook(uint32_t nitems, uint32_t size)
 {
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
-    uint32_t enlarged_size = nitems*5.0;
+    uint32_t enlarged_size = nitems*2.5;
     uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
 
     return newRef;
@@ -551,7 +551,7 @@ uint32_t Hooks::MallocHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
+    uint32_t newRef = (uint32_t)malloc(size*2.5);
 
     return newRef;
 }
@@ -560,7 +560,7 @@ uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
 
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*5.0);
+    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.2);
 
     return new_ref;
 }
@@ -569,7 +569,7 @@ uint32_t Hooks::OperatorNewHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
+    uint32_t newRef = (uint32_t)malloc(size*2.5);
 
     return newRef;
 }
@@ -578,7 +578,7 @@ uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*5.0);
+    uint32_t newRef = (uint32_t)malloc(size*2.5);
 
     return newRef;
 }
@@ -2162,16 +2162,16 @@ void HookFunctions()
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
 
     rootconsole->ConsolePrint("patching operator new[]");
-    HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(soundemittersystem, soundemittersystem_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
 
 
 
