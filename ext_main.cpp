@@ -840,6 +840,7 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
     uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
 
+    uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
     uint32_t someStuff = *(uint32_t*)(server_srv + 0x0107375C);
     uint32_t someStuff_24 = *(uint32_t*)(someStuff+0x24);
     uint32_t current_map = sv + 0x11;
@@ -866,7 +867,15 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
             if(allowEntRestore)
             {
+                //Lock
+                pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)main_engine_global)+0x64));
+                pDynamicOneArgFunc(main_engine_global);
+
                 Hooks::HookEntityDelete(mainEnt);
+
+                //Unlock
+                pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)main_engine_global)+0x68));
+                pDynamicOneArgFunc(main_engine_global);
             }
         }
 
