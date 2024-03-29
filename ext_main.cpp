@@ -847,13 +847,13 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
     uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
 
+    Hooks::CleanupDeleteListHook(0);
+
     //EndRestoreEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
     pDynamicOneArgFunc(0);
 
-    //BeginRestoreEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
-    pDynamicOneArgFunc(0);
+    Hooks::CleanupDeleteListHook(0);
 
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
     uint32_t someStuff = *(uint32_t*)(server_srv + 0x0107375C);
@@ -893,14 +893,22 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         Hooks::CleanupDeleteListHook(0);
 
         removing_ents_restore = false;
+
+        //BeginRestoreEntities
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
+        pDynamicOneArgFunc(0);
         
         AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
         *(uint8_t*)(server_srv + 0x01012130) = 1;
     }
 
+    Hooks::CleanupDeleteListHook(0);
+
     //EndRestoreEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
     pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
 
     return returnVal;
 }
