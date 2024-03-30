@@ -1032,7 +1032,8 @@ uint32_t Hooks::DirectMallocHookDedicatedSrv(uint32_t arg0)
     uint32_t packed_store_ref = arg0_return-0x228;
 
 
-    uint32_t ref = (uint32_t)malloc(arg0*5.0);
+    uint32_t ref = (uint32_t)malloc(arg0*3.0);
+    
     Value* a_leak = *leakedResourcesVpkSystem;
 
     while(a_leak)
@@ -1097,9 +1098,7 @@ uint32_t Hooks::PackedStoreDestructorHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BAE80);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-
-
+    
     uint32_t purge_ref = 0;
 
     //lea     eax, [ebx+2CB8h]
@@ -1184,11 +1183,6 @@ uint32_t Hooks::PackedStoreDestructorHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000C0120);
     pDynamicOneArgFunc(arg0_offset);
-
-    rootconsole->ConsolePrint("DONE!");
-
-
-
 
     Value* a_leak = *leakedResourcesVpkSystem;
 
