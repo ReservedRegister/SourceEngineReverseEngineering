@@ -585,7 +585,7 @@ uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)operator new[](size);
 
-    uint32_t newRef = (uint32_t)operator new[](size*1.3);
+    uint32_t newRef = (uint32_t)operator new[](size*1.5);
 
     return newRef;
 }
