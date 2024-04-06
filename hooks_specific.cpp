@@ -133,6 +133,7 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D540), (void*)NativeHooks::FixNullCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C1D60), (void*)NativeHooks::FixOldManhackCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00946DF0), (void*)NativeHooks::SomeEntBadUsageFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00619400), (void*)NativeHooks::CombineAttackFix);
 }
 
 uint32_t NativeHooks::FixOldManhackCrash(uint32_t arg0)
@@ -789,6 +790,38 @@ uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
+uint32_t NativeHooks::CombineAttackFix(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    int iVar10;
+
+    if(0 < *(int *)(arg0 + 0x48))
+    {
+        iVar10 = 0;
+
+        do
+        {
+            uint32_t uVar11 = *(uint32_t*)(arg0 + 8 + iVar10 * 4);
+            uint32_t object = GetCBaseEntity(uVar11);
+
+            if(IsEntityValid(object) == 0)
+            {
+                //INVALID FOUND
+                rootconsole->ConsolePrint("Invalid Entity in Combine AI");
+                *(int *)(arg0 + 0x48) = 0;
+                break;
+            }
+
+            iVar10 = iVar10 + 1;
+        }
+        while (iVar10 < *(int *)(arg0 + 0x48));
+    }
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00619400);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
 uint32_t NativeHooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -913,7 +946,7 @@ uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint3
         pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0076B680);
         pDynamicFourArgFunc(arg0, arg1, arg2, arg2);
 
-        if(0 < *(uint32_t*)(arg0 + 0x10C0))
+        if(0 < *(int*)(arg0 + 0x10C0))
         {
             iVar3 = 0;
             

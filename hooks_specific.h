@@ -52,6 +52,7 @@ public:
 	static uint32_t FixNullCrash(uint32_t arg0);
 	static uint32_t FixOldManhackCrash(uint32_t arg0);
 	static uint32_t SomeEntBadUsageFix(uint32_t arg0);
+	static uint32_t CombineAttackFix(uint32_t arg0, uint32_t arg1);
 };
 
 #endif
