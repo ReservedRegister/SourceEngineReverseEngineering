@@ -794,7 +794,7 @@ void PatchOthers()
 
 uint32_t Hooks::SaveHookDirectMalloc(uint32_t size)
 {
-    uint32_t new_size = size*6.0;
+    uint32_t new_size = size*5.0;
     uint32_t ref = (uint32_t)malloc(new_size);
     memset((void*)ref, 0, new_size);
     //rootconsole->ConsolePrint("malloc() [Save/Restore Hook] " HOOK_MSG " size: [%d]", ref, new_size);
@@ -892,6 +892,8 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
         
         AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
         *(uint8_t*)(server_srv + 0x01012130) = 1;
+
+        Hooks::CleanupDeleteListHook(0);
 
         //EndRestoreEntities
         pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
@@ -994,6 +996,8 @@ uint32_t Hooks::RestoreOverride()
     RestorePlayers();
 
     *(uint8_t*)(server_srv + 0x01012130) = 1;
+
+    Hooks::CleanupDeleteListHook(0);
 
     //EndRestoreEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
@@ -2018,6 +2022,12 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
     SaveGame_Extension();
 
     Hooks::CleanupDeleteListHook(0);
@@ -2032,12 +2042,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -2201,7 +2205,7 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074A4A0), (void*)Hooks::SetGlobalState);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF4110), (void*)Hooks::MainPlayerRestoreHook);
 
-    rootconsole->ConsolePrint("patching calloc()");
+    //rootconsole->ConsolePrint("patching calloc()");
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
@@ -2213,7 +2217,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
 
-    rootconsole->ConsolePrint("patching malloc()");
+    //rootconsole->ConsolePrint("patching malloc()");
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
@@ -2225,7 +2229,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
 
-    rootconsole->ConsolePrint("patching realloc()");
+    //rootconsole->ConsolePrint("patching realloc()");
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
@@ -2237,7 +2241,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
     
-    rootconsole->ConsolePrint("patching operator new");
+    //rootconsole->ConsolePrint("patching operator new");
     //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);

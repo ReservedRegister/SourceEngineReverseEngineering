@@ -239,7 +239,7 @@ uint32_t NativeHooks::HibernateCrashMore(uint32_t arg0)
 
     if(server_sleeping && firstplayer_hasjoined)
     {
-        rootconsole->ConsolePrint("Invalid Ent Hibernation!!");
+        //rootconsole->ConsolePrint("Invalid Ent Hibernation!!");
         return 0;
     }
 
