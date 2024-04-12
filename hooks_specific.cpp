@@ -4,6 +4,8 @@
 
 void ApplyPatchesSpecific()
 {
+    uint32_t offset = 0;
+
     uint32_t player_patch_one = server_srv + 0x00589CD9;
     memset((void*)player_patch_one, 0x90, 6);
     
@@ -89,6 +91,7 @@ uint32_t NativeHooks::VTableFixHook(uint32_t arg0, uint32_t arg1)
 
     if(IsEntityValid(arg1))
     {
+        uint32_t refHandle = *(uint32_t*)(arg1+0x334);
         *(uint32_t*)(arg0+0x9E4) = refHandle;
         return 0;
     }
@@ -188,7 +191,7 @@ uint32_t NativeHooks::VphysicsUpdateWarningHook(uint32_t arg0)
             rootconsole->ConsolePrint("Removing unreasonable entity!");
         }
 
-        Hooks::UTIL_RemoveHook(arg0+0x14);
+        RemoveEntityNormal(arg0, true);
         return 0;
     }
 

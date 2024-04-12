@@ -1,3 +1,4 @@
+#include "extension.h"
 #include "core.h"
 
 uint32_t hook_exclude_list_offset[512] = {};
