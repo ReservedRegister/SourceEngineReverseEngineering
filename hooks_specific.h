@@ -1,3 +1,6 @@
+void ApplyPatchesSpecific();
+void HookFunctionsSpecific();
+
 class NativeHooks
 {
 public:

@@ -1,6 +1,7 @@
 #include "extension.h"
 #include "core.h"
 #include "ext_main.h"
+#include "hooks_specific.h"
 
 void InitExtension()
 {
@@ -57,9 +58,14 @@ void InitExtension()
     server_sleeping = false;
 
     PopulateHookExclusionLists();
+
     ApplyPatches();
+    ApplyPatchesSpecific();
+
     DisableCacheCvars();
+    
     HookFunctions();
+    HookFunctionsSpecific();
 
     RestoreMemoryProtections();
 
