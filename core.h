@@ -310,5 +310,6 @@ void AttemptToRestoreGame();
 void ResetView();
 bool IsSynergyMemoryCorrect();
 void ForceSynergyMemoryCorrection();
+void CorrectNpcAi(uint32_t arg0);
 
 #endif

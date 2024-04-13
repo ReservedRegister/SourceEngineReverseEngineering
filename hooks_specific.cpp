@@ -100,7 +100,6 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), (void*)NativeHooks::BarneyThinkHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)NativeHooks::ChkHandle);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), (void*)NativeHooks::FixBaseEntityNullCrash);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00618AC0), (void*)NativeHooks::DropshipSimulationCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)NativeHooks::Outland_07_Patch);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00576230), (void*)NativeHooks::AssaultNpcFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::BaseNPCHook);
@@ -133,7 +132,8 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D540), (void*)NativeHooks::FixNullCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C1D60), (void*)NativeHooks::FixOldManhackCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00946DF0), (void*)NativeHooks::SomeEntBadUsageFix);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00619400), (void*)NativeHooks::CombineAttackFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005715D0), (void*)NativeHooks::CombineAttackFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008AB540), (void*)NativeHooks::ManhackAiFix);
 }
 
 uint32_t NativeHooks::FixOldManhackCrash(uint32_t arg0)
@@ -790,131 +790,24 @@ uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t NativeHooks::CombineAttackFix(uint32_t arg0, uint32_t arg1)
+uint32_t NativeHooks::ManhackAiFix(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    int iVar10;
+    CorrectNpcAi(arg0);
 
-    if(0 < *(int *)(arg0 + 0x48))
-    {
-        iVar10 = 0;
-
-        do
-        {
-            uint32_t uVar11 = *(uint32_t*)(arg0 + 8 + iVar10 * 4);
-            uint32_t object = GetCBaseEntity(uVar11);
-
-            if(IsEntityValid(object) == 0)
-            {
-                //INVALID FOUND
-                rootconsole->ConsolePrint("Invalid Entity in Combine AI");
-                *(int *)(arg0 + 0x48) = 0;
-                break;
-            }
-
-            iVar10 = iVar10 + 1;
-        }
-        while (iVar10 < *(int *)(arg0 + 0x48));
-    }
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00619400);
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008AB540);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t NativeHooks::DropshipSimulationCrashFix(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+uint32_t NativeHooks::CombineAttackFix(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pOneArgProt pDynamicOneArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-    
-    uint32_t uVar1;
-    int *piVar2;
-    int iVar3;
-    
-    if(0 < *(int*)(arg0 + 0x48))
-    {
-        iVar3 = 0;
+    pThreeArgProt pDynamicThreeArgFunc;
 
-        if(arg1 == 0)
-        {
-            do
-            {
-                while(uVar1 = *(uint32_t*)(arg0 + 8 + iVar3 * 4), uVar1 == 0xFFFFFFFF)
-                {
-                    //LAB_00628b70:
+    CorrectNpcAi(arg0);
 
-                    iVar3 = iVar3 + 1;
-
-                    if(*(int*)(arg0 + 0x48) <= iVar3)
-                    {
-                        return 0;
-                    }
-                }
-                
-                uint32_t object = GetCBaseEntity(uVar1);
-
-                if(IsEntityValid(object))
-                {
-                    pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(object))+0x7CC)  );
-                    pDynamicFourArgFunc(object, arg2, arg3, 0);
-                }
-
-                /*if (*(uint *)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 8) == uVar1 >> 0xc)
-                {
-                    piVar2 = *(int **)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 4);
-                    
-                    if (piVar2 != (int *)0x0)
-                    {
-                        (**(code **)(*piVar2 + 0x7cc))(piVar2,param_3,param_4,0);
-                    }
-                    
-                    goto LAB_00628b70;
-                }*/
-                
-                iVar3 = iVar3 + 1;
-                
-                if(*(int*)(arg0 + 0x48) <= iVar3)
-                {
-                    return 0;
-                }
-            }
-            while(true);
-        }
-        
-        do
-        {
-            uVar1 = *(uint32_t*)(arg0 + 8 + iVar3 * 4);
-
-            uint32_t object = GetCBaseEntity(uVar1);
-            object = IsEntityValid(object);
-
-            if(object && (object != arg1))
-            {
-                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(object))+0x7CC)  );
-                pDynamicFourArgFunc(object, arg2, arg3, arg1);
-            }
-            
-            /*if (uVar1 == 0xffffffff)
-            {
-                piVar2 = (int *)0x0;
-                LAB_00628b0b:
-                (**(code **)(*piVar2 + 0x7cc))(piVar2,param_3,param_4,param_2);
-            }
-            else
-            {
-                piVar2 = (int *)0x0;
-                
-                if ((*(uint *)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 8) != uVar1 >> 0xc) ||
-                (piVar2 = *(int **)(PTR_DAT_00f5ba30 + (uVar1 & 0xfff) * 0x10 + 4), param_2 != piVar2))
-                goto LAB_00628b0b;
-            }*/
-            
-            iVar3 = iVar3 + 1;
-        }
-        while(*(int*)(arg0 + 0x48) != iVar3 && iVar3 <= *(int*)(arg0 + 0x48));
-    }
-
-    return 0;
+    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x005715D0);
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)

@@ -3193,3 +3193,40 @@ void UpdatePlayersDonor()
     free(new_player_join_ref);
     new_player_join_ref = left_players;
 }
+
+void CorrectNpcAi(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t ai_object = *(uint32_t*)(arg0+0x0BC0);
+
+    if(ai_object)
+    {
+        bool failure = false;
+        int iVar10 = 0;
+
+        do
+        {
+            uint32_t uVar11 = *(uint32_t*)(ai_object + 8 + iVar10 * 4);
+            uint32_t object = GetCBaseEntity(uVar11);
+
+            if(IsEntityValid(object) == 0)
+            {
+                //INVALID FOUND
+                rootconsole->ConsolePrint("Invalid Entity in Combine AI [%d]", iVar10);
+
+                failure = true;
+            }
+
+            iVar10 = iVar10 + 1;
+        }
+        while(iVar10 < *(int*)(ai_object + 0x48));
+
+        if(failure)
+        {
+            //Clear
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00571A00);
+            pDynamicOneArgFunc(arg0);
+        }
+    }
+}
