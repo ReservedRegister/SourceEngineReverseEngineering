@@ -845,62 +845,7 @@ uint32_t Hooks::ParseMapEntities(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pThreeArgProt pDynamicThreeArgFunc;
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x009B09F0);
-    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
-
-    uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
-    uint32_t someStuff = *(uint32_t*)(server_srv + 0x0107375C);
-    uint32_t someStuff_24 = *(uint32_t*)(someStuff+0x24);
-    uint32_t current_map = sv + 0x11;
-
-    char savefile[512];
-    char* root_dir = getenv("PWD");
-    snprintf(savefile, 512, "%s/synergy/%s%s.hl1", root_dir, (char*)someStuff_24, (char*)current_map);
-
-    rootconsole->ConsolePrint("[%s]", savefile);
-
-    if(access(savefile, F_OK) == 0)
-    {
-        removing_ents_restore = true;
-
-        uint32_t mainEnt = 0;
-
-        while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
-        {
-            char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
-            uint32_t refHandle = *(uint32_t*)(mainEnt+0x350);
-
-            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF29F0);
-            uint8_t allowEntRestore = pDynamicOneArgFunc((uint32_t)classname);
-
-            if(allowEntRestore)
-            {
-                Hooks::HookEntityDelete(mainEnt);
-            }
-        }
-
-        //FlushEventQueue
-        //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-        //pDynamicOneArgFunc(server_srv + 0x00FF3020);
-
-        Hooks::CleanupDeleteListHook(0);
-
-        removing_ents_restore = false;
-
-        //BeginRestoreEntities
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
-        pDynamicOneArgFunc(0);
-        
-        AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
-        *(uint8_t*)(server_srv + 0x01012130) = 1;
-
-        Hooks::CleanupDeleteListHook(0);
-
-        //EndRestoreEntities
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
-        pDynamicOneArgFunc(0);
-    }
-
-    return returnVal;
+    return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
 uint32_t Hooks::EdtSystemHookFunc(uint32_t arg1)
@@ -954,6 +899,11 @@ uint32_t Hooks::RestoreOverride()
     protect_player = true;
 
     *(uint8_t*)((*(uint32_t*)(server_srv + 0x00FA0CF0)) + 0x130) = 1;
+
+    //BeginRestoreEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
+    pDynamicOneArgFunc(0);
+
     uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
 
     rootconsole->ConsolePrint("Clearing entities!");
@@ -985,12 +935,8 @@ uint32_t Hooks::RestoreOverride()
 
 
     //EDICT REUSE
-    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
-    pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
-
-    //BeginRestoreEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073B880);
-    pDynamicOneArgFunc(0);
+    //pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
+    //pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
 
     AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)"autosave", 0);
     RestorePlayers();
@@ -1316,81 +1262,6 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
     pOneArgProt pDynamicOneArgFunc;
     transition = true;
 
-    /*if(strcmp(last_map, "ep2_outland_04") == 0 && strcmp(global_map, "ep2_outland_02") == 0)
-    {
-        uint32_t searchEnt = 0;
-
-        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
-        {
-            char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
-            if(!targetname)
-                continue;
-
-            if(strcmp(targetname, "debug_choreo_start_in_elevator") == 0)
-            {
-                uint32_t m_refHandle = *(uint32_t*)(searchEnt+0x350);
-                rootconsole->ConsolePrint("Triggered relay - debug_choreo_start_in_elevator");
-                SendEntityInput(m_refHandle, (uint32_t)"Trigger", 0, 0, 0, (uint32_t)-1);
-                SendEntityInput(m_refHandle, (uint32_t)"Kill", 0, 0, 0, (uint32_t)-1);
-                break;
-            }
-        }
-
-        searchEnt = 0;
-
-        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"trigger_once")) != 0)
-        {
-            char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
-            if(!targetname)
-                continue;
-
-            if(strcmp(targetname, "elevator_actor_setup_trigger") == 0)
-            {
-                uint32_t m_refHandle = *(uint32_t*)(searchEnt+0x350);
-                rootconsole->ConsolePrint("Triggered trigger - elevator_actor_setup_trigger");
-                SendEntityInput(m_refHandle, (uint32_t)"Trigger", 0, 0, 0, (uint32_t)-1);
-                SendEntityInput(m_refHandle, (uint32_t)"Kill", 0, 0, 0, (uint32_t)-1);
-                break;
-            }
-        }
-
-        searchEnt = 0;
-
-        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"point_template")) != 0)
-        {
-            char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
-            if(!targetname)
-                continue;
-
-            if(strcmp(targetname, "gman_template") == 0)
-            {
-                uint32_t m_refHandle = *(uint32_t*)(searchEnt+0x350);
-                rootconsole->ConsolePrint("Spawned template - gman_template");
-                SendEntityInput(m_refHandle, (uint32_t)"ForceSpawn", 0, 0, 0, (uint32_t)-1);
-                SendEntityInput(m_refHandle, (uint32_t)"Kill", 0, 0, 0, (uint32_t)-1);
-                break;
-            }
-        }
-
-        searchEnt = 0;
-
-        while((searchEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, searchEnt, (uint32_t)"logic_relay")) != 0)
-        {
-            char* targetname = (char*)  *(uint32_t*)(searchEnt+0x124);
-            if(!targetname)
-                continue;
-
-            if(strcmp(targetname, "start_the_elevator_rl") == 0)
-            {
-                uint32_t m_refHandle = *(uint32_t*)(searchEnt+0x350);
-                rootconsole->ConsolePrint("Triggered relay - start_the_elevator_rl");
-                SendEntityInput(m_refHandle, (uint32_t)"Trigger", 0, 0, 0, (uint32_t)-1);
-                SendEntityInput(m_refHandle, (uint32_t)"Kill", 0, 0, 0, (uint32_t)-1);
-                break;
-            }
-        }
-    }*/
-
     if(strcmp((char*)arg2, (char*)last_map) == 0)
     {
         rootconsole->ConsolePrint("oldmap matched successfully!");
@@ -1400,14 +1271,53 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
         rootconsole->ConsolePrint("Failed to preserve oldmap: [%s] [%s]", arg2, last_map);
         arg2 = (uint32_t)last_map;
     }
+
+    uint32_t main_engine_global = *(uint32_t*)(server_srv + 0x00109A3E0);
+    uint32_t someStuff = *(uint32_t*)(server_srv + 0x0107375C);
+    uint32_t someStuff_24 = *(uint32_t*)(someStuff+0x24);
+    uint32_t current_map = sv + 0x11;
+
+    char savefile[512];
+    char* root_dir = getenv("PWD");
+    snprintf(savefile, 512, "%s/synergy/%s%s.hl1", root_dir, (char*)someStuff_24, (char*)current_map);
+
+    rootconsole->ConsolePrint("[%s]", savefile);
+
+    if(access(savefile, F_OK) == 0)
+    {
+        removing_ents_restore = true;
+
+        uint32_t mainEnt = 0;
+
+        while((mainEnt = Hooks::FindEntityByClassnameHook(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+        {
+            char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
+            uint32_t refHandle = *(uint32_t*)(mainEnt+0x350);
+
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AF29F0);
+            uint8_t allowEntRestore = pDynamicOneArgFunc((uint32_t)classname);
+
+            if(allowEntRestore)
+            {
+                Hooks::HookEntityDelete(mainEnt);
+            }
+        }
+
+        //FlushEventQueue
+        //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
+        //pDynamicOneArgFunc(server_srv + 0x00FF3020);
+
+        Hooks::CleanupDeleteListHook(0);
+
+        removing_ents_restore = false;
+        
+        AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
+        *(uint8_t*)(server_srv + 0x01012130) = 1;
+    }
     
     uint32_t returnVal = pTransitionRestoreMainCall(arg1, arg2, arg3, arg4);
 
     Hooks::CleanupDeleteListHook(0);
-
-    //EndRestoreEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0073CBD0);
-    pDynamicOneArgFunc(0);
 
     return returnVal;
 }
@@ -2022,13 +1932,19 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
+    SaveGame_Extension();
+
+    Hooks::CleanupDeleteListHook(0);
+
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
 
-    SaveGame_Extension();
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -2036,12 +1952,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
 
     Hooks::CleanupDeleteListHook(0);
 
