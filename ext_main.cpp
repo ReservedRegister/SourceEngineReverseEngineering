@@ -925,18 +925,13 @@ uint32_t Hooks::RestoreOverride()
         }
     }
 
-    //FlushEventQueue
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-    //pDynamicOneArgFunc(server_srv + 0x00FF3020);
-
     Hooks::CleanupDeleteListHook(0);
 
     removing_ents_restore = false;
 
-
     //EDICT REUSE
-    //pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
-    //pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
+    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
+    pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
 
     AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)"autosave", 0);
     RestorePlayers();
@@ -1303,13 +1298,13 @@ uint32_t Hooks::TransitionRestoreMain(uint32_t arg1, uint32_t arg2, uint32_t arg
             }
         }
 
-        //FlushEventQueue
-        //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006863F0);
-        //pDynamicOneArgFunc(server_srv + 0x00FF3020);
-
         Hooks::CleanupDeleteListHook(0);
 
         removing_ents_restore = false;
+
+        //EDICT REUSE
+        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ((*(uint32_t*)(*(uint32_t*)(server_srv + 0x01012420)))+0x16C)  );
+        pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
         
         AutosaveLoadOrig(*(uint32_t*)(server_srv + 0x00FA0CF0), (uint32_t)current_map, 0);
         *(uint8_t*)(server_srv + 0x01012130) = 1;
