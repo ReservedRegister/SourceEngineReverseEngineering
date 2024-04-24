@@ -101,6 +101,7 @@ uint32_t IsEntityValid(uint32_t refHandle);
 void DestroyVObjectForMarkedEnts();
 void InstaKill(uint32_t entity_object, bool validate);
 void RemoveEntityNormal(uint32_t entity_object, bool validate);
+bool IsVectorNaN(uint32_t base);
 
 void CheckForLocation();
 

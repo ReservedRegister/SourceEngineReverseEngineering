@@ -83,17 +83,7 @@ uint32_t GetCBaseEntity(uint32_t EHandle)
 
 void PopulateHookExclusionLists()
 {
-    hook_exclude_list_base[0] = server_srv;
-    hook_exclude_list_offset[0] = 0x0052B02C;
 
-    hook_exclude_list_base[1] = server_srv;
-    hook_exclude_list_offset[1] = 0x00628096;
-
-    hook_exclude_list_base[2] = server_srv;
-    hook_exclude_list_offset[2] = 0x006248D9;
-
-    hook_exclude_list_base[3] = server_srv;
-    hook_exclude_list_offset[3] = 0x0052B131;
 }
 
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
@@ -401,6 +391,18 @@ void RestoreMemoryProtections()
     }
 }
 
+bool IsVectorNaN(uint32_t base)
+{
+    float s0 = *(float*)(base);
+    float s1 = *(float*)(base+4);
+    float s2 = *(float*)(base+8);
+
+    if(s0 != s0 || s1 != s1 || s2 != s2)
+        return true;
+
+    return false;
+}
+
 uint32_t IsEntityValid(uint32_t entity)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -411,7 +413,7 @@ uint32_t IsEntityValid(uint32_t entity)
     if(object)
     {
         //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
         uint32_t isMarked = pDynamicOneArgFunc(object+0x14);
 
         if(isMarked)
@@ -427,6 +429,14 @@ uint32_t IsEntityValid(uint32_t entity)
 
 void CheckForLocation()
 {
+
+    //DISABLE 
+
+    return;
+
+
+
+
     uint32_t sv = engine_srv + 0x003329C0;
     uint32_t current_map = sv+0x11;
 
@@ -677,7 +687,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         //rootconsole->ConsolePrint("Removing [%s]", clsname);
 
         //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
         uint32_t isMarked = pDynamicOneArgFunc(object_verify+0x14);
 
         if(isMarked)
@@ -687,7 +697,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         }
 
         //IsInPhysCallback
-        pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00A63D80);
+        pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00978DF0);
         uint8_t returnVal = pDynamicZeroArgFunc();
 
         if(returnVal == 0)
@@ -696,7 +706,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
         }
 
         //UTIL_Remove(IServerNetworkable*)
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B66AF0);
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A92160);
         pDynamicOneArgFunc(object_verify+0x14);
 
         //rootconsole->ConsolePrint("Removed [%s]", clsname);
@@ -738,7 +748,7 @@ void InstaKill(uint32_t entity_object, bool validate)
     }
 
     //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
     uint32_t isMarked = pDynamicOneArgFunc(cbase_chk+0x14);
 
     if(isMarked)
@@ -748,7 +758,7 @@ void InstaKill(uint32_t entity_object, bool validate)
     }
 
     //PhysIsInCallback
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A63D80);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00978DF0);
     uint32_t isInCallback = pDynamicOneArgFunc(0);
 
     if(isInCallback)
@@ -756,9 +766,6 @@ void InstaKill(uint32_t entity_object, bool validate)
         rootconsole->ConsolePrint("Should not be! (Insta)");
         exit(EXIT_FAILURE);
 
-        //CCollisionEvent - AddRemoveObject
-        //pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A698D0);
-        //pDynamicTwoArgFunc(server_srv + 0x018AE4C0, cbase_chk+0x14);
         return;
     }
 
@@ -769,24 +776,20 @@ void InstaKill(uint32_t entity_object, bool validate)
 
     if((*(uint32_t*)(cbase_chk+0x118) & 1) == 0)
     {
-        if(*(uint32_t*)(server_srv + 0x018CBEC0) == 0)
+        if(*(uint32_t*)(server_srv + 0x01811920) == 0)
         {
             // FAST DELETE ONLY
 
             hooked_delete_counter++;
 
-            //VphysicsDestroyObject
-            //pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x2A0) );
-            //pDynamicOneArgFunc(cbase_chk);
-
-            *(uint8_t*)(server_srv + 0x018C98E4) = 0;
+            *(uint8_t*)(server_srv + 0x0180F344) = 0;
             *(uint32_t*)(cbase_chk+0x118) = *(uint32_t*)(cbase_chk+0x118) | 1;
 
             //UpdateOnRemove
             pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(cbase_chk))+0x1D0) );
             pDynamicOneArgFunc(cbase_chk);
 
-            *(uint8_t*)(server_srv + 0x018C98E5) = 1;
+            *(uint8_t*)(server_srv + 0x0180F345) = 1;
 
             //CALL RELEASE
             uint32_t iServerObj = cbase_chk+0x14;
@@ -794,7 +797,7 @@ void InstaKill(uint32_t entity_object, bool validate)
             pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(iServerObj))+0x10) );
             pDynamicOneArgFunc(iServerObj);
 
-            *(uint8_t*)(server_srv + 0x018C98E5) = 0;
+            *(uint8_t*)(server_srv + 0x0180F345) = 0;
         }
         else
         {
@@ -804,37 +807,4 @@ void InstaKill(uint32_t entity_object, bool validate)
     }
 
     return;
-}
-
-void DestroyVObjectForMarkedEnts()
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-    
-    int ent_size = *(int*)(server_srv + 0x018913AC);
-    uint32_t g_DeleteList = *(uint32_t*)(server_srv + 0x018913A0);
-
-    if(ent_size > 0)
-    {
-        for(int i = 0; i < ent_size; i++)
-        {
-            uint32_t iServerObj = *(uint32_t*)(g_DeleteList+i*4);
-            uint32_t cbase = *(uint32_t*)(iServerObj+8);
-            uint32_t refHandle = *(uint32_t*)(cbase+0x334);
-            uint32_t cbase_verified = GetCBaseEntity(refHandle);
-
-            if(cbase_verified)
-            {
-                //rootconsole->ConsolePrint("v obj dest! [%s]", *(uint32_t*)(cbase+0x64));
-
-                //VphysicsDestroyObject
-                pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(cbase_verified))+0x2A0) );
-                pDynamicOneArgFunc(cbase_verified);
-                continue;
-            }
-
-            rootconsole->ConsolePrint("Critical error invalid entity object!");
-            exit(EXIT_FAILURE);
-        }
-    }
 }

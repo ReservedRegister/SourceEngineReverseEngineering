@@ -3,6 +3,8 @@
 #include "ext_main.h"
 #include "hooks_specific.h"
 
+#include <math.h>
+
 void InitExtension()
 {
     InitCore();
@@ -46,23 +48,21 @@ void InitExtension()
     dedicated_srv_size = dedicated_srv_lib->library_size;
     datacache_srv_size = datacache_srv_lib->library_size;
 
-    FindEntityByClassname = (pThreeArgProt)(server_srv + 0x008F3870);
-    SetSolidFlags = (pTwoArgProt)(server_srv + 0x004A7700);
+    FindEntityByClassname = (pThreeArgProt)(server_srv + 0x007E7030);
+    SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
 
     disable_delete_list = false;
     isTicking = false;
     player_spawned = false;
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
-    CGlobalEntityList = server_srv + 0x018711E0;
+    CGlobalEntityList = server_srv + 0x017B6BE0;
     server_sleeping = false;
 
     PopulateHookExclusionLists();
 
     ApplyPatches();
     ApplyPatchesSpecific();
-
-    DisableCacheCvars();
     
     HookFunctions();
     HookFunctionsSpecific();
@@ -76,18 +76,15 @@ void ApplyPatches()
 {
     uint32_t offset = 0;
 
-    uint32_t hook_game_frame_delete_list = server_srv + 0x00944FAF;
+    uint32_t hook_game_frame_delete_list = server_srv + 0x008404F3;
     offset = (uint32_t)Hooks::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
     *(uint32_t*)(hook_game_frame_delete_list+1) = offset;
 
-    uint32_t eventqueue_hook = server_srv + 0x00944FB9;
+    uint32_t eventqueue_hook = server_srv + 0x008404FD;
     offset = (uint32_t)Hooks::ServiceEventQueueHook - eventqueue_hook - 5;
     *(uint32_t*)(eventqueue_hook+1) = offset;
 
-    uint32_t fix_destructor = vphysics_srv + 0x000471B4;
-    *(uint8_t*)(fix_destructor) = 0xEB;
-
-    uint32_t remove_post_systems = server_srv + 0x00944FB4;
+    uint32_t remove_post_systems = server_srv + 0x008404F8;
     memset((void*)remove_post_systems, 0x90, 5);
 
     //uint32_t bypass_code_ragdoll = server_srv + 0x008A3BDC;
@@ -102,7 +99,8 @@ void ApplyPatches()
     //uint32_t delete_list_call_last = server_srv + 0x00944FC5;
     //memset((void*)delete_list_call_last, 0x90, 5);
 
-    uint32_t bad_call_remove = server_srv + 0x009B5054;
+    //CMessageEntity
+    uint32_t bad_call_remove = server_srv + 0x008BB59A;
     memset((void*)bad_call_remove, 0x90, 5);
 
     //uint32_t patch_remove = server_srv + 0x00B66B0B;
@@ -110,97 +108,35 @@ void ApplyPatches()
 
     //*(uint8_t*)(patch_remove) = 0x31;
     //*(uint8_t*)(patch_remove+1) = 0xC0;
-
-    uint32_t jmp_vphys = server_srv + 0x004E4146;
-    *(uint8_t*)(jmp_vphys) = 0xEB;
-
-    uint32_t sim_patch = server_srv + 0x00A7ADB4;
-    memset((void*)sim_patch, 0x90, 6);
-
-    uint32_t fix_script_think = server_srv + 0x00B0416D;
-    *(uint8_t*)(fix_script_think) = 0xE9;
-    *(uint32_t*)(fix_script_think+1) = 0xAC;
 }
 
 void HookFunctions()
 {
-    //rootconsole->ConsolePrint("patching calloc()");
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)calloc, (void*)CallocHook);
-    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
-    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)calloc, (void*)CallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B4C80), (void*)Hooks::CreateEntityByNameHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007E6D20), (void*)Hooks::CleanupDeleteListHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92160), (void*)Hooks::UTIL_RemoveHook);
+    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000E6D70), (void*)Hooks::HostChangelevelHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009919D0), (void*)Hooks::PhysSimEnt);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92260), (void*)Hooks::HookInstaKill);
 
-    //->ConsolePrint("patching malloc()");
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)MallocHook);
-    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)MallocHook);
+    //RagdollBreaking
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0078FC70), (void*)Hooks::EmptyCall);
 
-    //rootconsole->ConsolePrint("patching realloc()");
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)realloc, (void*)ReallocHook);
-    //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)realloc, (void*)Hooks::ReallocHook);
-    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)realloc, (void*)ReallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F5B50), (void*)Hooks::AcceptInputHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004FD670), (void*)Hooks::UpdateOnRemove);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005983C0), (void*)Hooks::PlayerSpawnHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0061B4C0), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A95FF0), (void*)Hooks::UTIL_PrecacheOther_Hook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92540), (void*)Hooks::UTIL_GetLocalPlayerHook);
 
-    /*rootconsole->ConsolePrint("patching new[]()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00540820), (void*)OperatorNewArrayHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x000A7C70), (void*)OperatorNewArrayHook);
-    HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)(materialsystem_srv + 0x00031230), (void*)OperatorNewArrayHook);
-    HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)(vphysics_srv + 0x0002B4E0), (void*)OperatorNewArrayHook);
-    HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x00027A40), (void*)OperatorNewArrayHook);*/
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009AF380), (void*)Hooks::CreateEntityByNameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00942190), (void*)Hooks::SpawnServerHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F3640), (void*)Hooks::CleanupDeleteListHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001957B0), (void*)Hooks::SV_FrameHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AF0), (void*)Hooks::UTIL_RemoveHook);
-    HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x0011CB10), (void*)Hooks::HostChangelevelHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A7A730), (void*)Hooks::PhysSimEnt);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CA9E0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006BD6F0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008C9950), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AB1D20), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66BC0), (void*)Hooks::HookInstaKill);
-
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008A39C0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0070BD10), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004ED8F0), (void*)Hooks::EmptyCall);
-
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008835B0), (void*)Hooks::IRelationTypeHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054CC80), (void*)Hooks::EmptyCall);
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052B020), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0052A7B0), (void*)Hooks::EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00644C00), (void*)Hooks::AcceptInputHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064BE10), (void*)Hooks::UpdateOnRemove);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6160), (void*)Hooks::PlayerSpawnHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0074DA80), (void*)Hooks::CXenShieldController_UpdateOnRemoveHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B6A350), (void*)Hooks::UTIL_PrecacheOther_Hook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66E20), (void*)Hooks::UTIL_GetLocalPlayerHook);
-}
-
-void DisableCacheCvars()
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-    pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001B1340);
-
-    //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcetouchdata 0");
-    //pDynamicTwoArgFunc(0, (uint32_t)"mod_forcedata 0");
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0046B510), (void*)Hooks::TestGroundMove);
 }
 
 uint32_t Hooks::UTIL_GetLocalPlayerHook()
 {
     pZeroArgProt pDynamicZeroArgProt;
 
-    pDynamicZeroArgProt = (pZeroArgProt)(server_srv + 0x00B66E20);
+    pDynamicZeroArgProt = (pZeroArgProt)(server_srv + 0x00A92540);
     uint32_t returnVal = pDynamicZeroArgProt();
 
     if(!returnVal)
@@ -221,12 +157,12 @@ uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
     uint32_t piVar2;
     uint32_t local_10;
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00B6A2E0);
-    cVar1 = pDynamicTwoArgFunc(server_srv + 0x018C98A0, arg0);
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00A95F80);
+    cVar1 = pDynamicTwoArgFunc(server_srv + 0x0180F300, arg0);
 
     if(cVar1 == 0) return 0;
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008B4C80);
     piVar2 = pDynamicTwoArgFunc(arg0, 0xFFFFFFFF);
 
 
@@ -234,13 +170,13 @@ uint32_t Hooks::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
     {
         if((arg1 != 0) && (*(uint8_t*)arg1 != '\0'))
         {
-            pTwoArgProt AllocPooledString = (pTwoArgProt)(server_srv + 0x004C86A0);
+            pTwoArgProt AllocPooledString = (pTwoArgProt)(server_srv + 0x00359FF0);
             AllocPooledString((uint32_t)(&local_10), arg1);
 
             //this[0x87] = local_10;
             *(uint32_t*)(piVar2+0x21C) = local_10;
 
-            pOneArgProt DispatchUpdateTransmitState = (pOneArgProt)(server_srv + 0x00642940);
+            pOneArgProt DispatchUpdateTransmitState = (pOneArgProt)(server_srv + 0x004F3510);
             DispatchUpdateTransmitState(piVar2);
 
             //pcVar2 = param_2;
@@ -264,7 +200,7 @@ uint32_t Hooks::UpdateOnRemove(uint32_t arg0)
 
     normal_delete_counter++;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0064BE10);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004FD670);
     return pDynamicOneArgFunc(arg0);
 }
 
@@ -309,8 +245,9 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     pThreeArgProt pDynamicThreeArgFunc;
 
     isTicking = false;
+    player_spawned = false;
 
-    pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x0011CB10);
+    pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x000E6D70);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
 }
 
@@ -319,7 +256,7 @@ uint32_t Hooks::CleanupDeleteListHook(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
     if(disable_delete_list) return 0;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F3640);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007E6D20);
     return pDynamicOneArgFunc(0);
 }
 
@@ -340,7 +277,7 @@ uint32_t Hooks::CXenShieldController_UpdateOnRemoveHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0074DA80);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0061B4C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
     //Add missing call to UpdateOnRemove
@@ -349,33 +286,11 @@ uint32_t Hooks::CXenShieldController_UpdateOnRemoveHook(uint32_t arg0)
     return returnVal;
 }
 
-uint32_t Hooks::IRelationTypeHook(uint32_t arg0, uint32_t arg1)
-{
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    if(arg1)
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008835B0);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Fixed crash in IRelationType()");
-    return 0;
-}
-
-uint32_t Hooks::SV_FrameHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(engine_srv + 0x001957B0);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t Hooks::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x006D6160);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
     player_spawned = true;
@@ -422,7 +337,7 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     Hooks::CleanupDeleteListHook(0);
 
     //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x004CAA00);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
@@ -432,13 +347,13 @@ uint32_t Hooks::SimulateEntitiesHook(uint32_t arg0)
     Hooks::CleanupDeleteListHook(0);
 
     //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7AC00);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
     Hooks::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008C9950);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
@@ -457,7 +372,7 @@ uint32_t Hooks::CreateEntityByNameHook(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x009AF380);
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008B4C80);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
@@ -485,7 +400,7 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x64) );
 
     //IsMarkedForDeletion
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B08580);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A2B520);
     uint32_t isMarked = pDynamicOneArgFunc(arg0+0x14);
 
     if(isMarked)
@@ -495,58 +410,10 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     }
 
     disable_delete_list = true;
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A7A730);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009919D0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
     disable_delete_list = false;
     return returnVal;
-}
-
-uint32_t Hooks::SpawnServerHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    //UnloadAllModels
-    //pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x0013AE80);
-    //pDynamicTwoArgFunc(engine_srv + 0x00320560, 0);
-
-    //Flush materials
-    //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D280);
-    //pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 1);
-
-    //ReloadTextures
-    //pDynamicOneArgFunc = (pOneArgProt)(materialsystem_srv + 0x0003D240);
-    //pDynamicOneArgFunc(materialsystem_srv + 0x00166B20);
-
-    //ReloadAllMaterials
-    //pDynamicTwoArgFunc = (pTwoArgProt)(materialsystem_srv + 0x0003D220);
-    //pDynamicTwoArgFunc(materialsystem_srv + 0x00166B20, 0);
-
-    //InvalidateMdlCache
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00947CC0);
-    //pDynamicOneArgFunc(0);
-
-    //FlushAllUnlocked (bone cache)
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00B8BBF0);
-    //pDynamicOneArgFunc(server_srv + 0x01014880);
-
-    //flush particles
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00BE7650);
-    //pDynamicOneArgFunc(server_srv + 0x018DF7C0);
-
-    //flush datacache
-    //pDynamicThreeArgFunc = (pThreeArgProt)(datacache_srv + 0x00028550);
-    //pDynamicThreeArgFunc(datacache_srv + 0x0007C0C0, (uint32_t)false, (uint32_t)false);
-
-    //flush mdlcache
-    //pDynamicTwoArgFunc = (pTwoArgProt)(datacache_srv + 0x00031850);
-    //pDynamicTwoArgFunc(datacache_srv + 0x0007C2E0, (uint32_t)MDLCACHE_FLUSH_ALL);
-
-    player_spawned = false;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00942190);
-    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
@@ -562,12 +429,28 @@ uint32_t Hooks::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uin
 
     if(failure)
     {
-        rootconsole->ConsolePrint("AcceptInput blocked a marked entity!");
+        //rootconsole->ConsolePrint("AcceptInput blocked a marked entity!");
         return 0;
     }
 
     //Passed sanity check
     pSixArgProt pDynamicSixArgProt;
-    pDynamicSixArgProt = (pSixArgProt)(server_srv + 0x00644C00);
+    pDynamicSixArgProt = (pSixArgProt)(server_srv + 0x004F5B50);
     return pDynamicSixArgProt(arg0, arg1, arg2, arg3, arg4, arg5);
+}
+
+uint32_t Hooks::TestGroundMove(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
+{
+    pSevenArgProt pDynamicSevenArgProt;
+
+    float inf_val_chk = *(float*)(arg6+0x20);
+
+    if(isinf(inf_val_chk))
+    {
+        rootconsole->ConsolePrint("+Inf detected!");
+        return 0;
+    }
+
+    pDynamicSevenArgProt = (pSevenArgProt)(server_srv + 0x0046B510);
+    return pDynamicSevenArgProt(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
 }
