@@ -103,7 +103,7 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)NativeHooks::Outland_07_Patch);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00576230), (void*)NativeHooks::AssaultNpcFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::BaseNPCHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008EFFF0), (void*)NativeHooks::SpotlightHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F0620), (void*)NativeHooks::SpotlightHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B66AE0), (void*)NativeHooks::StuckCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A184A0), (void*)NativeHooks::WeirdCrashPleaseFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)NativeHooks::CitizenNullCrashFix);
@@ -124,7 +124,6 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008DA5A0), (void*)NativeHooks::CrashFixForHibernation);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00625A30), (void*)NativeHooks::FixMissingObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0081E0C0), (void*)NativeHooks::PatchMissingCheckTwo);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069F180), (void*)NativeHooks::InputShootHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009014F0), (void*)NativeHooks::StriderCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0054A440), (void*)NativeHooks::HibernateCrashMore);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008E7C70), (void*)NativeHooks::VehicleRollermineFix);
@@ -345,14 +344,6 @@ uint32_t NativeHooks::WeaponGetHook(uint32_t arg0)
     return weapon_ent;
 }
 
-uint32_t NativeHooks::InputShootHook(uint32_t arg0)
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069F180);
-    return pDynamicOneArgFunc(arg0);
-}
-
 uint32_t NativeHooks::StriderCrashFix(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -432,9 +423,7 @@ uint32_t NativeHooks::AnotherObjectMissingCheck(uint32_t arg0, uint32_t arg1, ui
 {
     pThreeArgProt pDynamicThreeArgFunc;
 
-    uint32_t validEnt = IsEntityValid(arg0);
-
-    if(validEnt)
+    if(IsEntityValid(arg0))
     {
         pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A38660);
         return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -706,21 +695,55 @@ uint32_t NativeHooks::StuckCrashFix(uint32_t arg0, uint32_t arg1)
     return pDynamicTwoArgFunc(arg0, arg1);
 }
 
-uint32_t NativeHooks::SpotlightHook(uint32_t arg0, uint32_t arg1)
+uint32_t NativeHooks::SpotlightHook(uint32_t arg0)
 {
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t ref = *(uint32_t*)(arg1+0x0FD4);
-    uint32_t object = GetCBaseEntity(ref);
-
-    if(IsEntityValid(object))
+    pOneArgProt pDynamicOneArgFunc;
+    bool continue_to_code = true;
+  
+    if
+    (
+        (*(char*)(arg0+0x1038) != '\0')
+    ||
+        ((1 < *(int*)(arg0+0xF38) - 1U && (*(int*)(arg0+0xF38) != 4)))
+    )
     {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008EFFF0);
-        return pDynamicTwoArgFunc(arg0, arg1);
+        continue_to_code = false;
     }
 
-    rootconsole->ConsolePrint("Failed to service spotlight stuff!");
-    return 0;
+    if(continue_to_code)
+    {
+        uint32_t uVar4 = *(uint32_t*)(arg0+0xFD0);
+        uint32_t object_uVar4 = GetCBaseEntity(uVar4);
+
+        if(IsEntityValid(object_uVar4) == 0)
+        {
+            pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008ED690);
+            pDynamicOneArgFunc(arg0);
+
+            uVar4 = *(uint32_t*)(arg0+0xFD0);
+            object_uVar4 = GetCBaseEntity(uVar4);
+
+            if(IsEntityValid(object_uVar4) == 0)
+            {
+                continue_to_code = false;
+            }
+        }
+    }
+
+    if(continue_to_code)
+    {
+        uint32_t ref = *(uint32_t*)(arg0+0x0FD4);
+        uint32_t object = GetCBaseEntity(ref);
+
+        if(IsEntityValid(object) == 0)
+        {
+            rootconsole->ConsolePrint("Failed spotlight!");
+            return 0;
+        }
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x008F0620);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t NativeHooks::AiThinkFix(uint32_t arg0, uint32_t arg1)
@@ -880,7 +903,7 @@ uint32_t NativeHooks::ChkHandle(uint32_t arg0, uint32_t arg1)
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    if(IsEntityValid(arg1))
+    if(IsEntityValid(arg0) && IsEntityValid(arg1))
     {
         //call orig function
         pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
@@ -954,15 +977,14 @@ uint32_t NativeHooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*)((*(uint32_t*)(npc_combine_s))+0x180)    );
         uint32_t returnVal = pDynamicOneArgFunc(npc_combine_s); 
 
-        if(returnVal)
+        if(IsEntityValid(returnVal))
         {
             //Call orig
             pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0058FBD0);
             return pDynamicOneArgFunc(arg0);
         }
     }
-
-    //rootconsole->ConsolePrint("nah");
+    
     return 0;
 }
 

@@ -17,7 +17,7 @@ public:
 	static uint32_t Outland_07_Patch(uint32_t arg0, uint32_t arg1);
 	static uint32_t AssaultNpcFix(uint32_t arg0, uint32_t arg1);
 	static uint32_t BaseNPCHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t SpotlightHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t SpotlightHook(uint32_t arg0);
 	static uint32_t StuckCrashFix(uint32_t arg0, uint32_t arg1);
 	__attribute__((regparm(2))) static uint32_t WeirdCrashPleaseFix(uint32_t arg0, uint32_t arg1);
 	static uint32_t CitizenNullCrashFix(uint32_t arg0);
@@ -41,7 +41,6 @@ public:
 	static uint32_t WeaponGetHook(uint32_t arg0);
 	static uint32_t WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t pSeqdescHook(uint32_t arg0, uint32_t arg1);
-	static uint32_t InputShootHook(uint32_t arg0);
 	static uint32_t StriderCrashFix(uint32_t arg0);
 	static uint32_t HibernateCrashMore(uint32_t arg0);
 	static uint32_t HunterCrashFixTwo(uint32_t arg0);
