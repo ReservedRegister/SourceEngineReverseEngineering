@@ -101,6 +101,8 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)NativeHooks::ChkHandle);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), (void*)NativeHooks::FixBaseEntityNullCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)NativeHooks::Outland_07_Patch);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D4040), (void*)NativeHooks::Outland_07_Patch_Two);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6C90), (void*)NativeHooks::Outland_08_Patch);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00576230), (void*)NativeHooks::AssaultNpcFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0056C350), (void*)NativeHooks::BaseNPCHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008F0620), (void*)NativeHooks::SpotlightHook);
@@ -108,7 +110,6 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A184A0), (void*)NativeHooks::WeirdCrashPleaseFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00844EC0), (void*)NativeHooks::CitizenNullCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00986B70), (void*)NativeHooks::OldRefUpdateFixOne);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D4040), (void*)NativeHooks::Outland_07_Patch_Two);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008BF9D0), (void*)NativeHooks::PatchMissingCheck);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00943FD0), (void*)NativeHooks::FixExplodeInputCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008B10D0), (void*)NativeHooks::ManhackSpriteEntVerify);
@@ -617,6 +618,24 @@ uint32_t NativeHooks::PatchMissingCheck(uint32_t arg0, uint32_t arg1, uint32_t a
     return 0;
 }
 
+uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x44);
+    uint32_t object = GetCBaseEntity(refHandle);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0058BC50);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Missing entity!");
+    return 0;
+}
+
 uint32_t NativeHooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
@@ -631,6 +650,23 @@ uint32_t NativeHooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_
     }
 
     rootconsole->ConsolePrint("Missing Entity! - Two");
+    return 0;
+}
+
+uint32_t NativeHooks::Outland_08_Patch(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    uint32_t refCheck = *(uint32_t*)(arg0+0x44);
+    uint32_t object = GetCBaseEntity(refCheck);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x006D6C90);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Missing Entity! - Three");
     return 0;
 }
 
@@ -792,24 +828,6 @@ uint32_t NativeHooks::AssaultNpcFix(uint32_t arg0, uint32_t arg1)
     }
 
     rootconsole->ConsolePrint("Failed to find valid entity!");
-    return 0;
-}
-
-uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    uint32_t refHandle = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refHandle);
-
-    if(IsEntityValid(object))
-    {
-        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0058BC50);
-        return pDynamicTwoArgFunc(arg0, arg1);
-    }
-
-    rootconsole->ConsolePrint("Missing entity!");
     return 0;
 }
 
