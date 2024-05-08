@@ -34,61 +34,60 @@ void ApplyPatchesSpecific()
     offset = (uint32_t)NativeHooks::HunterCrashFixTwo - hunter_fix_crash - 5;
     *(uint32_t*)(hunter_fix_crash+1) = offset;
 
-    uint32_t vphysicsupdatepatch = server_srv + 0x003D97EB;
-    memset((void*)vphysicsupdatepatch, 0x90, 12);
+    uint32_t zombie_patch = server_srv + 0x00835823;
+    memset((void*)zombie_patch, 0x90, 0x28);
 
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch+2) = 0x24;
+    //89 0C 24
 
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch = server_srv + 0x003D97F2;
-    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch - 5;
-    *(uint8_t*)(vphysicsupdatepatch) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch+1) = offset;
+    *(uint8_t*)(zombie_patch) = 0x89;
+    *(uint8_t*)(zombie_patch+1) = 0x0C;
+    *(uint8_t*)(zombie_patch+2) = 0x24;
 
-    uint32_t vphysicsupdatepatch_two = server_srv + 0x003D9822;
-    memset((void*)vphysicsupdatepatch_two, 0x90, 7);
+    //89 44 24 0C
 
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_two) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_two+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch_two+2) = 0x24;
+    *(uint8_t*)(zombie_patch+3) = 0x89;
+    *(uint8_t*)(zombie_patch+4) = 0x44;
+    *(uint8_t*)(zombie_patch+5) = 0x24;
+    *(uint8_t*)(zombie_patch+6) = 0x0C;
 
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_two = server_srv + 0x003D9852;
-    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_two - 5;
-    *(uint8_t*)(vphysicsupdatepatch_two) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_two+1) = offset;
+    //8D 85 28 FE FF FF
 
-    uint32_t vphysicsupdatepatch_three = server_srv + 0x00657ED3;
-    memset((void*)vphysicsupdatepatch_three, 0x90, 7);
+    *(uint8_t*)(zombie_patch+7) = 0x8D;
+    *(uint8_t*)(zombie_patch+8) = 0x85;
+    *(uint8_t*)(zombie_patch+9) = 0x28;
+    *(uint8_t*)(zombie_patch+10) = 0xFE;
+    *(uint8_t*)(zombie_patch+11) = 0xFF;
+    *(uint8_t*)(zombie_patch+12) = 0xFF;
 
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_three) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_three+1) = 0x1C;
-    *(uint8_t*)(vphysicsupdatepatch_three+2) = 0x24;
+    //89 44 24 08
 
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_three = server_srv + 0x00657EE3;
-    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_three - 5;
-    *(uint8_t*)(vphysicsupdatepatch_three) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_three+1) = offset;
+    *(uint8_t*)(zombie_patch+13) = 0x89;
+    *(uint8_t*)(zombie_patch+14) = 0x44;
+    *(uint8_t*)(zombie_patch+15) = 0x24;
+    *(uint8_t*)(zombie_patch+16) = 0x08;
 
-    uint32_t vphysicsupdatepatch_four = server_srv + 0x00658E2C;
-    memset((void*)vphysicsupdatepatch_four, 0x90, 7);
+    //8D 85 18 FE FF FF
 
-    // SET STACK POINTER
-    *(uint8_t*)(vphysicsupdatepatch_four) = 0x89;
-    *(uint8_t*)(vphysicsupdatepatch_four+1) = 0x34;
-    *(uint8_t*)(vphysicsupdatepatch_four+2) = 0x24;
+    *(uint8_t*)(zombie_patch+17) = 0x8D;
+    *(uint8_t*)(zombie_patch+18) = 0x85;
+    *(uint8_t*)(zombie_patch+19) = 0x18;
+    *(uint8_t*)(zombie_patch+20) = 0xFE;
+    *(uint8_t*)(zombie_patch+21) = 0xFF;
+    *(uint8_t*)(zombie_patch+22) = 0xFF;
 
-    // SET HOOK ADDRESS
-    vphysicsupdatepatch_four = server_srv + 0x00658E33;
-    offset = (uint32_t)NativeHooks::VphysicsUpdateWarningHook - vphysicsupdatepatch_four - 5;
-    *(uint8_t*)(vphysicsupdatepatch_four) = 0xE8;
-    *(uint32_t*)(vphysicsupdatepatch_four+1) = offset;
+    //89 44 24 04
+
+    *(uint8_t*)(zombie_patch+23) = 0x89;
+    *(uint8_t*)(zombie_patch+24) = 0x44;
+    *(uint8_t*)(zombie_patch+25) = 0x24;
+    *(uint8_t*)(zombie_patch+26) = 0x04;
+
+    //HOOK
+
+    zombie_patch = server_srv + 0x00835823+27;
+    offset = (uint32_t)NativeHooks::ZombiePatchHook - zombie_patch - 5;
+    *(uint8_t*)(zombie_patch) = 0xE8;
+    *(uint32_t*)(zombie_patch+1) = offset;
 }
 
 void HookFunctionsSpecific()
@@ -134,6 +133,23 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00946DF0), (void*)NativeHooks::SomeEntBadUsageFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005715D0), (void*)NativeHooks::CombineAttackFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008AB540), (void*)NativeHooks::ManhackAiFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0050D010), (void*)NativeHooks::NpcSpawnFix);
+}
+
+uint32_t NativeHooks::ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
+{
+    pSixArgProt pDynamicSixArgFunc;
+
+    if(arg3)
+    {
+        uint32_t arg3_ready = *(uint32_t*)(*(uint32_t*)(arg3+4));
+
+        pDynamicSixArgFunc = (pSixArgProt)(vphysics_srv + 0x00034B10);
+        return pDynamicSixArgFunc(arg0, arg1, arg2, arg3_ready, arg4, arg5);
+    }
+
+    rootconsole->ConsolePrint("Failed arg3 was NULL!");
+    return 0;
 }
 
 uint32_t NativeHooks::FixOldManhackCrash(uint32_t arg0)
@@ -177,29 +193,6 @@ uint32_t NativeHooks::FixStructNullCrash(uint32_t arg0)
     rootconsole->ConsolePrint("AI ROUTE DIVERT DETECTED!");
     //DONT RETURN 0 WHEN NULL
     return -1;
-}
-
-uint32_t NativeHooks::VphysicsUpdateWarningHook(uint32_t arg0)
-{
-    if(IsEntityValid(arg0))
-    {
-        char* classname = (char*)(*(uint32_t*)(arg0+0x68));
-
-        if(classname)
-        {
-            rootconsole->ConsolePrint("Removing unreasonable entity! [%s]", classname);
-        }
-        else
-        {
-            rootconsole->ConsolePrint("Removing unreasonable entity!");
-        }
-
-        RemoveEntityNormal(arg0, true);
-        return 0;
-    }
-
-    rootconsole->ConsolePrint("Invalid Entity in vphysics!");
-    return 0;
 }
 
 uint32_t NativeHooks::VehicleRollermineFix(uint32_t arg0)
@@ -1003,6 +996,20 @@ uint32_t NativeHooks::PatchAnotherPlayerAccessCrash(uint32_t arg0)
         }
     }
     
+    return 0;
+}
+
+uint32_t NativeHooks::NpcSpawnFix(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(arg0)
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0050D010);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("NULL found!");
     return 0;
 }
 

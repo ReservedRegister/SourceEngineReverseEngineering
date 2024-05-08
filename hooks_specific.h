@@ -43,7 +43,6 @@ public:
 	static uint32_t HibernateCrashMore(uint32_t arg0);
 	static uint32_t HunterCrashFixTwo(uint32_t arg0);
 	static uint32_t VehicleRollermineFix(uint32_t arg0);
-	static uint32_t VphysicsUpdateWarningHook(uint32_t arg0);
 	static uint32_t FixStructNullCrash(uint32_t arg0);
 	static uint32_t FixNullCrash(uint32_t arg0);
 	static uint32_t FixOldManhackCrash(uint32_t arg0);
@@ -53,6 +52,8 @@ public:
 	static uint32_t Outland_07_Patch(uint32_t arg0, uint32_t arg1);
 	static uint32_t Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t Outland_08_Patch(uint32_t arg0, uint32_t arg1);
+	static uint32_t ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
+	static uint32_t NpcSpawnFix(uint32_t arg0);
 };
 
 #endif

@@ -311,5 +311,7 @@ void ResetView();
 bool IsSynergyMemoryCorrect();
 void ForceSynergyMemoryCorrection();
 void CorrectNpcAi(uint32_t arg0);
+void RemoveBadEnts();
+bool IsEntityPositionReasonable(uint32_t v);
 
 #endif

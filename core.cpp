@@ -3100,6 +3100,38 @@ void CleanPlayerEnts(bool no_parent)
     free(deleteList);
 }
 
+void RemoveBadEnts()
+{
+    uint32_t ent = 0;
+
+    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        uint32_t abs_origin = ent+0x298;
+        uint32_t abs_angles = ent+0x32C;
+        uint32_t origin = ent+0x338;
+
+        if(!IsEntityPositionReasonable(abs_origin) || !IsEntityPositionReasonable(abs_angles) || !IsEntityPositionReasonable(origin))
+        {
+            rootconsole->ConsolePrint("Removed bad ent!");
+            RemoveEntityNormal(ent, true);
+        }
+    }
+}
+
+bool IsEntityPositionReasonable(uint32_t v)
+{
+    float x = *(float*)(v);
+    float y = *(float*)(v+4);
+    float z = *(float*)(v+8);
+
+    float r = 16384.0f;
+
+    return
+        x > -r && x < r &&
+        y > -r && y < r &&
+        z > -r && z < r;
+}
+
 uint32_t IsEntityValid(uint32_t entity)
 {
     pOneArgProt pDynamicOneArgFunc;
