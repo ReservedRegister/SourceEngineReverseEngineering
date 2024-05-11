@@ -1931,16 +1931,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    RemoveBadEnts();
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //PostSystems
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
-    pDynamicOneArgFunc(0);
-
-    Hooks::CleanupDeleteListHook(0);
-
     FlushPlayerDeaths();
     ResetView();
     UpdatePlayersDonor();
@@ -1951,6 +1941,16 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    RemoveBadEnts();
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //PostSystems
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
+    pDynamicOneArgFunc(0);
 
     Hooks::CleanupDeleteListHook(0);
 

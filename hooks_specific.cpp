@@ -144,7 +144,7 @@ uint32_t NativeHooks::ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg
     {
         uint32_t arg3_ready = *(uint32_t*)(*(uint32_t*)(arg3+4));
 
-        pDynamicSixArgFunc = (pSixArgProt)(vphysics_srv + 0x00034B10);
+        pDynamicSixArgFunc = (pSixArgProt)(  *(uint32_t*)((*(uint32_t*)(arg0))+0x60)  );
         return pDynamicSixArgFunc(arg0, arg1, arg2, arg3_ready, arg4, arg5);
     }
 
