@@ -3118,6 +3118,17 @@ void RemoveBadEnts()
     }
 }
 
+void UpdateAllCollisions()
+{
+    uint32_t ent = 0;
+
+    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
+        CollisionRulesChanged(ent);
+    }
+}
+
 bool IsEntityPositionReasonable(uint32_t v)
 {
     float x = *(float*)(v);

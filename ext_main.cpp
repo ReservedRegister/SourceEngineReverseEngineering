@@ -1938,9 +1938,7 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
+    UpdateAllCollisions();
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -1951,6 +1949,12 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -2222,4 +2226,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00654F80), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065BD80), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B67F10), (void*)Hooks::UTIL_PrecacheOther_Hook);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)Hooks::EmptyCall);
 }

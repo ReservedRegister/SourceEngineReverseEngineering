@@ -313,5 +313,6 @@ void ForceSynergyMemoryCorrection();
 void CorrectNpcAi(uint32_t arg0);
 void RemoveBadEnts();
 bool IsEntityPositionReasonable(uint32_t v);
+void UpdateAllCollisions();
 
 #endif
