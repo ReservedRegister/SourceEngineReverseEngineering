@@ -13,13 +13,8 @@ void InitExtension()
     savegame_lock = false;
     restoring = false;
     protect_player = false;
-    mapHasEnded = false;
-    mapHasEndedDelay = false;
     save_frames = 0;
     restore_frames = 0;
-    delay_frames = 60;
-    enqueue_delay_frames = 5;
-    mapHasEndedDelayFrames = 0;
     after_restore_frames = 0;
     game_start_frames = 0;
     isTicking = false;
@@ -39,11 +34,9 @@ void InitExtension()
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
-    waiting_shoot_frames = 301;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
-    pthread_mutex_init(&cmdbufflistlock, NULL);
 
     char* root_dir = getenv("PWD");
     size_t max_path_length = 1024;
@@ -130,7 +123,6 @@ void InitExtension()
     entityDeleteList = AllocateValuesList();
     playerDeathQueue = AllocateValuesList();
     collisionList = AllocateValuesList();
-    cmdbufflist = AllocateValuesList();
     viewcontrolresetlist = AllocateValuesList();
     saved_triggers = AllocateValuesList();
     new_player_join_ref = AllocateValuesList();
@@ -383,22 +375,6 @@ void ApplyPatches()
     uint32_t hook_event_queue = server_srv + 0x00739B3C;
     offset = (uint32_t)Hooks::ServiceEventQueueHook - hook_event_queue - 5;
     *(uint32_t*)(hook_event_queue+1) = offset;
-
-    /*uint32_t changelevel_patch = server_srv + 0x004CB2FE;
-    memset((void*)changelevel_patch, 0x90, 0xF);
-    offset = (uint32_t)Hooks::IsAllowChangelevel - changelevel_patch - 5;
-    *(uint8_t*)(changelevel_patch) = 0xE8;
-    *(uint32_t*)(changelevel_patch+1) = offset;
-
-    *(uint8_t*)(changelevel_patch+5) = 0x83;
-    *(uint8_t*)(changelevel_patch+6) = 0xF8;
-    *(uint8_t*)(changelevel_patch+7) = 0x02;
-
-    uint32_t changelevel_patch_two = server_srv + 0x004CB306;
-    offset = (server_srv + 0x004CB4D5) - changelevel_patch_two - 6;
-    *(uint8_t*)(changelevel_patch_two) = 0x0F;
-    *(uint8_t*)(changelevel_patch_two+1) = 0x84;
-    *(uint32_t*)(changelevel_patch_two+2) = offset;*/
 }
 
 uint32_t Hooks::MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -558,7 +534,7 @@ uint32_t Hooks::MallocHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*2.5);
+    uint32_t newRef = (uint32_t)malloc(size*1.4);
 
     return newRef;
 }
@@ -574,9 +550,9 @@ uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 
 uint32_t Hooks::OperatorNewHook(uint32_t size)
 {
-    if(size <= 0) return (uint32_t)malloc(size);
+    if(size <= 0) return (uint32_t)operator new(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*2.5);
+    uint32_t newRef = (uint32_t)operator new(size*1.4);
 
     return newRef;
 }
@@ -585,7 +561,7 @@ uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
 {
     if(size <= 0) return (uint32_t)operator new[](size);
 
-    uint32_t newRef = (uint32_t)operator new[](size*1.5);
+    uint32_t newRef = (uint32_t)operator new[](size*1.4);
 
     return newRef;
 }
@@ -885,7 +861,7 @@ uint32_t Hooks::RestoreOverride()
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    if(savegame || restoring || mapHasEnded || server_sleeping) return 0;
+    if(savegame || restoring || server_sleeping) return 0;
 
     if(!hasSavedOnce)
     {
@@ -1218,8 +1194,6 @@ uint32_t Hooks::PhysSimEnt(uint32_t arg0)
     }
 
     char* clsname =  (char*) ( *(uint32_t*)(arg0+0x68) );
-
-    if(mapHasEnded) return 0;
 
     //IsMarkedForDeletion
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
@@ -1622,7 +1596,7 @@ uint32_t Hooks::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
-    if(savegame || restoring || mapHasEnded || server_sleeping) return 0;
+    if(savegame || restoring || server_sleeping) return 0;
 
     if(!hasSavedOnce)
     {
@@ -1656,8 +1630,6 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
     LogVpkMemoryLeaks();
 
-    DeleteAllValuesInList(cmdbufflist, &cmdbufflistlock, true);
-
     uint32_t player = 0;
 
     while((player = Hooks::FindEntityByClassnameHook(CGlobalEntityList, player, (uint32_t)"player")) != 0)
@@ -1677,8 +1649,6 @@ uint32_t Hooks::HostChangelevelHook(uint32_t arg1, uint32_t arg2, uint32_t arg3)
 
     firstplayer_hasjoined = false;
     transition = false;
-    mapHasEnded = false;
-    mapHasEndedDelay = false;
 
     uint32_t gpGlobals_i_think = *(uint32_t*)(server_srv + 0x00FA0CF0);
     *(uint8_t*)(gpGlobals_i_think) = 0;
@@ -1830,9 +1800,7 @@ uint32_t Hooks::fix_wheels_hook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 }
 
 uint32_t Hooks::PlayerDeathHook(uint32_t arg0)
-{
-    if(mapHasEnded) return 0;
-    
+{   
     uint32_t refHandle = *(uint32_t*)(arg0+0x350);
     Value* newPlayer = CreateNewValue((void*)refHandle);
     InsertToValuesList(playerDeathQueue, newPlayer, &playerDeathQueueLock, false, false);
@@ -1851,24 +1819,16 @@ uint32_t Hooks::SV_FrameHook(uint32_t arg0)
 
     save_frames++;
     restore_frames++;
-    delay_frames++;
-    enqueue_delay_frames++;
-    mapHasEndedDelayFrames++;
     game_start_frames++;
     car_delay_for_save++;
     restore_start_delay++;
-    waiting_shoot_frames++;
 
     if(save_frames >= 500) save_frames = 0;
     if(restore_frames >= 500) restore_frames = 0;
-    if(delay_frames >= 5000) delay_frames = 60;
-    if(enqueue_delay_frames >= 500) enqueue_delay_frames = 5;
-    if(mapHasEndedDelayFrames >= 500) mapHasEndedDelayFrames = 0;
     if(after_restore_frames >= 500) after_restore_frames = 0;
     if(game_start_frames >= 1000) game_start_frames = 1000;
     if(car_delay_for_save >= 1000) car_delay_for_save = 15;
     if(restore_start_delay >= 1000) restore_start_delay = 201;
-    if(waiting_shoot_frames >= 1000) waiting_shoot_frames = 301;
 
     if(restore_delay && !restore_delay_lock)
     {
@@ -1938,6 +1898,18 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
+    //SimulateEntities
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
+    pDynamicOneArgFunc(simulating);
+
+    Hooks::CleanupDeleteListHook(0);
+
+    //ServiceEventQueue
+    pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
+    pDynamicZeroArgFunc();
+
+    Hooks::CleanupDeleteListHook(0);
+
     UpdateAllCollisions();
 
     Hooks::CleanupDeleteListHook(0);
@@ -1952,18 +1924,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    //SimulateEntities
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
-    pDynamicOneArgFunc(simulating);
-
-    Hooks::CleanupDeleteListHook(0);
-
-    //ServiceEventQueue
-    pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
-    pDynamicZeroArgFunc();
-
-    Hooks::CleanupDeleteListHook(0);
-
     uint8_t deferMindist = *(uint8_t*)(vphysics_srv + 0x001AC980);
 
     if(deferMindist)
@@ -1973,7 +1933,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     *(uint8_t*)(vphysics_srv + 0x001AC980) = 0;
     
-    ProcessChangelevelDelay();
     //TriggerMovedFailsafe();
     return 0;
 }
@@ -1990,56 +1949,6 @@ uint32_t Hooks::GetClientSteamIDHook(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(engine_srv + 0x001CC730);
     return pDynamicTwoArgFunc(arg0, arg1);
-}
-
-uint32_t Hooks::IsAllowChangelevel()
-{
-    pOneArgProt pDynamicOneArgFunc;
-
-    register uint32_t ebp asm("ebp");
-    uint32_t stack = ebp-(-0x570); //account for function prologue
-    uint32_t arg0 = *(uint32_t*)(stack+(-0x550));
-    uint32_t total_args = *(uint32_t*)(arg0);
-
-    if(mapHasEnded && delay_frames >= 60)
-    {
-        pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ( ( *(uint32_t*) ( *(uint32_t*)(server_srv + 0x01012420) )  )+8 )    );
-        return pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
-    }
-    else if(!mapHasEnded) delay_frames = 0;
-
-    rootconsole->ConsolePrint("args_total [%d]", total_args);
-
-    if(total_args == 2)
-    {
-        uint32_t firstArg = *(uint32_t*)(arg0+0x40C);
-        rootconsole->ConsolePrint("args_2 : [%s]", firstArg);
-        snprintf(next_map, 1024, "%s", (char*)firstArg);
-
-        void* next_map_cpy = copy_val((void*)next_map, strlen(next_map)+1);
-        Value* cmd = CreateNewValue(next_map_cpy);
-        InsertToValuesList(cmdbufflist, cmd, &cmdbufflistlock, true, false);
-
-        mapHasEnded = true;
-        return 2;
-    }
-    else if(total_args == 3)
-    {
-        uint32_t firstArg = *(uint32_t*)(arg0+0x40C);
-        uint32_t secondArg = *(uint32_t*)(arg0+0x410);
-        rootconsole->ConsolePrint("args_3 : [%s] [%s]", firstArg, secondArg);
-        snprintf(next_map, 1024, "%s %s", (char*)firstArg, (char*)secondArg);
-
-        void* next_map_cpy = copy_val((void*)next_map, strlen(next_map)+1);
-        Value* cmd = CreateNewValue(next_map_cpy);
-        InsertToValuesList(cmdbufflist, cmd, &cmdbufflistlock, true, false);
-
-        mapHasEnded = true;
-        return 2;
-    }
-
-    pDynamicOneArgFunc = (pOneArgProt)(  *(uint32_t*) ( ( *(uint32_t*) ( *(uint32_t*)(server_srv + 0x01012420) )  )+8 )    );
-    return pDynamicOneArgFunc(*(uint32_t*)(server_srv + 0x01012420));
 }
 
 uint32_t Hooks::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
@@ -2131,10 +2040,10 @@ void HookFunctions()
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
 
     //rootconsole->ConsolePrint("patching malloc()");
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)Hooks::MallocHook);

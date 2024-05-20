@@ -1,6 +1,10 @@
 #include "extension.h"
 #include "core.h"
 #include "ext_main.h"
+#include "sdktools.h"
+
+#include <sys/mman.h>
+#include <link.h>
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -83,7 +87,6 @@ ValueList antiCycleListDoors;
 ValueList entityDeleteList;
 ValueList playerDeathQueue;
 ValueList collisionList;
-ValueList cmdbufflist;
 ValueList viewcontrolresetlist;
 ValueList saved_triggers;
 ValueList new_player_join_ref;
@@ -103,8 +106,6 @@ bool disable_delete_list;
 bool isTicking;
 bool hasSavedOnce;
 bool firstplayer_hasjoined;
-bool mapHasEnded;
-bool mapHasEndedDelay;
 bool reset_viewcontrol;
 bool sdktools_passed;
 bool saving_game_rightnow;
@@ -112,9 +113,6 @@ int hooked_delete_counter;
 int normal_delete_counter;
 int save_frames;
 int restore_frames;
-int delay_frames;
-int mapHasEndedDelayFrames;
-int enqueue_delay_frames;
 int after_restore_frames;
 int game_start_frames;
 bool server_sleeping;
@@ -123,7 +121,6 @@ bool removing_ents_restore;
 int restore_start_delay;
 uint32_t fake_sequence_mem;
 bool player_restore_failed;
-int waiting_shoot_frames;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -133,7 +130,6 @@ void* strcpy_chk_addr;
 
 pthread_mutex_t playerDeathQueueLock;
 pthread_mutex_t collisionListLock;
-pthread_mutex_t cmdbufflistlock;
 
 uint32_t CGlobalEntityList;
 uint32_t sv;
@@ -2354,7 +2350,7 @@ void SaveGame_Extension()
     {
         save_frames = 3;
         
-        if(!restoring && isCollisionListEmpty() && !mapHasEnded)
+        if(!restoring && isCollisionListEmpty())
         {
             car_delay_for_save = 0;
             
@@ -2917,48 +2913,6 @@ bool isAnyClientConnecting()
 
     if(total_clients == total_clients_ingame) return false;
     return true;
-}
-
-void ProcessChangelevelDelay()
-{
-    if(delay_frames >= 60 && mapHasEnded && enqueue_delay_frames >= 5)
-    {
-        if(pthread_mutex_trylock(&cmdbufflistlock) != 0) return;
-
-        Value* firstcmd = *cmdbufflist;
-
-        if(firstcmd)
-        {
-            Value* nextVal = firstcmd->nextVal;
-
-            char command[2048];
-            snprintf(command, 2048, "changelevel %s", (char*)firstcmd->value);
-            EnqueueCommandFunc((uint32_t)command);
-
-            free(firstcmd->value);
-            free(firstcmd);
-
-            *cmdbufflist = nextVal;
-            enqueue_delay_frames = 0;
-        }
-        else
-        {
-            if(mapHasEnded && !mapHasEndedDelay)
-            {
-                mapHasEndedDelayFrames = 0;
-                mapHasEndedDelay = true;
-            }
-        }
-
-        pthread_mutex_unlock(&cmdbufflistlock);
-    }
-
-    if(mapHasEndedDelayFrames >= 30 && mapHasEndedDelay)
-    {
-        rootconsole->ConsolePrint("map ended reset in same map");
-        mapHasEnded = false;
-        mapHasEndedDelay = false;
-    }
 }
 
 void ReleaseLeakedPackedEntities()
