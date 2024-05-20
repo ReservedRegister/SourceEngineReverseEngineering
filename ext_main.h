@@ -1,12 +1,6 @@
 #ifndef EXT_MAIN_H
 #define EXT_MAIN_H
 
-#include <sys/mman.h>
-#include <link.h>
-#include <math.h>
-
-#include "sdktools.h"
-
 void InitExtension();
 void ApplyPatches();
 void PatchRestore();
@@ -50,7 +44,6 @@ public:
 	static uint32_t DirectMallocHookDedicatedSrv(uint32_t arg0);
 	static uint32_t memcpyNetworkHook(uint32_t dest, uint32_t src, uint32_t size);
 	static uint32_t LevelChangedHookFrameSnaps(uint32_t arg0);
-	static uint32_t IsAllowChangelevel();
 	static uint32_t EmptyCall();
 	static uint32_t PlayerloadSavedHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t SimulateEntitiesHook(uint8_t simulating);
