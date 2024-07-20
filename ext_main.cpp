@@ -530,11 +530,20 @@ uint32_t Hooks::CallocHook(uint32_t nitems, uint32_t size)
     return newRef;
 }
 
-uint32_t Hooks::MallocHook(uint32_t size)
+uint32_t Hooks::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.4);
+    uint32_t newRef = (uint32_t)malloc(size*1.2);
+
+    return newRef;
+}
+
+uint32_t Hooks::MallocHookLarge(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)malloc(size);
+
+    uint32_t newRef = (uint32_t)malloc(size*4.0);
 
     return newRef;
 }
@@ -2040,10 +2049,10 @@ void HookFunctions()
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
 
     //rootconsole->ConsolePrint("patching malloc()");
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHookSmall);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)malloc, (void*)Hooks::MallocHookLarge);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, (void*)malloc, (void*)Hooks::MallocHook);
@@ -2079,7 +2088,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::MallocHookLarge);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
@@ -2104,30 +2113,9 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF33F0), (void*)Hooks::SavegameInternalFunction);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A311D0), (void*)Hooks::PhysSimEnt);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AEFDB0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00687440), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00471300), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B03590), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00AF3120), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)(datacache_srv + 0x000381D0), (void*)Hooks::EmptyCall);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CCA80), (void*)Hooks::LevelChangeSafeHook);
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), (void*)Hooks::SV_FrameHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098D1A0), (void*)Hooks::PlayerDeathHook);
-
-
-
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00499CD0), (void*)Hooks::EmptyCall);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00499D40), (void*)Hooks::EmptyCall);
-    /*HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00499E00), (void*)EmptyCall);
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A84FA0), (void*)EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009ADED0), (void*)EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0090B320), (void*)EmptyCall);
-
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A84F70), (void*)EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009ADE50), (void*)EmptyCall);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0090B2A0), (void*)EmptyCall);*/
-
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)Hooks::SetSolidFlagsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0086A6A0), (void*)Hooks::DropshipSpawnHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BD1B0), (void*)Hooks::PackedStoreConstructorHook);
@@ -2135,6 +2123,5 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00654F80), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065BD80), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B67F10), (void*)Hooks::UTIL_PrecacheOther_Hook);
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)Hooks::EmptyCall);
 }

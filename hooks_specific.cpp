@@ -134,6 +134,7 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x005715D0), (void*)NativeHooks::CombineAttackFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008AB540), (void*)NativeHooks::ManhackAiFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0050D010), (void*)NativeHooks::NpcSpawnFix);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0053B1E0), (void*)NativeHooks::FixAnotherAiCrash);
 }
 
 uint32_t NativeHooks::ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
@@ -842,6 +843,16 @@ uint32_t NativeHooks::CombineAttackFix(uint32_t arg0, uint32_t arg1, uint32_t ar
 
     pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x005715D0);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
+}
+
+uint32_t NativeHooks::FixAnotherAiCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+
+    CorrectNpcAi(arg0);
+
+    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0053B1E0);
+    return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 }
 
 uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)

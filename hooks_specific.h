@@ -54,6 +54,7 @@ public:
 	static uint32_t Outland_08_Patch(uint32_t arg0, uint32_t arg1);
 	static uint32_t ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5);
 	static uint32_t NpcSpawnFix(uint32_t arg0);
+	static uint32_t FixAnotherAiCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 };
 
 #endif
