@@ -53,6 +53,7 @@ jobs:
           submodules: recursive
 
       - name: Clone HL2SDK
+        working-directory: alliedmodders
         if: runner.os == 'Linux'
         run: |
           bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
