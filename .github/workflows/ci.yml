@@ -55,6 +55,7 @@ jobs:
       - name: Clone HL2SDK
         if: runner.os == 'Linux'
         run: |
+          cd ..
           bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
           
       - name: Getting AMBuild
