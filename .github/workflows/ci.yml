@@ -56,6 +56,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd ..
+          ls -ls
           bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
           
       - name: Getting AMBuild
