@@ -55,7 +55,6 @@ jobs:
       - name: Clone HL2SDK
         if: runner.os == 'Linux'
         run: |
-          cd ..
           ls -ls
           bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
           
