@@ -53,28 +53,28 @@ void InitExtension()
     char datacache_srv_fullpath[max_path_length];
     char sdktools_path[max_path_length];
 
-    snprintf(server_srv_fullpath, max_path_length, "%s/synergy/bin/server_srv.so", root_dir);
-    snprintf(engine_srv_fullpath, max_path_length, "%s/bin/engine_srv.so", root_dir);
-    snprintf(scenefilecache_fullpath, max_path_length, "%s/bin/scenefilecache.so", root_dir);
-    snprintf(soundemittersystem_fullpath, max_path_length, "%s/bin/soundemittersystem.so", root_dir);
-    snprintf(dedicated_srv_fullpath, max_path_length, "%s/bin/dedicated_srv.so", root_dir);
-    snprintf(soundemittersystem_srv_fullpath, max_path_length, "%s/bin/soundemittersystem_srv.so", root_dir);
-    snprintf(materialsystem_srv_fullpath, max_path_length, "%s/bin/materialsystem_srv.so", root_dir);
-    snprintf(studiorender_srv_fullpath, max_path_length, "%s/bin/studiorender_srv.so", root_dir);
-    snprintf(vphysics_srv_fullpath, max_path_length, "%s/bin/vphysics_srv.so", root_dir);
-    snprintf(datacache_srv_fullpath, max_path_length, "%s/bin/datacache_srv.so", root_dir);
+    snprintf(server_srv_fullpath, max_path_length, "/synergy/bin/server_srv.so");
+    snprintf(engine_srv_fullpath, max_path_length, "/bin/engine_srv.so");
+    snprintf(scenefilecache_fullpath, max_path_length, "/bin/scenefilecache.so");
+    snprintf(soundemittersystem_fullpath, max_path_length, "/bin/soundemittersystem.so");
+    snprintf(dedicated_srv_fullpath, max_path_length, "/bin/dedicated_srv.so");
+    snprintf(soundemittersystem_srv_fullpath, max_path_length, "/bin/soundemittersystem_srv.so");
+    snprintf(materialsystem_srv_fullpath, max_path_length, "/bin/materialsystem_srv.so");
+    snprintf(studiorender_srv_fullpath, max_path_length, "/bin/studiorender_srv.so");
+    snprintf(vphysics_srv_fullpath, max_path_length, "/bin/vphysics_srv.so");
+    snprintf(datacache_srv_fullpath, max_path_length, "/bin/datacache_srv.so");
     snprintf(sdktools_path, max_path_length, "/extensions/sdktools.ext.2.sdk2013.so");
 
-    Library* engine_srv_lib = FindLibrary(engine_srv_fullpath, false);
-    Library* datacache_srv_lib = FindLibrary(datacache_srv_fullpath, false);
-    Library* dedicated_srv_lib = FindLibrary(dedicated_srv_fullpath, false);
-    Library* materialsystem_srv_lib = FindLibrary(materialsystem_srv_fullpath, false);
-    Library* vphysics_srv_lib = FindLibrary(vphysics_srv_fullpath, false);
-    Library* scenefilecache_lib = FindLibrary(scenefilecache_fullpath, false);
-    Library* soundemittersystem_lib = FindLibrary(soundemittersystem_fullpath, false);
-    Library* soundemittersystem_srv_lib = FindLibrary(soundemittersystem_srv_fullpath, false);
-    Library* studiorender_srv_lib = FindLibrary(studiorender_srv_fullpath, false);
-    Library* server_srv_lib = FindLibrary(server_srv_fullpath, false);
+    Library* engine_srv_lib = FindLibrary(engine_srv_fullpath, true);
+    Library* datacache_srv_lib = FindLibrary(datacache_srv_fullpath, true);
+    Library* dedicated_srv_lib = FindLibrary(dedicated_srv_fullpath, true);
+    Library* materialsystem_srv_lib = FindLibrary(materialsystem_srv_fullpath, true);
+    Library* vphysics_srv_lib = FindLibrary(vphysics_srv_fullpath, true);
+    Library* scenefilecache_lib = FindLibrary(scenefilecache_fullpath, true);
+    Library* soundemittersystem_lib = FindLibrary(soundemittersystem_fullpath, true);
+    Library* soundemittersystem_srv_lib = FindLibrary(soundemittersystem_srv_fullpath, true);
+    Library* studiorender_srv_lib = FindLibrary(studiorender_srv_fullpath, true);
+    Library* server_srv_lib = FindLibrary(server_srv_fullpath, true);
     Library* sdktools_lib = FindLibrary(sdktools_path, true);
 
     rootconsole->ConsolePrint("engine_srv_lib [%X] size [%X]", engine_srv_lib->library_base_address, engine_srv_lib->library_size);
@@ -525,54 +525,31 @@ uint32_t Hooks::CallocHook(uint32_t nitems, uint32_t size)
     if(nitems <= 0) return (uint32_t)calloc(nitems, size);
 
     uint32_t enlarged_size = nitems*2.5;
-    uint32_t newRef = (uint32_t)calloc(enlarged_size, size);
-
-    return newRef;
+    return (uint32_t)calloc(enlarged_size, size);
 }
 
 uint32_t Hooks::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*1.2);
+    if(size <= 10240)
+        return (uint32_t)malloc(size*1.5);
 
-    return newRef;
+    return (uint32_t)malloc(size*1.3);
 }
 
 uint32_t Hooks::MallocHookLarge(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    uint32_t newRef = (uint32_t)malloc(size*4.0);
-
-    return newRef;
+    return (uint32_t)malloc(size*3.0);
 }
 
 uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
 {
     if(new_size <= 0) return (uint32_t)realloc((void*)old_ptr, new_size);
 
-    uint32_t new_ref = (uint32_t)realloc((void*)old_ptr, new_size*1.2);
-
-    return new_ref;
-}
-
-uint32_t Hooks::OperatorNewHook(uint32_t size)
-{
-    if(size <= 0) return (uint32_t)operator new(size);
-
-    uint32_t newRef = (uint32_t)operator new(size*1.4);
-
-    return newRef;
-}
-
-uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
-{
-    if(size <= 0) return (uint32_t)operator new[](size);
-
-    uint32_t newRef = (uint32_t)operator new[](size*1.4);
-
-    return newRef;
+    return (uint32_t)realloc((void*)old_ptr, new_size*1.2);
 }
 
 void PatchRestore()
