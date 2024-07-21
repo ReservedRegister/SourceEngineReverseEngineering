@@ -98,7 +98,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          python ../configure.py --enable-optimize --symbol-files --sm-path="${{ github.workspace }}/sourcemod-${{ matrix.sm_version }}" --targets=x64,x86
+          python ../configure.py --enable-optimize --symbol-files --sm-path="${{ github.workspace }}/sourcemod-${{ matrix.sm_version }}"
           ambuild
           
       - name: Uploading package
