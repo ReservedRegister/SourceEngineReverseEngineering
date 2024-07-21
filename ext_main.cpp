@@ -531,11 +531,8 @@ uint32_t Hooks::CallocHook(uint32_t nitems, uint32_t size)
 uint32_t Hooks::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
-
-    if(size <= 10240)
-        return (uint32_t)malloc(size*1.5);
-
-    return (uint32_t)malloc(size*1.3);
+    
+    return (uint32_t)malloc(size*1.2);
 }
 
 uint32_t Hooks::MallocHookLarge(uint32_t size)
@@ -543,6 +540,20 @@ uint32_t Hooks::MallocHookLarge(uint32_t size)
     if(size <= 0) return (uint32_t)malloc(size);
 
     return (uint32_t)malloc(size*3.0);
+}
+
+uint32_t Hooks::OperatorNewHook(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)operator new(size);
+
+    return (uint32_t)operator new(size*1.4);
+}
+
+uint32_t Hooks::OperatorNewArrayHook(uint32_t size)
+{
+    if(size <= 0) return (uint32_t)operator new[](size);
+
+    return (uint32_t)operator new[](size*3.0);
 }
 
 uint32_t Hooks::ReallocHook(uint32_t old_ptr, uint32_t new_size)
@@ -2065,7 +2076,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::MallocHookLarge);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);

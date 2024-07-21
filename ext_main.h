@@ -23,6 +23,8 @@ public:
 	static uint32_t CallocHook(uint32_t nitems, uint32_t size);
 	static uint32_t MallocHookSmall(uint32_t size);
 	static uint32_t MallocHookLarge(uint32_t size);
+	static uint32_t OperatorNewHook(uint32_t size);
+	static uint32_t OperatorNewArrayHook(uint32_t size);
 	static uint32_t ReallocHook(uint32_t old_ptr, uint32_t new_size);
 	static uint32_t SaveHookDirectMalloc(uint32_t size);
 	static uint32_t SaveHookDirectRealloc(uint32_t old_ptr, uint32_t new_size);
