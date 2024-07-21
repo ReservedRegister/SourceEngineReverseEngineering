@@ -1,12 +1,6 @@
 name: build
 
-on:
-  push:
-    paths:
-      - pushbuild.txt
-  pull_request:
-    paths:
-      - pushbuild.txt
+on: [push]
 
 jobs:
   build:
