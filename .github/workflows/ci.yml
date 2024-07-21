@@ -23,19 +23,13 @@ jobs:
             os_short: linux
             
     steps:
-      - name: Prepare env
-        shell: bash
-        run: |
-          echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
-          
       - name: Install (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib g++-multilib git
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
+          sudo apt purge clang
+          sudo apt-get install -y gcc-multilib g++-multilib
           
       - name: Setup Sourcemod & HL2SDK
         run: |
@@ -51,12 +45,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: extension
-
-      - uses: microsoft/setup-msbuild@v2
-        if: runner.os == 'Windows'
-        with:
-            msbuild-architecture: x64
-            vs-version: '15'
+          
       - name: Compiling ${{ github.event.repository.name }} files
         working-directory: extension
         run: |
