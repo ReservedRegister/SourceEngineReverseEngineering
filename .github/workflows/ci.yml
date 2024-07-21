@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y clang g++-multilib
+          sudo apt-get install -y clang g++-multilib git
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
           
@@ -53,7 +53,9 @@ jobs:
           submodules: recursive
 
       - name: Clone HL2SDK
-        run: bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
+        run: |
+          git clone --recursive https://github.com/alliedmodders/sourcemod
+          bash sourcemod/tools/checkout-deps.sh
           
       - name: Getting AMBuild
         uses: actions/checkout@v4
