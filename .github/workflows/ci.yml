@@ -53,10 +53,9 @@ jobs:
           submodules: recursive
 
       - name: Clone HL2SDK
-        working-directory: sourcemod-${{ matrix.sm_version }}
         if: runner.os == 'Linux'
         run: |
-          bash tools/checkout-deps.sh
+          bash sourcemod-${{ matrix.sm_version }}/tools/checkout-deps.sh
           
       - name: Getting AMBuild
         uses: actions/checkout@v4
