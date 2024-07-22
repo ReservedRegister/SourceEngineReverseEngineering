@@ -1,6 +1,10 @@
 name: build
 
-on: [push]
+on:
+  push:
+    branches:
+    - master
+    - black_mesa
 
 jobs:
   build:
@@ -23,13 +27,20 @@ jobs:
             os_short: linux
             
     steps:
+    
+      - name: Prepare env
+        shell: bash
+        run: |
+          echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
+          
       - name: Install (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt purge clang
-          sudo apt-get install -y gcc-multilib g++-multilib
+          sudo apt-get install -y clang g++-multilib
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
           
       - name: Setup Sourcemod & HL2SDK
         run: |
@@ -57,5 +68,5 @@ jobs:
       - name: Uploading package
         uses: actions/upload-artifact@v4
         with:
-          name: sm-ext-yyjson-sm${{ matrix.sm_version }}-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
+          name: sm-synergy_utils-sm${{ matrix.sm_version }}-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
           path: extension/build/package
