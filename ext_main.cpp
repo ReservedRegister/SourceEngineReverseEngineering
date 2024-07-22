@@ -933,8 +933,9 @@ uint32_t Hooks::RestoreOverride()
 
 uint32_t Hooks::DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    register uint32_t ebp asm("ebp") = 0;
-    
+    uint32_t ebp = 0;
+    asm volatile ("movl %%ebp, %0" : "=r" (ebp));
+
     uint32_t arg0_return = *(uint32_t*)(ebp-4);
     uint32_t packed_store_ref = arg0_return-0x228;
 
