@@ -1,10 +1,6 @@
 name: build
 
-on:
-  push:
-    branches:
-    - master
-    - black_mesa
+on: [push]
 
 jobs:
   build:
