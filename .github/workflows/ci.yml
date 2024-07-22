@@ -33,10 +33,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y clang g++-multilib
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CXX=clang++" >> $GITHUB_ENV
+          sudo apt update
+          sudo apt install -y gcc-multilib g++-multilib
           
       - name: Setup Sourcemod & HL2SDK
         run: |
