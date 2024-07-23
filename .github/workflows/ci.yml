@@ -55,6 +55,10 @@ jobs:
           name: synergy_utils
           path: extension/build/package
 
+      - uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: minor
+
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
