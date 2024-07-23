@@ -74,4 +74,5 @@ jobs:
 
       - name: Tag/Release on Push Action
         uses: rymndhng/release-on-push-action@v0.28.0
-            
+        with:
+          bump_version_scheme: minor
