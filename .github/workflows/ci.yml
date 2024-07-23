@@ -4,33 +4,16 @@ on: [push]
 
 jobs:
   build:
-    name: build with sm${{ matrix.sm_version }} on ${{ matrix.os_short }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-20.04
-          
-        sm_version:
-          - "latest"
-          
-        include:
-          - sm_version: latest
-            sm_branch: master
-            
-          - os: ubuntu-20.04
-            os_short: linux
-            
+    runs-on: ubuntu-20.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
     steps:
-    
       - name: Prepare env
         shell: bash
         run: |
           echo "GITHUB_SHA_SHORT=${GITHUB_SHA::7}" >> $GITHUB_ENV
           
-      - name: Install (Linux)
-        if: runner.os == 'Linux'
+      - name: Install packages
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
@@ -38,7 +21,7 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
           
-      - name: Setup Sourcemod & HL2SDK
+      - name: Setup sourcemod & HL2SDK
         run: |
           git clone --recursive https://github.com/alliedmodders/sourcemod
           bash sourcemod/tools/checkout-deps.sh
@@ -69,7 +52,7 @@ jobs:
       - name: Uploading package
         uses: actions/upload-artifact@v4
         with:
-          name: sm-synergy_utils-sm${{ matrix.sm_version }}-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
+          name: synergy_utils
           path: extension/build/package
 
       - name: Tag/Release on Push Action
