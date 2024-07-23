@@ -55,7 +55,8 @@ jobs:
           name: synergy_utils
           path: extension/build/package
 
-      - name: Tag/Release on Push Action
-        uses: rymndhng/release-on-push-action@v0.28.0
+      - name: Release with Notes
+        uses: softprops/action-gh-release@v1
         with:
-          bump_version_scheme: minor
+          files: |
+            extension/build/package/synergy_utils
