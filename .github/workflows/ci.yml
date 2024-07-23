@@ -62,6 +62,6 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: <RELEASE_TAG>
+          tag_name: Release
           files: |
-            extension/build/package/synergy_utils
+            extension/build/package/synergy_utils.zip
