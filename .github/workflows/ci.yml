@@ -71,3 +71,7 @@ jobs:
         with:
           name: sm-synergy_utils-sm${{ matrix.sm_version }}-${{ matrix.os_short }}-${{ env.GITHUB_SHA_SHORT }}
           path: extension/build/package
+
+      - name: Tag/Release on Push Action
+        uses: rymndhng/release-on-push-action@v0.28.0
+            
