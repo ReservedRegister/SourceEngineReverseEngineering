@@ -57,6 +57,7 @@ jobs:
 
       - name: List Nested Directories
         run: |
+          cd extension/build/package
           ls -la
           
       - name: Release with Notes
