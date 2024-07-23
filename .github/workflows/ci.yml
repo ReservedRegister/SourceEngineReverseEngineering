@@ -58,14 +58,16 @@ jobs:
       - name: Archive production artifacts
         run: |
           mkdir -p release
-          cp -r extension/build/package release/
+          cp -r extension/build/package/* release/
           cd release
           zip -r release.zip ./*
         shell: bash
 
       - name: Create GitHub Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }}  # Uses the tag that triggered the workflow
           files: release/release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
