@@ -55,9 +55,17 @@ jobs:
           name: synergy_utils
           path: extension/build/package
           
-      - name: Release with Notes
+      - name: Archive production artifacts
+        run: |
+          mkdir -p release
+          cp -r extension/build/package release/
+          cd release
+          zip -r release.zip ./*
+        shell: bash
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: Release
-          files: |
-            extension/build/package/addons/sourcemod/extensions/synergy_utils.ext2.sdk2013.so
+          files: release/release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
