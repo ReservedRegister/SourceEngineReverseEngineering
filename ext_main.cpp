@@ -39,7 +39,7 @@ void InitExtension()
     pthread_mutex_init(&collisionListLock, NULL);
 
     char* root_dir = getenv("PWD");
-    size_t max_path_length = 1024;
+    const size_t max_path_length = 1024;
 
     char server_srv_fullpath[max_path_length];
     char engine_srv_fullpath[max_path_length];
@@ -277,6 +277,13 @@ void ApplyPatches()
     }
 
     uint32_t offset = 0;
+
+    uint32_t remove_stdcall = server_srv + 0x008BFA8E;
+    memset((void*)remove_stdcall, 0x90, 3);
+    *(uint8_t*)(remove_stdcall) = 0xC3;
+
+    uint32_t remove_stack_subs = server_srv + 0x008C0623;
+    memset((void*)remove_stack_subs, 0x90, 3);
 
     uint32_t fix_ai = server_srv + 0x005703B2;
     *(uint8_t*)(fix_ai) = 0xB8;
