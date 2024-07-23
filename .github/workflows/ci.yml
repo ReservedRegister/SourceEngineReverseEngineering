@@ -54,15 +54,10 @@ jobs:
         with:
           name: synergy_utils
           path: extension/build/package
-
-      - name: List Nested Directories
-        run: |
-          cd extension/build/package
-          ls -la
           
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
           tag_name: Release
           files: |
-            extension/build/package/synergy_utils.zip
+            extension/build/package/addons/sourcemod/extensions/synergy_utils.ext2.sdk2013.so
