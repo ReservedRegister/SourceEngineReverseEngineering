@@ -1916,10 +1916,6 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    UpdateAllCollisions();
-
-    Hooks::CleanupDeleteListHook(0);
-
     RemoveBadEnts();
 
     Hooks::CleanupDeleteListHook(0);
@@ -1941,6 +1937,32 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     
     //TriggerMovedFailsafe();
     return 0;
+}
+
+uint32_t Hooks::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003D8DA0);
+    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
+
+    CollisionRulesChanged(arg0);
+
+    return returnVal;
+}
+
+uint32_t Hooks::VPhysicsInitShadowHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+{
+    pFourArgProt pDynamicFourArgFunc;
+    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
+
+    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x003D8F30);
+    uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+
+    CollisionRulesChanged(arg0);
+
+    return returnVal;
 }
 
 uint32_t Hooks::GetClientSteamIDHook(uint32_t arg0, uint32_t arg1)
@@ -2045,7 +2067,7 @@ void HookFunctions()
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, (void*)calloc, (void*)Hooks::CallocHook);
 
-    //rootconsole->ConsolePrint("patching malloc()");
+    rootconsole->ConsolePrint("patching malloc()");
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)malloc, (void*)Hooks::MallocHookSmall);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, (void*)malloc, (void*)Hooks::MallocHook);
@@ -2081,11 +2103,11 @@ void HookFunctions()
     //HookFunctionInSharedObject(soundemittersystem_srv, soundemittersystem_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
     //HookFunctionInSharedObject(studiorender_srv, studiorender_srv_size, new_operator_addr, (void*)Hooks::OperatorNewHook);
 
-    rootconsole->ConsolePrint("patching operator new[]");
+    //rootconsole->ConsolePrint("patching operator new[]");
     //HookFunctionInSharedObject(server_srv, server_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(engine_srv, engine_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(datacache_srv, datacache_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(materialsystem_srv, materialsystem_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(vphysics_srv, vphysics_srv_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
     //HookFunctionInSharedObject(scenefilecache, scenefilecache_size, new_operator_array_addr, (void*)Hooks::OperatorNewArrayHook);
@@ -2120,5 +2142,6 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00654F80), (void*)Hooks::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065BD80), (void*)Hooks::UpdateOnRemove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00B67F10), (void*)Hooks::UTIL_PrecacheOther_Hook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)Hooks::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8F30), (void*)Hooks::VPhysicsInitShadowHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8DA0), (void*)Hooks::VPhysicsSetObjectHook);
 }

@@ -77,6 +77,8 @@ public:
 	static uint32_t MainPlayerRestoreHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 	static uint32_t MainSaveEntitiesFunc(uint32_t arg0, uint32_t arg1);
+	static uint32_t VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t VPhysicsInitShadowHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 };
 
 #endif
