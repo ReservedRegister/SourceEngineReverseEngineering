@@ -282,9 +282,6 @@ void ApplyPatches()
     memset((void*)remove_stdcall, 0x90, 3);
     *(uint8_t*)(remove_stdcall) = 0xC3;
 
-    uint32_t remove_stack_subs = server_srv + 0x008C0623;
-    memset((void*)remove_stack_subs, 0x90, 3);
-
     uint32_t fix_ai = server_srv + 0x005703B2;
     *(uint8_t*)(fix_ai) = 0xB8;
     *(uint8_t*)(fix_ai+1) = 0xFF;
