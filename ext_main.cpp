@@ -329,10 +329,6 @@ void ApplyPatches()
     *(uint8_t*)(save_system_ent_list_patch) = 0xE9;
     *(uint32_t*)(save_system_ent_list_patch+1) = 0xFB;*/
 
-    uint32_t fix_packed_store = dedicated_srv + 0x000BB4C1;
-    *(uint8_t*)(fix_packed_store) = 0xE9;
-    *(uint32_t*)(fix_packed_store+1) = 0x2B2;
-
     uint32_t jmp_to_fix_heli = server_srv + 0x00960275;
     *(uint8_t*)(jmp_to_fix_heli) = 0xE9;
     *(uint32_t*)(jmp_to_fix_heli+1) = 0x44E;
@@ -343,9 +339,6 @@ void ApplyPatches()
     //get rid of message spam on sound pointer
     uint32_t it_said_it_causes_corruption = server_srv + 0x00A5436D;
     *(uint8_t*)(it_said_it_causes_corruption) = 0xC3;
-
-    uint32_t return_packed_store = dedicated_srv + 0x000BB782;
-    *(uint8_t*)(return_packed_store) = 0xC3;
 
     /*uint32_t packet_crash_exploit_patch = engine_srv + 0x001DBE8E;
     *(uint8_t*)(packet_crash_exploit_patch) = 0xEB;*/
@@ -1010,91 +1003,6 @@ uint32_t Hooks::PackedStoreDestructorHook(uint32_t arg0)
 
     pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BAE80);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    
-    uint32_t purge_ref = 0;
-
-    //lea     eax, [ebx+2CB8h]
-
-    purge_ref = arg0+0x2CB8;
-
-    //CUtlMapDelete
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000C0560);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     esi, [ebx+2CA4h]
-
-    purge_ref = arg0+0x2CA4;
-
-    //~CUtlStringList
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x0006FE00);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     eax, [ebx+48Ch]
-
-    purge_ref = arg0+0x48C;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BF800);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     eax, [ebx+478h]
-
-    purge_ref = arg0+0x478;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BF800);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     eax, [ebx+464h]
-
-    purge_ref = arg0+0x464;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BF800);
-    pDynamicOneArgFunc(purge_ref);
-
-    //mov     dword ptr [ebx+420h], 0
-
-    *(uint32_t*)(arg0+0x420) = 0;
-
-    //lea     esi, [ebx+414h]
-
-    purge_ref = arg0+0x414;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x00070ED0);
-    pDynamicOneArgFunc(purge_ref);
-
-    //mov     eax, [ebx+414h]
-    //mov     [ebx+424h], eax
-
-    uint32_t val_set = *(uint32_t*)(arg0+0x414);
-    *(uint32_t*)(arg0+0x424) = val_set;
-
-    //lea     esi, [ebx+414h]
-
-    purge_ref = arg0+0x414;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x00070ED0);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     eax, [ebx+400h]
-
-    purge_ref = arg0+0x400;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BF730);
-    pDynamicOneArgFunc(purge_ref);
-
-    //lea     eax, [ebx+3ECh]
-
-    purge_ref = arg0+0x3EC;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000BF800);
-    pDynamicOneArgFunc(purge_ref);
-
-
-    //FINAL CALL TO DELETE
-
-    uint32_t arg0_offset = arg0+0x228;
-
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000C0120);
-    pDynamicOneArgFunc(arg0_offset);
 
     Value* a_leak = *leakedResourcesVpkSystem;
 
