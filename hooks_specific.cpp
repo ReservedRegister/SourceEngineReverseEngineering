@@ -135,6 +135,21 @@ void HookFunctionsSpecific()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x008AB540), (void*)NativeHooks::ManhackAiFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0050D010), (void*)NativeHooks::NpcSpawnFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0053B1E0), (void*)NativeHooks::FixAnotherAiCrash);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D210), (void*)NativeHooks::FixCombineGoalCrash);
+}
+
+uint32_t NativeHooks::FixCombineGoalCrash(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075D210);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Combine AI Goal failed!");
+    return 0;
 }
 
 uint32_t NativeHooks::ZombiePatchHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)
