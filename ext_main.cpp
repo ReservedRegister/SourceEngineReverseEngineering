@@ -34,6 +34,7 @@ void InitExtension()
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
+    update_collisions_frames = 0;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -1818,6 +1819,18 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
     //ServiceEventQueue
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
+
+    Hooks::CleanupDeleteListHook(0);
+
+    if(update_collisions_frames >= 40)
+    {
+        rootconsole->ConsolePrint("UpdateCollisions!");
+        
+        UpdateAllCollisions();
+        update_collisions_frames = 0;
+    }
+
+    update_collisions_frames++;
 
     Hooks::CleanupDeleteListHook(0);
 
