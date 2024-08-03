@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"SynergyUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension to fix issues with dedicated server"
-#define SMEXT_CONF_VERSION		"213"
+#define SMEXT_CONF_VERSION		"214"
 #define SMEXT_CONF_AUTHOR		"ReservedRegister"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
 #define SMEXT_CONF_LOGTAG		"SYNERGY_UTILS"

@@ -1822,15 +1822,7 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
     Hooks::CleanupDeleteListHook(0);
 
-    if(update_collisions_frames >= 40)
-    {
-        rootconsole->ConsolePrint("UpdateCollisions!");
-        
-        UpdateAllCollisions();
-        update_collisions_frames = 0;
-    }
-
-    update_collisions_frames++;
+    UpdateAllCollisions();
 
     Hooks::CleanupDeleteListHook(0);
 
@@ -1859,211 +1851,34 @@ uint32_t Hooks::SimulateEntitiesHook(uint8_t simulating)
 
 uint32_t Hooks::SetCollisionGroupHook(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
     pTwoArgProt pDynamicTwoArgFunc;
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003D9390);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    return returnVal;
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
 {
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
     pTwoArgProt pDynamicTwoArgFunc;
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003F98A0);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        uint32_t cbase = *(uint32_t*)(arg0+4);
-        CollisionRulesChanged(cbase);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::SetSolidHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003FA510);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        uint32_t cbase = *(uint32_t*)(arg0+4);
-        CollisionRulesChanged(cbase);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::SetOwnerEntityHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0064DD80);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    if(arg1)
-    {
-        CollisionRulesChanged(arg1);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::SetMoveTypeHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00651FA0);
-    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::StopFollowingEntityHook(uint32_t arg0)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pOneArgProt pDynamicOneArgFunc;
-
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00653030);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::SetParentHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pThreeArgProt pDynamicThreeArgFunc;
-
-    pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00658280);
-    uint32_t returnVal = pDynamicThreeArgFunc(arg0, arg1, arg2);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    if(arg1)
-    {
-        CollisionRulesChanged(arg1);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::TeleportHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pFourArgProt pDynamicFourArgFunc;
-
-    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0065D210);
-    uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    return returnVal;
-
-}
-
-uint32_t Hooks::DisableEntityCollisionsHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00499DB0);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    if(arg1)
-    {
-        CollisionRulesChanged(arg1);
-    }
-
-    return returnVal;
-}
-
-uint32_t Hooks::EnableEntityCollisionsHook(uint32_t arg0, uint32_t arg1)
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    pTwoArgProt pDynamicTwoArgFunc;
-
-    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00499E00);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    if(arg0)
-    {
-        CollisionRulesChanged(arg0);
-    }
-
-    if(arg1)
-    {
-        CollisionRulesChanged(arg1);
-    }
-
-    return returnVal;
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003D8DA0);
-    uint32_t returnVal = pDynamicTwoArgFunc(arg0, arg1);
-
-    CollisionRulesChanged(arg0);
-
-    return returnVal;
+    return pDynamicTwoArgFunc(arg0, arg1);
 }
 
 uint32_t Hooks::VPhysicsInitShadowHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
     pFourArgProt pDynamicFourArgFunc;
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
 
     pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x003D8F30);
-    uint32_t returnVal = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-
-    CollisionRulesChanged(arg0);
-
-    return returnVal;
+    return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 }
 
 uint32_t Hooks::GetClientSteamIDHook(uint32_t arg0, uint32_t arg1)
@@ -2127,6 +1942,20 @@ uint32_t Hooks::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
     RemoveEntityNormal(arg1, true);
 
     player_restore_failed = true;
+    return 0;
+}
+
+uint32_t Hooks::CollisionRulesChangedHook(uint32_t arg0)
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(collision_entities[i] == 0)
+        {
+            collision_entities[i] = *(uint32_t*)(arg0+0x350);
+            break;
+        }
+    }
+
     return 0;
 }
 
@@ -2234,12 +2063,5 @@ void HookFunctions()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8DA0), (void*)Hooks::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D9390), (void*)Hooks::SetCollisionGroupHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)Hooks::SetSolidFlagsHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003FA510), (void*)Hooks::SetSolidHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00499DB0), (void*)Hooks::DisableEntityCollisionsHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00499E00), (void*)Hooks::EnableEntityCollisionsHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)Hooks::SetOwnerEntityHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00651FA0), (void*)Hooks::SetMoveTypeHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00653030), (void*)Hooks::StopFollowingEntityHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00658280), (void*)Hooks::SetParentHook);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065D210), (void*)Hooks::TeleportHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)Hooks::CollisionRulesChangedHook);
 }

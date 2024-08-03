@@ -11,6 +11,7 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 uint32_t loaded_libraries[512] = {};
 uint32_t our_libraries[512] = {};
+uint32_t collision_entities[512] = {};
 
 uint32_t engine_srv;
 uint32_t datacache_srv;
@@ -3076,12 +3077,20 @@ void RemoveBadEnts()
 void UpdateAllCollisions()
 {
     pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-    
-    uint32_t ent = 0;
 
-    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    for(int i = 0; i < 512; i++)
     {
-        CollisionRulesChanged(ent);
+        if(collision_entities[i] != 0)
+        {
+            uint32_t object = GetCBaseEntity(collision_entities[i]);
+
+            if(object)
+            {
+                CollisionRulesChanged(object);
+            }
+
+            collision_entities[i] = 0;
+        }
     }
 }
 

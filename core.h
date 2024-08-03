@@ -194,6 +194,7 @@ extern bool removing_ents_restore;
 extern int restore_start_delay;
 extern bool player_restore_failed;
 extern int update_collisions_frames;
+extern uint32_t collision_entities[512];
 
 extern void* delete_operator_array_addr;
 extern void* delete_operator_addr;
