@@ -35,6 +35,7 @@ void InitExtension()
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
     update_collisions_frames = 0;
+    update_collision_rules = false;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -1947,15 +1948,7 @@ uint32_t Hooks::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 
 uint32_t Hooks::CollisionRulesChangedHook(uint32_t arg0)
 {
-    for(int i = 0; i < 512; i++)
-    {
-        if(collision_entities[i] == 0)
-        {
-            collision_entities[i] = *(uint32_t*)(arg0+0x350);
-            break;
-        }
-    }
-
+    update_collision_rules = true;
     return 0;
 }
 
