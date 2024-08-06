@@ -3082,6 +3082,19 @@ void UpdateAllCollisions()
 
     while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
+        uint32_t m_Network = *(uint32_t*)(ent+0x24);
+
+        if(!m_Network)
+        {
+            //rootconsole->ConsolePrint("[%s]", *(uint32_t*)(ent+0x68));
+            CollisionRulesChanged(ent);
+        }
+    }
+
+    ent = 0;
+
+    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    {
         CollisionRulesChanged(ent);
     }
 }
