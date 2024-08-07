@@ -99,6 +99,14 @@ jobs:
           # Output the new tag for the release step
           echo "new_tag=v$new_version" >> $GITHUB_ENV
 
+      - name: sex
+        run: |
+          echo "Listing files in release directory:"
+          ls -ls
+          cd ..
+          ls -ls
+          ls -R release
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
