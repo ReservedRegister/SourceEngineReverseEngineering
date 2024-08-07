@@ -62,6 +62,13 @@ jobs:
           cd release
           zip -r release.zip ./*
         shell: bash
+
+      - name: sex
+        run: |
+          echo "Listing files in release directory:"
+          ls -ls
+          cd ..
+          ls -ls
         
       - name: Checkout code
         uses: actions/checkout@v3
@@ -105,7 +112,6 @@ jobs:
           ls -ls
           cd ..
           ls -ls
-          ls -R release
 
       - name: Create GitHub Release
         id: create_release
