@@ -62,15 +62,9 @@ jobs:
           cd release
           zip -r release.zip ./*
         shell: bash
-
-      - name: sex
-        run: |
-          echo "Listing files in release directory:"
-          ls -ls
-          cd ..
-          ls -ls
         
       - name: Checkout code
+        id: checkout
         uses: actions/checkout@v3
 
       - name: Set up Git
@@ -105,13 +99,6 @@ jobs:
 
           # Output the new tag for the release step
           echo "new_tag=v$new_version" >> $GITHUB_ENV
-
-      - name: sex
-        run: |
-          echo "Listing files in release directory:"
-          ls -ls
-          cd ..
-          ls -ls
 
       - name: Create GitHub Release
         id: create_release
