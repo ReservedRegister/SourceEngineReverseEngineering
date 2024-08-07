@@ -63,11 +63,31 @@ jobs:
           zip -r release.zip ./*
         shell: bash
 
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: echo "::set-output name=TAG::$(git describe --tags --abbrev=0)"
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}  # Uses the tag that triggered the workflow
+          tag_name: ${{ steps.get_latest_tag.outputs.TAG }}
           files: release/release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
