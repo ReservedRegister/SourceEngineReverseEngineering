@@ -1,14 +1,18 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
 import os, sys
 
-projectName = 'synergy_utils'
+projectName = 'server_utils'
 
 # smsdk_ext.cpp will be automatically added later
 sourceFiles = [
   'extension.cpp',
-  'core.cpp',
-  'ext_main.cpp',
-  'hooks_specific.cpp'
+  'util.cpp',
+  'synergy/core.cpp',
+  'synergy/ext_main.cpp',
+  'synergy/hooks_specific.cpp',
+  'black_mesa/core.cpp',
+  'black_mesa/ext_main.cpp',
+  'black_mesa/hooks_specific.cpp'
 ]
 
 ###############

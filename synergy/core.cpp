@@ -1,40 +1,8 @@
 #include "extension.h"
+#include "util.h"
 #include "core.h"
 #include "ext_main.h"
 #include "sdktools.h"
-
-#include <sys/mman.h>
-#include <link.h>
-
-uint32_t hook_exclude_list_offset[512] = {};
-uint32_t hook_exclude_list_base[512] = {};
-uint32_t memory_prots_save_list[512] = {};
-uint32_t loaded_libraries[512] = {};
-uint32_t our_libraries[512] = {};
-
-uint32_t engine_srv;
-uint32_t datacache_srv;
-uint32_t dedicated_srv;
-uint32_t materialsystem_srv;
-uint32_t vphysics_srv;
-uint32_t scenefilecache;
-uint32_t soundemittersystem;
-uint32_t soundemittersystem_srv;
-uint32_t studiorender_srv;
-uint32_t server_srv;
-uint32_t sdktools;
-
-uint32_t engine_srv_size;
-uint32_t datacache_srv_size;
-uint32_t dedicated_srv_size;
-uint32_t materialsystem_srv_size;
-uint32_t vphysics_srv_size;
-uint32_t scenefilecache_size;
-uint32_t soundemittersystem_size;
-uint32_t soundemittersystem_srv_size;
-uint32_t studiorender_srv_size;
-uint32_t server_srv_size;
-uint32_t sdktools_size;
 
 uint32_t EdtLoadFuncAddr;
 uint32_t Flush;
@@ -102,27 +70,20 @@ bool restoring;
 bool protect_player;
 bool restore_delay;
 bool restore_delay_lock;
-bool disable_delete_list;
-bool isTicking;
 bool hasSavedOnce;
 bool firstplayer_hasjoined;
 bool reset_viewcontrol;
 bool sdktools_passed;
 bool saving_game_rightnow;
-int hooked_delete_counter;
-int normal_delete_counter;
 int save_frames;
 int restore_frames;
 int after_restore_frames;
 int game_start_frames;
-bool server_sleeping;
 int car_delay_for_save;
 bool removing_ents_restore;
 int restore_start_delay;
 uint32_t fake_sequence_mem;
 bool player_restore_failed;
-int update_collisions_frames;
-bool update_collision_rules;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;
@@ -133,7 +94,6 @@ void* strcpy_chk_addr;
 pthread_mutex_t playerDeathQueueLock;
 pthread_mutex_t collisionListLock;
 
-uint32_t CGlobalEntityList;
 uint32_t sv;
 uint32_t g_ModelLoader;
 uint32_t g_DataCache;
@@ -142,17 +102,14 @@ uint32_t s_ServerPlugin;
 uint32_t SaveRestoreGlobal;
 uint32_t weapon_substitute;
 
-
-
 pOneArgProt UTIL_Remove__External;
-pThreeArgProt FindEntityByClassnameHook__External;
 pTwoArgProt CreateEntityByNameHook__External;
 pOneArgProt CleanupDeleteListHook__External;
 pThreeArgProt PlayerSpawnHook__External;
 pOneArgProt UTIL_RemoveInternal__External;
 pThreeArgProt MainPlayerRestore__External;
 
-void InitCore()
+void InitCoreSynergy()
 {
     our_libraries[0] = (uint32_t)malloc(1024);
     snprintf((char*)our_libraries[0], 1024, "%s", "/synergy/bin/server_srv.so");
@@ -188,107 +145,6 @@ void InitCore()
     snprintf((char*)our_libraries[10], 1024, "%s", "/extensions/sdktools.ext.2.sdk2013.so");
 }
 
-Library* FindLibrary(char* lib_name, bool less_intense_search)
-{
-    for(int i = 0; i < 512; i++)
-    {
-        if(loaded_libraries[i] == 0) continue;
-        Library* existing_lib = (Library*)loaded_libraries[i];
-        
-        if(less_intense_search)
-        {
-            if(strcasestr(existing_lib->library_signature, lib_name) != NULL) return existing_lib;
-        }
-
-        if(strcmp(existing_lib->library_signature, lib_name) == 0) return existing_lib;
-    }
-
-    return NULL;
-}
-
-Library* LoadLibrary(char* library_full_path)
-{
-    if(library_full_path)
-    {
-        Library* found_lib = FindLibrary(library_full_path, false);
-        if(found_lib) return found_lib;
-
-        struct link_map* library_lm = (struct link_map*)(dlopen(library_full_path, RTLD_NOW));
-
-        if(library_lm)
-        {
-            for(int i = 0; i < 512; i++)
-            {
-                if(loaded_libraries[i] == 0)
-                {
-                    Library* new_lib = (Library*)(malloc(sizeof(Library)));
-                    new_lib->library_signature = (char*)copy_val(library_full_path, strlen(library_full_path)+1);
-                    new_lib->library_base_address = library_lm->l_addr;
-                    new_lib->library_size = 0;
-                    loaded_libraries[i] = (uint32_t)new_lib;
-                    
-                    rootconsole->ConsolePrint("Loaded [%s]", library_full_path);
-                    return new_lib;
-                }
-            }
-
-            rootconsole->ConsolePrint("Failed to save library to list!");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    return NULL;
-}
-
-Library* getlibrary(char* file_line)
-{
-    for(int i = 0; i < 512; i++)
-    {
-        if(our_libraries[i] == 0) continue;
-
-        
-        char* match = strcasestr(file_line, (char*)our_libraries[i]);
-
-        if(match)
-        {
-            int temp_char_reverser = 0;
-            char* abs_path = NULL;
-
-            while(abs_path == NULL)
-            {
-                if(*(char*)(match-temp_char_reverser) == ' ')
-                {
-                    if(*(char*)(match-temp_char_reverser+1) == '/')
-                    {
-                        abs_path = match-temp_char_reverser+1;
-                    }
-                }
-
-                temp_char_reverser++;
-            }
-
-            /*char file_line_temp[512];
-            snprintf(file_line_temp, 512, "%s", file_line);
-
-            strtok(file_line_temp, " \t");
-            for(int i = 0; i < 4; i++) strtok(NULL, " \t");
-            char* abs_path = strtok(NULL, " \t");*/
-
-            //rootconsole->ConsolePrint("abs [%s]", abs_path);
-
-            Library* found_lib = LoadLibrary(abs_path);
-
-            if(found_lib)
-            {
-                //rootconsole->ConsolePrint("Detected our library [%s]", our_libraries[i]);
-                return found_lib;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 void AttemptToRestoreGame()
 {
     pZeroArgProt pDynamicZeroArgFunc;
@@ -320,104 +176,6 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
     }
 
     return false;
-}
-
-void AllowWriteToMappedMemory()
-{
-    for(int i = 0; i < 512; i++)
-    {
-        memory_prots_save_list[i] = 0;
-    }
-
-    FILE* smaps_file = fopen("/proc/self/smaps", "r");    
-
-    if(!smaps_file)
-    {
-        rootconsole->ConsolePrint("Error opening smaps");
-        return;
-    }
-
-    char* file_line = (char*) malloc(sizeof(char) * 1024);
-
-    while(fgets(file_line, 1024, smaps_file))
-    {
-        sscanf(file_line, "%[^\n]s", file_line);
-
-        Library* currentLibrary = getlibrary(file_line);
-        if(!currentLibrary) continue;
-
-        char* file_line_cpy = (char*) malloc(strlen(file_line)+1);
-        snprintf(file_line_cpy, strlen(file_line)+1, "%s", file_line);
-
-        char* address_range = strtok(file_line_cpy, " \t");
-        char* protections = strtok(NULL, " \t");
-
-        char* start_address = strtok(address_range, "-");
-        char* end_address = strtok(NULL, "-");
-
-        uint32_t start_address_parsed = 0;
-        uint32_t end_address_parsed = 0;
-
-        if(start_address) start_address_parsed = strtoul(start_address, NULL, 16);
-        if(end_address) end_address_parsed = strtoul(end_address, NULL, 16);
-
-        int save_protections = PROT_NONE;
-
-        if(strstr(protections, "r") != 0)
-            save_protections = PROT_READ;
-        if(strstr(protections, "w") != 0)
-            save_protections = save_protections | PROT_WRITE;
-        if(strstr(protections, "x") != 0)
-            save_protections = save_protections | PROT_EXEC;
-
-        if(start_address_parsed && end_address_parsed)
-        {
-            int address_size = end_address_parsed - start_address_parsed;
-
-            for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
-            {
-                if(memory_prots_save_list[i] == 0 && memory_prots_save_list[i+1] == 0 && memory_prots_save_list[i+2] == 0)
-                {
-                    memory_prots_save_list[i] = start_address_parsed;
-                    memory_prots_save_list[i+1] = end_address_parsed;
-                    memory_prots_save_list[i+2] = (uint32_t)save_protections;
-                    break;
-                }
-            }
-
-            currentLibrary->library_size += address_size;
-        }
-
-        free(file_line_cpy);
-    }
-
-    free(file_line);
-    fclose(smaps_file);
-
-    ForceMemoryAccess();
-}
-
-void ForceMemoryAccess()
-{
-    for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
-    {
-        if(memory_prots_save_list[i] == 0 && memory_prots_save_list[i+1] == 0 && memory_prots_save_list[i+2] == 0) continue;
-
-        size_t pagesize = sysconf(_SC_PAGE_SIZE);
-        uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
-
-        if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
-        {
-            rootconsole->ConsolePrint("Failed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
-
-            //perror("mprotect");
-            //exit(EXIT_FAILURE);
-        }
-        else
-        {
-            //rootconsole->ConsolePrint("Passed protection change: [%X] [%X]", memory_prots_save_list[i+1], memory_prots_save_list[i]);
-        }
-    }
 }
 
 void LogVpkMemoryLeaks()
@@ -452,396 +210,12 @@ void LogVpkMemoryLeaks()
     rootconsole->ConsolePrint("Total VPK leaks [%d]", running_total_of_leaks);
 }
 
-void RestoreMemoryProtections()
-{
-    for(int i = 0; i < 512 && i+1 < 512 && i+2 < 512; i = i+3)
-    {
-        size_t pagesize = sysconf(_SC_PAGE_SIZE);
-        uint32_t pagestart = memory_prots_save_list[i] & -pagesize;
-
-        if(mprotect((void*)pagestart, memory_prots_save_list[i+1] - memory_prots_save_list[i], memory_prots_save_list[i+2]) == -1)
-        {
-            perror("mprotect");
-            exit(EXIT_FAILURE);
-        }
-
-        memory_prots_save_list[i] = 0;
-        memory_prots_save_list[i+1] = 0;
-        memory_prots_save_list[i+2] = 0;
-    }
-}
-
-void PopulateHookExclusionLists()
+void PopulateHookExclusionListsSynergy()
 {
     
 }
 
-bool IsAddressExcluded(uint32_t base_address, uint32_t search_address)
-{
-    for(int i = 0; i < 512; i++)
-    {
-        if(hook_exclude_list_offset[i] == 0 || hook_exclude_list_base[i] == 0)
-            continue;
-
-        uint32_t patch_address = base_address + hook_exclude_list_offset[i];
-
-        if(patch_address == search_address && hook_exclude_list_base[i] == base_address)
-            return true;
-    }
-
-    return false;
-}
-
-void HookFunctionInSharedObject(uint32_t base_address, uint32_t size, void* target_pointer, void* hook_pointer)
-{
-    uint32_t search_address = base_address;
-    uint32_t search_address_max = base_address+size;
-
-    while(search_address <= search_address_max)
-    {
-        uint32_t four_byte_addr = *(uint32_t*)(search_address);
-
-        if(four_byte_addr == (uint32_t)target_pointer)
-        {
-            if(IsAddressExcluded(base_address, search_address))
-            {
-                rootconsole->ConsolePrint("(abs) Skipped patch at [%X]", search_address);
-                search_address++;
-                continue;
-            }
-
-            //rootconsole->ConsolePrint("Patched abs address: [%X]", search_address);
-            *(uint32_t*)(search_address) = (uint32_t)hook_pointer;
-            
-            search_address++;
-            continue;
-        }
-
-        uint8_t byte = *(uint8_t*)(search_address);
-
-        if(byte == 0xE8 || byte == 0xE9)
-        {
-            uint32_t call_address = *(uint32_t*)(search_address + 1);
-            uint32_t chk = search_address + call_address + 5;
-
-            if(chk == (uint32_t)target_pointer)
-            {
-                if(IsAddressExcluded(base_address, search_address))
-                {
-                    rootconsole->ConsolePrint("(unsigned) Skipped patch at [%X]", search_address);
-                    search_address++;
-                    continue;
-                }
-
-                //rootconsole->ConsolePrint("(unsigned) Hooked address: [%X]", search_address - base_address);
-                uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
-                *(uint32_t*)(search_address+1) = offset;
-            }
-            else
-            {
-                //check signed addition
-                chk = search_address + (int32_t)call_address + 5;
-
-                if(chk == (uint32_t)target_pointer)
-                {
-                    if(IsAddressExcluded(base_address, search_address))
-                    {
-                        rootconsole->ConsolePrint("(signed) Skipped patch at [%X]", search_address);
-                        search_address++;
-                        continue;
-                    }
-
-                    rootconsole->ConsolePrint("(signed) Hooked address: [%X]", search_address - base_address);
-                    uint32_t offset = (uint32_t)hook_pointer - search_address - 5;
-                    *(uint32_t*)(search_address+1) = offset;
-                }
-            }
-        }
-
-        search_address++;
-    }
-}
-
-ValueList AllocateValuesList()
-{
-    ValueList list = (ValueList) malloc(sizeof(ValueList));
-    *list = NULL;
-    return list;
-}
-
-FieldList AllocateFieldList()
-{
-    FieldList list = (FieldList) malloc(sizeof(FieldList));
-  	*list = NULL;
-  	return list;
-}
-
-PlayerSaveList AllocatePlayerSaveList()
-{
-    PlayerSaveList list = (PlayerSaveList) malloc(sizeof(PlayerSaveList));
-    *list = NULL;
-    return list;
-}
-
-SavedEntity* CreateNewSavedEntity(void* entRefHandleInput, void* classnameInput, FieldList fieldListInput)
-{
-    SavedEntity* savedEnt = (SavedEntity*) malloc(sizeof(SavedEntity));
-
-    savedEnt->refHandle = entRefHandleInput;
-    savedEnt->clsname = classnameInput;
-    savedEnt->fieldData = fieldListInput;
-    savedEnt->nextEnt = NULL;
-    return savedEnt;
-}
-
-Field* CreateNewField(void* labelInput, void* keyInput, void* typeInput, void* flagsInput, void* offsetInput, ValueList valuesInput)
-{
-    Field* field = (Field*) malloc(sizeof(Field));
-
-    field->label = labelInput;
-    field->key = keyInput;
-    field->type = typeInput;
-    field->flags = flagsInput;
-    field->offset = offsetInput;
-    field->fieldVals = valuesInput;
-    field->nextField = NULL;
-    return field;
-}
-
-EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn)
-{
-    EntityKV* kv = (EntityKV*) malloc(sizeof(EntityKV));
-
-    kv->entityRef = refHandle;
-    kv->key = keyIn;
-    kv->value = valueIn;
-
-    return kv;
-}
-
-PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input)
-{
-    PlayerSave* player_save = (PlayerSave*) malloc(sizeof(PlayerSave));
-
-    player_save->saved_player = player_save_input;
-    player_save->nextPlayer = NULL;
-    return player_save;
-}
-
-Value* CreateNewValue(void* valueInput)
-{
-    Value* val = (Value*) malloc(sizeof(Value));
-
-    val->value = valueInput;
-    val->nextVal = NULL;
-    return val;
-}
-
-void InsertFieldToFieldList(FieldList list, Field* head)
-{
-    head->nextField = *list;
-    *list = head;
-}
-
-int DeleteAllValuesInList(ValueList list, pthread_mutex_t* passed_lock, bool free_val)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-    int removed_items = 0;
-
-    if(!list || !*list)
-    {
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return removed_items;
-    }
-    
-    Value* aValue = *list;
-
-    while(aValue)
-    {
-        Value* detachedValue = aValue->nextVal;
-        if(free_val) free(aValue->value);
-        free(aValue);
-
-        removed_items++;
-        aValue = detachedValue;
-    }
-
-    *list = NULL;
-    
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return removed_items;
-}
-
-void* copy_val(void* val, size_t copy_size) {
-    if(val == 0)
-        return 0;
-    
-    void* copy_ptr = malloc(copy_size);
-    memcpy(copy_ptr, val, copy_size);
-    return copy_ptr;
-}
-
-bool IsInValuesList(ValueList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    Value* aValue = *list;
-
-    while(aValue)
-    {
-        if((uint32_t)aValue->value == (uint32_t)searchVal)
-        {
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return true;
-        }
-        
-        aValue = aValue->nextVal;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return false;
-}
-
-bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    Value* aValue = *list;
-
-    if(aValue == NULL)
-    {
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return false;
-    }
-
-    //search at the start of the list
-    if(((uint32_t)aValue->value) == ((uint32_t)searchVal))
-    {
-        Value* detachedValue = aValue->nextVal;
-        free(*list);
-        *list = detachedValue;
-        if(passed_lock) pthread_mutex_unlock(passed_lock);
-        return true;
-    }
-
-    //search the rest of the list
-    while(aValue->nextVal)
-    {
-        if(((uint32_t)aValue->nextVal->value) == ((uint32_t)searchVal))
-        {
-            Value* detachedValue = aValue->nextVal->nextVal;
-
-            free(aValue->nextVal);
-            aValue->nextVal = detachedValue;
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return true;
-        }
-
-        aValue = aValue->nextVal;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return false;
-}
-
-void InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* passed_lock, bool tail, bool duplicate_chk)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    if(duplicate_chk)
-    {
-        Value* aValue = *list;
-
-        while(aValue)
-        {
-            if((uint32_t)aValue->value == (uint32_t)head->value)
-            {
-                if(passed_lock) pthread_mutex_unlock(passed_lock);
-                return;
-            }
-        
-            aValue = aValue->nextVal;
-        }
-    }
-
-    if(tail)
-    {
-        Value* aValue = *list;
-
-        if(aValue == NULL)
-        {
-            *list = head;
-            if(passed_lock) pthread_mutex_unlock(passed_lock);
-            return;
-        }
-
-        while(aValue)
-        {
-            if(aValue->nextVal == NULL)
-            {
-                aValue->nextVal = head;
-                if(passed_lock) pthread_mutex_unlock(passed_lock);
-                return;
-            }
-
-            aValue = aValue->nextVal;
-        }
-    }
-
-    head->nextVal = *list;
-    *list = head;
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-}
-
-void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head)
-{
-    head->nextPlayer = *list;
-    *list = head;
-}
-
-int ValueListItems(ValueList list, pthread_mutex_t* passed_lock)
-{
-    if(passed_lock) while(pthread_mutex_trylock(passed_lock) != 0);
-
-    Value* aValue = *list;
-    int counter = 0;
-
-    while(aValue)
-    {
-        counter++;
-        aValue = aValue->nextVal;
-    }
-
-    if(passed_lock) pthread_mutex_unlock(passed_lock);
-    return counter;
-}
-
-uint32_t GetFileSize(char* file_name)
-{
-    FILE *fp;
-    uint32_t file_offset = 0;
-    
-    rootconsole->ConsolePrint("Opening file [%s]", file_name);
-    fp = fopen(file_name,"r");
-    
-    if(fp == NULL)
-    {
-        rootconsole->ConsolePrint("Error in opening file [%s]", file_name);
-        return file_offset;
-    }
-
-    while(!feof(fp))
-    {
-        fgetc(fp);
-        file_offset++;
-    }
-
-   fclose(fp);
-   return file_offset;
-}
-
-uint32_t GetCBaseEntity(uint32_t EHandle)
+uint32_t GetCBaseEntitySynergy(uint32_t EHandle)
 {
     uint32_t shift_right = EHandle >> 0x0C;
     uint32_t disassembly = EHandle & 0xFFF;
@@ -1137,7 +511,7 @@ FieldList SaveEntityFields(uint32_t dmap, uint32_t firstEnt, uint32_t subdmap_of
 
 void SendEntityInput(uint32_t ref_handle, uint32_t inputName, uint32_t activator, uint32_t caller, uint32_t val, uint32_t outputId)
 {
-    uint32_t entity = GetCBaseEntity(ref_handle);
+    uint32_t entity = GetCBaseEntitySynergy(ref_handle);
 
     if(entity == 0)
     {
@@ -1376,7 +750,7 @@ void DisableViewControls()
 {
     uint32_t viewControl = 0;
 
-    while((viewControl = FindEntityByClassnameHook__External(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
+    while((viewControl = FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
     {
         uint32_t m_refHandle = *(uint32_t*)(viewControl+0x350);
         
@@ -1433,7 +807,7 @@ void ReleasePlayerSavedList()
         {
             Field* detachedField = field->nextField;
 
-            DeleteAllValuesInList(field->fieldVals, NULL, true);
+            DeleteAllValuesInList(field->fieldVals, true, NULL);
             free(field->label);
             free(field->key);
             free(field->type);
@@ -1464,7 +838,7 @@ void UpdateOnRemoveDelayedEntities()
     while(entityRef)
     {
         Value* nextNode = entityRef->nextVal;
-        uint32_t object = GetCBaseEntity((uint32_t)entityRef->value);
+        uint32_t object = GetCBaseEntitySynergy((uint32_t)entityRef->value);
 
         if(object)
         {
@@ -1484,7 +858,7 @@ void SaveTriggersDatamaps()
     pOneArgProt pDynamicOneArgFunc;
     uint32_t ent = 0;
 
-    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         char* clsname = (char*)(*(uint32_t*)(ent+0x68));
         char* targetname_current = (char*)  *(uint32_t*)(ent+0x124);
@@ -2020,7 +1394,7 @@ void ReleaseSavedTriggers()
     *saved_triggers = NULL;
 }
 
-void InstaKill(uint32_t entity_object, bool validate)
+void InstaKillSynergy(uint32_t entity_object, bool validate)
 {
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
@@ -2030,7 +1404,7 @@ void InstaKill(uint32_t entity_object, bool validate)
 
     uint32_t refHandleInsta = *(uint32_t*)(entity_object+0x350);
     char* classname = (char*)( *(uint32_t*)(entity_object+0x68));
-    uint32_t cbase_chk = GetCBaseEntity(refHandleInsta);
+    uint32_t cbase_chk = GetCBaseEntitySynergy(refHandleInsta);
 
     if(cbase_chk == 0)
     {
@@ -2089,7 +1463,7 @@ void InstaKill(uint32_t entity_object, bool validate)
 
         uint32_t player = 0;
 
-        while((player = FindEntityByClassnameHook__External(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+        while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
         {
             PrintToClient(player, 2, (uint32_t)printMsg, 0, 0, 0, 0);
         }
@@ -2126,7 +1500,7 @@ void InstaKill(uint32_t entity_object, bool validate)
         }
         else
         {
-            RemoveEntityNormal(cbase_chk, validate);
+            RemoveEntityNormalSynergy(cbase_chk, validate);
             return;
         }
     }
@@ -2134,7 +1508,7 @@ void InstaKill(uint32_t entity_object, bool validate)
     return;
 }
 
-void RemoveEntityNormal(uint32_t entity_object, bool validate)
+void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
 {
     pOneArgProt pDynamicOneArgFunc;
     
@@ -2146,7 +1520,7 @@ void RemoveEntityNormal(uint32_t entity_object, bool validate)
 
     char* classname = (char*)(*(uint32_t*)(entity_object+0x68));
     uint32_t m_refHandle = *(uint32_t*)(entity_object+0x350);
-    uint32_t chk_ref = GetCBaseEntity(m_refHandle);
+    uint32_t chk_ref = GetCBaseEntitySynergy(m_refHandle);
 
     if(chk_ref == 0)
     {
@@ -2328,7 +1702,7 @@ void SavePlayers()
     uint32_t firstEnt = 0;
 
     // Save players
-    while((firstEnt = FindEntityByClassnameHook__External(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
+    while((firstEnt = FindEntityByClassname(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
     {
         SavedEntity* saved_player = SaveEntity(firstEnt);
 
@@ -2396,7 +1770,7 @@ uint32_t IsEntityCollisionReady(uint32_t refHandle)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(object)
     {
@@ -2479,7 +1853,7 @@ void InsertViewcontrolsToResetList()
 {
     uint32_t viewControl = 0;
 
-    while((viewControl = FindEntityByClassnameHook__External(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
+    while((viewControl = FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
     {
         uint32_t m_refHandle = *(uint32_t*)(viewControl+0x350);
         
@@ -2515,7 +1889,7 @@ void ResetViewcontrolFromList()
     {
         Value* nextVal = control->nextVal;
         uint32_t view_ref = (uint32_t)(control->value);
-        uint32_t object = GetCBaseEntity(view_ref);
+        uint32_t object = GetCBaseEntitySynergy(view_ref);
 
         if(object)
         {
@@ -2534,7 +1908,7 @@ void GivePlayerWeapons(uint32_t player_object, bool force_give)
 {
     uint32_t equip_coop = 0;
 
-    while((equip_coop = FindEntityByClassnameHook__External(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
+    while((equip_coop = FindEntityByClassname(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
     {
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)equip_coop)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(equip_coop);
@@ -2552,7 +1926,7 @@ void FixModelnameSlashes()
 {
     uint32_t mainEnt = 0;
 
-    while((mainEnt = FindEntityByClassnameHook__External(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+    while((mainEnt = FindEntityByClassname(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
     {
         char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
         
@@ -2623,7 +1997,7 @@ void FlushPlayerDeaths()
     while(playerRef)
     {
         Value* nextVal = playerRef->nextVal;
-        uint32_t plr_object = GetCBaseEntity((uint32_t)playerRef->value);
+        uint32_t plr_object = GetCBaseEntitySynergy((uint32_t)playerRef->value);
 
         if(plr_object)
         {
@@ -2647,7 +2021,7 @@ void TriggerMovedFailsafe()
     
     uint32_t trigger_ent = 0;
 
-    while((trigger_ent = FindEntityByClassnameHook__External(CGlobalEntityList, trigger_ent, (uint32_t)"trigger_multiple")) != 0)
+    while((trigger_ent = FindEntityByClassname(CGlobalEntityList, trigger_ent, (uint32_t)"trigger_multiple")) != 0)
     {
         pTwoArgProt pDynamicTwoArgFunc;
         char* targetname = (char*)  *(uint32_t*)(trigger_ent+0x124);
@@ -2813,7 +2187,7 @@ void TriggerMovedExtension(uint32_t pTrigger)
     char* targetname = (char*)  *(uint32_t*)(pTrigger+0x124);
     uint32_t player = 0;
 
-    while((player = FindEntityByClassnameHook__External(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)pTrigger)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(pTrigger);
@@ -2950,7 +2324,7 @@ void RestorePlayers()
     rootconsole->ConsolePrint("Restoring players...");
     
     uint32_t playerEnt = 0;
-    while((playerEnt = FindEntityByClassnameHook__External(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
+    while((playerEnt = FindEntityByClassname(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
     {
         uint32_t m_Network = *(uint32_t*)(playerEnt+0x24);
         uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);
@@ -2982,161 +2356,6 @@ void RestorePlayers()
     rootconsole->ConsolePrint("Finished restoring players!");
 }
 
-void CleanPlayerEnts(bool no_parent)
-{
-    //Cleanup old entities
-    ValueList deleteList = AllocateValuesList();
-
-    uint32_t oldEnt = 0;
-    while((oldEnt = FindEntityByClassnameHook__External(CGlobalEntityList, oldEnt, (uint32_t)"*")) != 0)
-    {
-        char* classname = (char*) ( *(uint32_t*)(oldEnt+0x68) );
-
-        if(classname && ( strncmp(classname, "weapon_", 7) == 0 || strcmp(classname, "predicted_viewmodel") == 0 ) )
-        {
-            pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)oldEnt)+0x30));
-            uint32_t dmap = pDynamicOneArgFunc(oldEnt);
-
-            uint32_t m_pParent = GetEntityField(dmap, oldEnt, 0, 0, (uint32_t)"m_pParent");
-
-            if(m_pParent == 0)
-                continue;
-
-            uint32_t parent_object = GetCBaseEntity(*(int*)m_pParent);
-
-            if(parent_object != 0)
-            {
-                uint32_t m_Network_Parent = *(uint32_t*)(parent_object+0x24);
-                uint16_t ParentIndex = *(uint16_t*)(m_Network_Parent+0x6);
-
-                uint32_t playerEnt = 0;
-                while((playerEnt = FindEntityByClassnameHook__External(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
-                {
-                    uint32_t m_Network_Player = *(uint32_t*)(playerEnt+0x24);
-                    uint16_t playerIndex = *(uint16_t*)(m_Network_Player+0x6);
-                    uint32_t playerRefHandle = *(uint32_t*)(playerEnt+0x350);
-
-                    if(playerIndex == ParentIndex)
-                    {
-                        rootconsole->ConsolePrint("killed old entity [%s]", classname);
-                        uint32_t refHandle = *(uint32_t*)(oldEnt+0x350);
-
-                        Value* deleteEnt = CreateNewValue((void*)refHandle);
-                        InsertToValuesList(deleteList, deleteEnt, NULL, false, true);
-                        break;
-                    }
-                }
-            }
-            else if(no_parent)
-            {
-                rootconsole->ConsolePrint("killed entity without parent [%s]", classname);
-                uint32_t refHandle = *(uint32_t*)(oldEnt+0x350);
-
-                Value* deleteEnt = CreateNewValue((void*)refHandle);
-                InsertToValuesList(deleteList, deleteEnt, NULL, false, true);
-            }
-        }
-    }
-
-    Value* delete_ent = *deleteList;
-
-    while(delete_ent)
-    {
-        Value* detachedValue = delete_ent->nextVal;
-
-        uint32_t refHandle = (uint32_t)delete_ent->value;
-        uint32_t object = GetCBaseEntity(refHandle);
-        if(object) UTIL_Remove__External(object);
-
-        free(delete_ent);
-        delete_ent = detachedValue;
-    }
-
-    CleanupDeleteListHook__External(0);
-    free(deleteList);
-}
-
-void RemoveBadEnts()
-{
-    uint32_t ent = 0;
-
-    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        uint32_t abs_origin = ent+0x298;
-        uint32_t abs_angles = ent+0x32C;
-        uint32_t origin = ent+0x338;
-
-        if(!IsEntityPositionReasonable(abs_origin) || !IsEntityPositionReasonable(abs_angles) || !IsEntityPositionReasonable(origin))
-        {
-            rootconsole->ConsolePrint("Removed bad ent!");
-            RemoveEntityNormal(ent, true);
-        }
-    }
-}
-
-void UpdateAllCollisions()
-{
-    pOneArgProt CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
-
-    uint32_t ent = 0;
-
-    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        uint32_t m_Network = *(uint32_t*)(ent+0x24);
-
-        if(!m_Network)
-        {
-            //rootconsole->ConsolePrint("[%s]", *(uint32_t*)(ent+0x68));
-            CollisionRulesChanged(ent);
-        }
-    }
-
-    ent = 0;
-
-    while((ent = FindEntityByClassnameHook__External(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
-    {
-        CollisionRulesChanged(ent);
-    }
-}
-
-bool IsEntityPositionReasonable(uint32_t v)
-{
-    float x = *(float*)(v);
-    float y = *(float*)(v+4);
-    float z = *(float*)(v+8);
-
-    float r = 16384.0f;
-
-    return
-        x > -r && x < r &&
-        y > -r && y < r &&
-        z > -r && z < r;
-}
-
-uint32_t IsEntityValid(uint32_t entity)
-{
-    pOneArgProt pDynamicOneArgFunc;
-    if(entity == 0) return entity;
-
-    uint32_t object = GetCBaseEntity(*(uint32_t*)(entity+0x350));
-
-    if(object)
-    {
-        //IsMarkedForDeletion
-        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00AC7EF0);
-        uint32_t isMarked = pDynamicOneArgFunc(object+0x18);
-
-        if(isMarked)
-        {
-            return 0;
-        }
-
-        return object;
-    }
-
-    return 0;
-}
-
 void DestroyVObjectForMarkedEnts()
 {
     pOneArgProt pDynamicOneArgFunc;
@@ -3152,7 +2371,7 @@ void DestroyVObjectForMarkedEnts()
             uint32_t iServerObj = *(uint32_t*)(g_DeleteList+i*4);
             uint32_t cbase = *(uint32_t*)(iServerObj+8);
             uint32_t m_refHandle = *(uint32_t*)(cbase+0x350);
-            uint32_t verified_cbase = GetCBaseEntity(m_refHandle);
+            uint32_t verified_cbase = GetCBaseEntitySynergy(m_refHandle);
 
             if(verified_cbase)
             {
@@ -3180,7 +2399,7 @@ void UpdatePlayersDonor()
     {
         Value* next_player = first_player->nextVal;
         EntityFrameCount* entity_delay = (EntityFrameCount*)(first_player->value);
-        uint32_t player = GetCBaseEntity(entity_delay->entity_ref);
+        uint32_t player = GetCBaseEntitySynergy(entity_delay->entity_ref);
 
         if(player && entity_delay->frames >= 300)
         {
@@ -3221,7 +2440,7 @@ void CorrectNpcAi(uint32_t arg0)
         do
         {
             uint32_t uVar11 = *(uint32_t*)(ai_object + 8 + iVar10 * 4);
-            uint32_t object = GetCBaseEntity(uVar11);
+            uint32_t object = GetCBaseEntitySynergy(uVar11);
 
             if(IsEntityValid(object) == 0)
             {

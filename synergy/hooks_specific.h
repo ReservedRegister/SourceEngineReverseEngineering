@@ -1,8 +1,8 @@
 #ifndef HOOKS_SPECIFIC_H
 #define HOOKS_SPECIFIC_H
 
-void ApplyPatchesSpecific();
-void HookFunctionsSpecific();
+void ApplyPatchesSpecificSynergy();
+void HookFunctionsSpecificSynergy();
 
 class NativeHooks
 {

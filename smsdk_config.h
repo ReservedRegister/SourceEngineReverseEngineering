@@ -38,12 +38,12 @@
  */
 
 /* Basic information exposed publicly */
-#define SMEXT_CONF_NAME			"SynergyUtils"
+#define SMEXT_CONF_NAME			"ServerUtils"
 #define SMEXT_CONF_DESCRIPTION	"Extension to fix issues with dedicated server"
-#define SMEXT_CONF_VERSION		"217"
+#define SMEXT_CONF_VERSION		"218"
 #define SMEXT_CONF_AUTHOR		"ReservedRegister"
 #define SMEXT_CONF_URL			"http://www.sourcemod.net/"
-#define SMEXT_CONF_LOGTAG		"SYNERGY_UTILS"
+#define SMEXT_CONF_LOGTAG		"SERVER_UTILS"
 #define SMEXT_CONF_LICENSE		"GPL"
 #define SMEXT_CONF_DATESTRING	__DATE__
 

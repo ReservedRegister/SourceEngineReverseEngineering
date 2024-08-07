@@ -1,8 +1,8 @@
 #ifndef EXT_MAIN_H
 #define EXT_MAIN_H
 
-void InitExtension();
-void ApplyPatches();
+bool InitExtensionSynergy();
+void ApplyPatchesSynergy();
 void PatchRestore();
 void HookVpkSystem();
 void HookSaveRestoreOne();
@@ -14,10 +14,10 @@ void HookEdtSystem();
 void HookSpawnServer();
 void HookHostChangelevel();
 void PatchOthers();
-void HookFunctions();
+void HookFunctionsSynergy();
 void PopulateHookPointers();
 
-class Hooks
+class HooksSynergy
 {
 public:
 	static uint32_t CallocHook(uint32_t nitems, uint32_t size);

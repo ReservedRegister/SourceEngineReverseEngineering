@@ -1,2 +1,7 @@
 
+.vs
 build
+msvc8
+msvc9
+msvc10
+msvc12

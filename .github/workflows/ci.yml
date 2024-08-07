@@ -52,7 +52,7 @@ jobs:
       - name: Uploading package
         uses: actions/upload-artifact@v4
         with:
-          name: synergy_utils
+          name: server_utils
           path: extension/build/package
           
       - name: Archive production artifacts

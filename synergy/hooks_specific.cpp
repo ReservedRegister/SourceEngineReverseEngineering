@@ -1,8 +1,9 @@
 #include "extension.h"
+#include "util.h"
 #include "core.h"
 #include "hooks_specific.h"
 
-void ApplyPatchesSpecific()
+void ApplyPatchesSpecificSynergy()
 {
     uint32_t offset = 0;
 
@@ -90,7 +91,7 @@ void ApplyPatchesSpecific()
     *(uint32_t*)(zombie_patch+1) = offset;
 }
 
-void HookFunctionsSpecific()
+void HookFunctionsSpecificSynergy()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0076CFF0), (void*)NativeHooks::HelicopterCrashFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00566CA0), (void*)NativeHooks::AiHintNpcCombinePatch);
@@ -173,7 +174,7 @@ uint32_t NativeHooks::FixOldManhackCrash(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     uint32_t ref = *(uint32_t*)(arg0+0x11B8);
-    uint32_t object = GetCBaseEntity(ref);
+    uint32_t object = GetCBaseEntitySynergy(ref);
 
     if(IsEntityValid(object))
     {
@@ -216,7 +217,7 @@ uint32_t NativeHooks::VehicleRollermineFix(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x0F58);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -317,7 +318,7 @@ uint32_t NativeHooks::WeaponBugbaitFixHook(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -336,7 +337,7 @@ uint32_t NativeHooks::WeaponGetHook(uint32_t arg0)
 
     if(!weapon_ent)
     {
-        uint32_t isWeaponValid = GetCBaseEntity(weapon_substitute);
+        uint32_t isWeaponValid = GetCBaseEntitySynergy(weapon_substitute);
 
         if(!isWeaponValid)
         {
@@ -359,7 +360,7 @@ uint32_t NativeHooks::StriderCrashFix(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     uint32_t refCheck = *(uint32_t*)(arg0+0x1F0);
-    uint32_t object = GetCBaseEntity(refCheck);
+    uint32_t object = GetCBaseEntitySynergy(refCheck);
 
     if(IsEntityValid(object))
     {
@@ -518,7 +519,7 @@ uint32_t NativeHooks::HelicopterBadDetected(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x0EB0);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -527,7 +528,7 @@ uint32_t NativeHooks::HelicopterBadDetected(uint32_t arg0)
     }
 
     rootconsole->ConsolePrint("Eli_01 crash fix!");
-    RemoveEntityNormal(arg0, true);
+    RemoveEntityNormalSynergy(arg0, true);
     return 0;
 }
 
@@ -579,7 +580,7 @@ uint32_t NativeHooks::FixExplodeInputCrash(uint32_t arg0)
         rootconsole->ConsolePrint("Explode [%s]", *(uint32_t*)(arg0+0x68));
 
         uint32_t refHandle_checktwo = *(uint32_t*)(arg0+0x4E8);
-        uint32_t object_two = GetCBaseEntity(refHandle_checktwo);
+        uint32_t object_two = GetCBaseEntitySynergy(refHandle_checktwo);
 
         if(IsEntityValid(object_two))
         {
@@ -633,7 +634,7 @@ uint32_t NativeHooks::Outland_07_Patch(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -650,7 +651,7 @@ uint32_t NativeHooks::Outland_07_Patch_Two(uint32_t arg0, uint32_t arg1, uint32_
     pFourArgProt pDynamicFourArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -667,7 +668,7 @@ uint32_t NativeHooks::Outland_08_Patch(uint32_t arg0, uint32_t arg1)
     pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t refCheck = *(uint32_t*)(arg0+0x44);
-    uint32_t object = GetCBaseEntity(refCheck);
+    uint32_t object = GetCBaseEntitySynergy(refCheck);
 
     if(IsEntityValid(object))
     {
@@ -700,7 +701,7 @@ uint32_t NativeHooks::CitizenNullCrashFix(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     uint32_t refHandle = *(uint32_t*)(arg0+0x0A54);
-    uint32_t object = GetCBaseEntity(refHandle);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
 
     if(IsEntityValid(object))
     {
@@ -758,7 +759,7 @@ uint32_t NativeHooks::SpotlightHook(uint32_t arg0)
     if(continue_to_code)
     {
         uint32_t uVar4 = *(uint32_t*)(arg0+0xFD0);
-        uint32_t object_uVar4 = GetCBaseEntity(uVar4);
+        uint32_t object_uVar4 = GetCBaseEntitySynergy(uVar4);
 
         if(IsEntityValid(object_uVar4) == 0)
         {
@@ -766,7 +767,7 @@ uint32_t NativeHooks::SpotlightHook(uint32_t arg0)
             pDynamicOneArgFunc(arg0);
 
             uVar4 = *(uint32_t*)(arg0+0xFD0);
-            object_uVar4 = GetCBaseEntity(uVar4);
+            object_uVar4 = GetCBaseEntitySynergy(uVar4);
 
             if(IsEntityValid(object_uVar4) == 0)
             {
@@ -778,7 +779,7 @@ uint32_t NativeHooks::SpotlightHook(uint32_t arg0)
     if(continue_to_code)
     {
         uint32_t ref = *(uint32_t*)(arg0+0x0FD4);
-        uint32_t object = GetCBaseEntity(ref);
+        uint32_t object = GetCBaseEntitySynergy(ref);
 
         if(IsEntityValid(object) == 0)
         {
@@ -827,7 +828,7 @@ uint32_t NativeHooks::AssaultNpcFix(uint32_t arg0, uint32_t arg1)
     if(arg0)
     {
         uint32_t refCheck = *(uint32_t*)(arg0+0x14);
-        uint32_t object = GetCBaseEntity(refCheck);
+        uint32_t object = GetCBaseEntitySynergy(refCheck);
 
         if(IsEntityValid(object))
         {
@@ -906,7 +907,7 @@ uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint3
             do
             {
                 uVar2 = *(uint32_t*)(arg0 + 0x10AC + iVar3 * 4);
-                piVar4 = GetCBaseEntity(uVar2);
+                piVar4 = GetCBaseEntitySynergy(uVar2);
 
                 iVar3 = iVar3 + 1;
 
@@ -992,7 +993,7 @@ uint32_t NativeHooks::TransitionFixTheSecond(uint32_t arg0)
     if(arg0)
     {
         uint32_t refHandle = *(uint32_t*)(arg0+0x150);
-        uint32_t object = GetCBaseEntity(refHandle);
+        uint32_t object = GetCBaseEntitySynergy(refHandle);
 
         if(IsEntityValid(object))
         {
@@ -1048,7 +1049,7 @@ uint32_t NativeHooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg
     if(deref_arg4)
     {
         uint32_t eHandle = *(uint32_t*)(deref_arg4+0x4);
-        uint32_t object = GetCBaseEntity(eHandle);
+        uint32_t object = GetCBaseEntitySynergy(eHandle);
 
         if(IsEntityValid(object))
         {

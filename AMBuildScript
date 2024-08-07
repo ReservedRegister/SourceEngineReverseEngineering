@@ -38,7 +38,7 @@ PossibleSDKs = {
   #'blade':  SDK('HL2SDKBLADE', '2.blade', '19', 'BLADE', WinLinux, 'blade'),
   #'insurgency':  SDK('HL2SDKINSURGENCY', '2.insurgency', '20', 'INSURGENCY', WinLinuxMac, 'insurgency'),
   #'contagion':  SDK('HL2SDKCONTAGION', '2.contagion', '15', 'CONTAGION', WinOnly, 'contagion'),
-  #'bms':  SDK('HL2SDKBMS', '2.bms', '11', 'BMS', WinLinux, 'bms'),
+  'bms':  SDK('HL2SDKBMS', '2.bms', '11', 'BMS', WinLinux, 'bms'),
   #'doi':  SDK('HL2SDKDOI', '2.doi', '21', 'DOI', WinLinuxMac, 'doi'),
   #'pvkii': SDK('HL2SDKPVKII', '2.pvkii', '10', 'PVKII', WinLinux, 'pvkii'),
 }
