@@ -64,7 +64,7 @@ jobs:
         shell: bash
         
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Git
         run: |
@@ -72,25 +72,38 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Bump version and push tag
-        id: tag_version
-        uses: anothrNick/github-tag-action@1.38.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_prefix: "v"
-          default_bump: "patch" # Can be 'patch', 'minor', or 'major'
-          # pre_release: true # Optional, uncomment for pre-releases
-          # release_branches: "main" # Optional, specify branches to create releases
+        id: bump_version
+        run: |
+          # Read the current version from the VERSION file
+          if [ -f VERSION ]; then
+            current_version=$(cat VERSION)
+          else
+            current_version="0.0.0" # Default version if the file does not exist
+          fi
+          echo "Current version: $current_version"
 
-      - name: Get latest tag
-        id: get_latest_tag
-        run: echo "::set-output name=TAG::${{ steps.tag_version.outputs.new_tag }}"
+          # Increment the patch version
+          IFS='.' read -r major minor patch <<< "$current_version"
+          new_version="$major.$minor.$((patch + 1))"
+          echo "New version: $new_version"
+
+          # Update VERSION file with the new version
+          echo "$new_version" > VERSION
+
+          # Commit and tag the new version
+          git add VERSION
+          git commit -m "Bump version to $new_version"
+          git tag "v$new_version"
+          git push origin main --tags
+
+          # Output the new tag for the release step
+          echo "new_tag=v$new_version" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.get_latest_tag.outputs.TAG }}
+          tag_name: ${{ env.new_tag }}  # Uses the new tag created in the previous step
           files: release/release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
