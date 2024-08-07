@@ -62,29 +62,29 @@ jobs:
           cd release
           zip -r release.zip ./*
         shell: bash
-
+        
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run semantic-release
+      - name: Bump version and push tag
+        id: tag_version
+        uses: anothrNick/github-tag-action@v1.37.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        with:
+          tag_prefix: "v"
+          default_bump: "patch" # Can be 'patch', 'minor', or 'major'
+          # pre_release: true # Optional, uncomment for pre-releases
+          # release_branches: "main" # Optional, specify branches to create releases
 
       - name: Get latest tag
         id: get_latest_tag
-        run: echo "::set-output name=TAG::$(git describe --tags --abbrev=0)"
+        run: echo "::set-output name=TAG::${{ steps.tag_version.outputs.new_tag }}"
 
       - name: Create GitHub Release
         id: create_release
