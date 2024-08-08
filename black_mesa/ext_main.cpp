@@ -176,16 +176,6 @@ uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
     if(vphysics_object)
     {
         rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
-        
-        if(vphysics_object != arg1)
-        {
-            rootconsole->ConsolePrint("Destroyed attempted object!");
-            
-            //PhysDeststroy
-            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x003788B0);
-            pDynamicTwoArgFunc(arg1, arg0);
-        }
-        
         return 0;
     }
 
