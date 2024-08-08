@@ -1901,12 +1901,23 @@ uint32_t HooksSynergy::SetSolidFlagsHook(uint32_t arg0, uint32_t arg1)
 uint32_t HooksSynergy::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
 {
     pOneArgProt pDynamicOneArgFunc;
+    pTwoArgProt pDynamicTwoArgFunc;
 
     uint32_t vphysics_object = *(uint32_t*)(arg0+0x1FC);
 
     if(vphysics_object)
     {
         rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+        
+        if(vphysics_object != arg1)
+        {
+            rootconsole->ConsolePrint("Destroyed attempted object!");
+            
+            //PhysDeststroy
+            pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00499300);
+            pDynamicTwoArgFunc(arg1, arg0);
+        }
+        
         return 0;
     }
 
