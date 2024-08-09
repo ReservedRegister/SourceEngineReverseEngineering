@@ -30,6 +30,7 @@ public:
 	static uint32_t UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1);
 	static uint32_t TestGroundMove(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 	static uint32_t VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1);
+	static uint32_t ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 #endif

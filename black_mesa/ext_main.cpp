@@ -164,6 +164,7 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92540), (void*)HooksBlackMesa::UTIL_GetLocalPlayerHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0046B510), (void*)HooksBlackMesa::TestGroundMove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294D00), (void*)HooksBlackMesa::VPhysicsSetObjectHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A02D40), (void*)HooksBlackMesa::ShouldHitEntityHook);
 }
 
 uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
@@ -183,19 +184,35 @@ uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
+uint32_t HooksBlackMesa::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
 {
-    pZeroArgProt pDynamicZeroArgProt;
+    pOneArgProt pDynamicOneArgFunc;
+    pThreeArgProt pDynamicThreeArgFunc;
 
-    pDynamicZeroArgProt = (pZeroArgProt)(server_srv + 0x00A92540);
-    uint32_t returnVal = pDynamicZeroArgProt();
-
-    if(!returnVal)
+    if(arg0)
     {
-        return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(arg0))+0x18) );
+        uint32_t object = pDynamicOneArgFunc(arg0);
+
+        if(IsEntityValid(object))
+        {
+            uint32_t vphysics_object = *(uint32_t*)(object+0x1F8);
+
+            if(vphysics_object)
+            {
+                pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A02D40);
+                return pDynamicThreeArgFunc(arg0, arg1, arg2);
+            }
+        }
     }
 
-    return returnVal;
+    rootconsole->ConsolePrint("ShouldHitEntity failed!");
+    return 0;
+}
+
+uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
+{
+    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 }
 
 uint32_t HooksBlackMesa::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)
