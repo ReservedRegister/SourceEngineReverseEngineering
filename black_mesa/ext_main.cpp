@@ -189,10 +189,10 @@ uint32_t HooksBlackMesa::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint3
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    if(arg0)
+    if(arg1)
     {
-        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(arg0))+0x18) );
-        uint32_t object = pDynamicOneArgFunc(arg0);
+        pDynamicOneArgFunc = (pOneArgProt)( *(uint32_t*)((*(uint32_t*)(arg1))+0x18) );
+        uint32_t object = pDynamicOneArgFunc(arg1);
 
         if(IsEntityValid(object))
         {
