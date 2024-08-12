@@ -570,7 +570,7 @@ uint32_t HooksSynergy::MallocHookLarge(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    return (uint32_t)malloc(size*3.0);
+    return (uint32_t)malloc(size*5.0);
 }
 
 uint32_t HooksSynergy::OperatorNewHook(uint32_t size)
@@ -2097,4 +2097,6 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D9390), (void*)HooksSynergy::SetCollisionGroupHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)HooksSynergy::SetSolidFlagsHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
+
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::EmptyCall);
 }
