@@ -152,8 +152,8 @@ void AttemptToRestoreGame()
     if(restore_start_delay == 200)
     {   
         //RestoreGame
-        pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00AF2A10);
-        pDynamicZeroArgFunc();
+        //pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00AF2A10);
+        //pDynamicZeroArgFunc();
     }
 }
 

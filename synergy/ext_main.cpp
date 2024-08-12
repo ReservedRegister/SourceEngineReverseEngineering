@@ -290,10 +290,12 @@ void ApplyPatchesSynergy()
         0x00AF4361,0x14,
 
         //weapons
-        0x004FD574,2
+        0x004FD574,2,
 
         //CleanupDeleteList calls
         /*0x00739AF1,5,0x00A316F0,5,0x00739B48,5*/
+
+        0x00AE9E34,7
     };
 
     for(int i = 0; i < 128 && i+1 < 128; i = i+2)
@@ -311,6 +313,9 @@ void ApplyPatchesSynergy()
     }
 
     uint32_t offset = 0;
+
+    uint32_t vehicle_spawner_fix = server_srv + 0x00AE9E3B;
+    *(uint8_t*)(vehicle_spawner_fix) = 0xEB;
 
     uint32_t remove_stdcall = server_srv + 0x008BFA8E;
     memset((void*)remove_stdcall, 0x90, 3);
@@ -563,14 +568,14 @@ uint32_t HooksSynergy::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
     
-    return (uint32_t)malloc(size*1.2);
+    return (uint32_t)malloc(size*1.3);
 }
 
 uint32_t HooksSynergy::MallocHookLarge(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    return (uint32_t)malloc(size*5.0);
+    return (uint32_t)malloc(size*3.0);
 }
 
 uint32_t HooksSynergy::OperatorNewHook(uint32_t size)
@@ -1552,10 +1557,9 @@ uint32_t HooksSynergy::PlayerloadSavedHook(uint32_t arg0, uint32_t arg1)
     DisableViewControls();
 
     restore_start_delay = 0;
-    return 0;
     
-    //pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
-    //return pDynamicOneArgFunc(arg0);
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A4B8C0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksSynergy::SpawnServerHookFunc(uint32_t arg1, uint32_t arg2, uint32_t arg3)
@@ -1832,17 +1836,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     HooksSynergy::CleanupDeleteListHook(0);
 
-    SaveGame_Extension();
-
-    HooksSynergy::CleanupDeleteListHook(0);
-
-    FlushPlayerDeaths();
-    ResetView();
-    UpdatePlayersDonor();
-    AttemptToRestoreGame();
-
-    HooksSynergy::CleanupDeleteListHook(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
@@ -1852,6 +1845,17 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //ServiceEventQueue
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
+
+    HooksSynergy::CleanupDeleteListHook(0);
+
+    SaveGame_Extension();
+
+    HooksSynergy::CleanupDeleteListHook(0);
+
+    FlushPlayerDeaths();
+    ResetView();
+    UpdatePlayersDonor();
+    AttemptToRestoreGame();
 
     HooksSynergy::CleanupDeleteListHook(0);
 
