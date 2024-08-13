@@ -975,6 +975,8 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
     uint32_t arg0_return = *(uint32_t*)(ebp-4);
     uint32_t packed_store_ref = arg0_return-0x228;
 
+    bool saved_reference = false;
+
 
     uint32_t ref = (uint32_t)malloc(arg0*3.0);
     
@@ -987,6 +989,8 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 
         if(packed_object == packed_store_ref)
         {
+            saved_reference = true;
+
             ValueList vpk_leak_list = the_leak->leaked_refs;
             Value* new_vpk_leak = CreateNewValue((void*)(ref));
             InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, false);
@@ -995,6 +999,12 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
         }
 
         a_leak = a_leak->nextVal;
+    }
+
+    if(!saved_reference)
+    {
+        rootconsole->ConsolePrint("Failed to allocate leaked resource!");
+        exit(1);
     }
 
     return ref;
@@ -2102,5 +2112,5 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)HooksSynergy::SetSolidFlagsHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
 
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::EmptyCall);
+    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::EmptyCall);
 }
