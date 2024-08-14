@@ -41,6 +41,7 @@ bool InitExtensionSynergy()
     restore_start_delay = 201;
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
+    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -969,6 +970,12 @@ uint32_t HooksSynergy::RestoreOverride()
 
 uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
+
+    memset((void*)global_vpk_cache_buffer, 0, 0x00100000);
+    return global_vpk_cache_buffer;
+
+
+
     uint32_t ebp = 0;
     asm volatile ("movl %%ebp, %0" : "=r" (ebp));
 
@@ -2006,6 +2013,20 @@ uint32_t HooksSynergy::CollisionRulesChangedHook(uint32_t arg0)
     return 0;
 }
 
+uint32_t HooksSynergy::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pSevenArgProt pDynamicSevenArgFunc;
+
+    uint32_t vpk_cache_tree = arg0+0x0D8;
+
+    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000C0000);
+    pDynamicOneArgFunc(vpk_cache_tree);
+
+    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000BE520);
+    return pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
 void HookFunctionsSynergy()
 {
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009B09F0), (void*)HooksSynergy::ParseMapEntities);
@@ -2112,5 +2133,5 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)HooksSynergy::SetSolidFlagsHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
 
-    //HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::EmptyCall);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::CanSatisfyVpkCacheHook);
 }

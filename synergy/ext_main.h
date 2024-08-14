@@ -81,6 +81,7 @@ public:
 	static uint32_t SetCollisionGroupHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t SetSolidFlagsHook(uint32_t arg0, uint32_t arg1);
 	static uint32_t CollisionRulesChangedHook(uint32_t arg0);
+	static uint32_t CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6);
 };
 
 #endif
