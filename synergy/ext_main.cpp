@@ -569,14 +569,14 @@ uint32_t HooksSynergy::MallocHookSmall(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
     
-    return (uint32_t)malloc(size*1.3);
+    return (uint32_t)malloc(size*1.2);
 }
 
 uint32_t HooksSynergy::MallocHookLarge(uint32_t size)
 {
     if(size <= 0) return (uint32_t)malloc(size);
 
-    return (uint32_t)malloc(size*3.0);
+    return (uint32_t)malloc(size*2.2);
 }
 
 uint32_t HooksSynergy::OperatorNewHook(uint32_t size)
@@ -2010,6 +2010,7 @@ uint32_t HooksSynergy::RepairPlayerRestore(uint32_t arg0, uint32_t arg1, uint32_
 
 uint32_t HooksSynergy::CollisionRulesChangedHook(uint32_t arg0)
 {
+    InsertEntityToCollisionsList(arg0);
     return 0;
 }
 
@@ -2131,7 +2132,6 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8DA0), (void*)HooksSynergy::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D9390), (void*)HooksSynergy::SetCollisionGroupHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)HooksSynergy::SetSolidFlagsHook);
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
-
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::CanSatisfyVpkCacheHook);
 }

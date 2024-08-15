@@ -128,6 +128,7 @@ extern uint32_t hook_exclude_list_base[512];
 extern uint32_t memory_prots_save_list[512];
 extern uint32_t our_libraries[512];
 extern uint32_t loaded_libraries[512];
+extern uint32_t collisions_entity_list[512];
 
 extern uint32_t engine_srv;
 extern uint32_t datacache_srv;
@@ -159,6 +160,7 @@ extern bool server_sleeping;
 extern int hooked_delete_counter;
 extern int normal_delete_counter;
 extern uint32_t CGlobalEntityList;
+extern uint32_t global_vpk_cache_buffer;
 
 extern pOneArgProt CollisionRulesChanged;
 extern pThreeArgProt FindEntityByClassname;
@@ -194,5 +196,6 @@ EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn
 PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input);
 void InsertFieldToFieldList(FieldList list, Field* head);
 void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head);
+void InsertEntityToCollisionsList(uint32_t ent);
 
 #endif

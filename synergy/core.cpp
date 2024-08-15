@@ -84,7 +84,6 @@ bool removing_ents_restore;
 int restore_start_delay;
 uint32_t fake_sequence_mem;
 bool player_restore_failed;
-uint32_t global_vpk_cache_buffer;
 
 void* delete_operator_array_addr;
 void* delete_operator_addr;

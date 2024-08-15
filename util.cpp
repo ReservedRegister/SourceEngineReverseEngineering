@@ -13,6 +13,7 @@ uint32_t hook_exclude_list_base[512] = {};
 uint32_t memory_prots_save_list[512] = {};
 uint32_t our_libraries[512] = {};
 uint32_t loaded_libraries[512] = {};
+uint32_t collisions_entity_list[512] = {};
 
 uint32_t engine_srv;
 uint32_t datacache_srv;
@@ -44,6 +45,7 @@ bool server_sleeping;
 int hooked_delete_counter;
 int normal_delete_counter;
 uint32_t CGlobalEntityList;
+uint32_t global_vpk_cache_buffer;
 
 pOneArgProt CollisionRulesChanged;
 pThreeArgProt FindEntityByClassname;
@@ -408,8 +410,40 @@ bool IsEntityPositionReasonable(uint32_t v)
         z > -r && z < r;
 }
 
+void InsertEntityToCollisionsList(uint32_t ent)
+{
+    if(IsEntityValid(ent))
+    {
+        for(int i = 0; i < 512; i++)
+        {
+            if(collisions_entity_list[i] == 0)
+            {
+                uint32_t refHandle = *(uint32_t*)(ent+offsets.refhandle_offset);
+                collisions_entity_list[i] = refHandle;
+
+                break;
+            }
+        }
+    }
+}
+
 void UpdateAllCollisions()
 {
+    for(int i = 0; i < 512; i++)
+    {
+        if(collisions_entity_list[i] != 0)
+        {
+            uint32_t object = functions.GetCBaseEntity(collisions_entity_list[i]);
+
+            if(IsEntityValid(object))
+            {
+                CollisionRulesChanged(object);
+            }
+
+            collisions_entity_list[i] = 0;
+        }
+    }
+
     uint32_t ent = 0;
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)

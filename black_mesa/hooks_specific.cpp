@@ -18,6 +18,21 @@ void HookFunctionsSpecificBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F0FC0), (void*)NativeHooks::TakeDamageHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793A60), (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A24570), (void*)NativeHooks::ScriptThinkEntCheck);
+}
+
+uint32_t NativeHooks::ScriptThinkEntCheck(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A24570);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x3B0);
+    uint32_t chkRef = GetCBaseEntityBlackMesa(refHandle);
+
+    if(!chkRef) return 0;
+    return returnVal;
 }
 
 uint32_t NativeHooks::CalcAbsolutePosition(uint32_t arg0)
@@ -30,7 +45,7 @@ uint32_t NativeHooks::CalcAbsolutePosition(uint32_t arg0)
         return pDynamicOneArgFunc(arg0);
     }
 
-    rootconsole->ConsolePrint("Attempted to use a dead object!");
+    //rootconsole->ConsolePrint("Attempted to use a dead object!");
     return 0;
 }
 
@@ -101,7 +116,7 @@ uint32_t NativeHooks::EnumElementHook(uint32_t arg0, uint32_t arg1)
         return pDynamicTwoArgFunc(arg0, arg1);
     }
 
-    rootconsole->ConsolePrint("Attempted to use a dead object!");
+    //rootconsole->ConsolePrint("Attempted to use a dead object!");
     return 0;
 }
 

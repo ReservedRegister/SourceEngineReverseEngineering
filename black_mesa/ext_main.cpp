@@ -73,6 +73,7 @@ bool InitExtensionBlackMesa()
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x017B6BE0;
+    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     server_sleeping = false;
 
     offsets.classname_offset = 0x64;
@@ -106,6 +107,12 @@ bool InitExtensionBlackMesa()
 void ApplyPatchesBlackMesa()
 {
     uint32_t offset = 0;
+
+    uint32_t patch_vpk_cache_buffer = dedicated_srv + 0x000B57D2;
+    offset = (uint32_t)HooksBlackMesa::VpkCacheBufferAllocHook - patch_vpk_cache_buffer - 5;
+    memset((void*)patch_vpk_cache_buffer, 0x90, 0x17);
+    *(uint8_t*)(patch_vpk_cache_buffer) = 0xE8;
+    *(uint32_t*)(patch_vpk_cache_buffer+1) = offset;
 
     uint32_t hook_game_frame_delete_list = server_srv + 0x008404F3;
     offset = (uint32_t)HooksBlackMesa::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
@@ -165,6 +172,34 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0046B510), (void*)HooksBlackMesa::TestGroundMove);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294D00), (void*)HooksBlackMesa::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A02D40), (void*)HooksBlackMesa::ShouldHitEntityHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294C60), (void*)HooksBlackMesa::CollisionRulesChangedHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5820), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
+}
+
+uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
+{
+    pOneArgProt pDynamicOneArgFunc;
+    pSevenArgProt pDynamicSevenArgFunc;
+
+    uint32_t vpk_cache_tree = arg0+0x0D8;
+
+    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000B72B0);
+    pDynamicOneArgFunc(vpk_cache_tree);
+
+    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000B5820);
+    return pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+uint32_t HooksBlackMesa::VpkCacheBufferAllocHook()
+{
+    memset((void*)global_vpk_cache_buffer, 0, 0x00100000);
+    return global_vpk_cache_buffer;
+}
+
+uint32_t HooksBlackMesa::CollisionRulesChangedHook(uint32_t arg0)
+{
+    InsertEntityToCollisionsList(arg0);
+    return 0;
 }
 
 uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
