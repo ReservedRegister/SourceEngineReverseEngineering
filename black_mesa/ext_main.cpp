@@ -192,7 +192,6 @@ uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, ui
 
 uint32_t HooksBlackMesa::VpkCacheBufferAllocHook()
 {
-    memset((void*)global_vpk_cache_buffer, 0, 0x00100000);
     return global_vpk_cache_buffer;
 }
 

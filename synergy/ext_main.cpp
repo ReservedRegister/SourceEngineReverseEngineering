@@ -970,8 +970,6 @@ uint32_t HooksSynergy::RestoreOverride()
 
 uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-
-    memset((void*)global_vpk_cache_buffer, 0, 0x00100000);
     return global_vpk_cache_buffer;
 
 
