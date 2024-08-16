@@ -74,7 +74,10 @@ bool InitExtensionBlackMesa()
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x017B6BE0;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
+    current_vpk_buffer_ref = 0;
     server_sleeping = false;
+
+    leakedResourcesVpkSystem = AllocateValuesList();
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
@@ -109,10 +112,20 @@ void ApplyPatchesBlackMesa()
     uint32_t offset = 0;
 
     uint32_t patch_vpk_cache_buffer = dedicated_srv + 0x000B57D2;
-    offset = (uint32_t)HooksBlackMesa::VpkCacheBufferAllocHook - patch_vpk_cache_buffer - 5;
     memset((void*)patch_vpk_cache_buffer, 0x90, 0x17);
+    *(uint8_t*)(patch_vpk_cache_buffer) = 0x89;
+    *(uint8_t*)(patch_vpk_cache_buffer+1) = 0x34;
+    *(uint8_t*)(patch_vpk_cache_buffer+2) = 0x24;
+
+    patch_vpk_cache_buffer = dedicated_srv + 0x000B57D2+3;
+    offset = (uint32_t)HooksBlackMesa::VpkCacheBufferAllocHook - patch_vpk_cache_buffer - 5;
     *(uint8_t*)(patch_vpk_cache_buffer) = 0xE8;
     *(uint32_t*)(patch_vpk_cache_buffer+1) = offset;
+
+    uint32_t force_jump_vpk_allocation = dedicated_srv + 0x000B5736;
+    memset((void*)force_jump_vpk_allocation, 0x90, 6);
+    *(uint8_t*)(force_jump_vpk_allocation) = 0xE9;
+    *(uint32_t*)(force_jump_vpk_allocation+1) = 0x97;
 
     uint32_t hook_game_frame_delete_list = server_srv + 0x008404F3;
     offset = (uint32_t)HooksBlackMesa::SimulateEntitiesHook - hook_game_frame_delete_list - 5;
@@ -173,7 +186,8 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294D00), (void*)HooksBlackMesa::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A02D40), (void*)HooksBlackMesa::ShouldHitEntityHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294C60), (void*)HooksBlackMesa::CollisionRulesChangedHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5820), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
 }
 
 uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
@@ -181,18 +195,136 @@ uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, ui
     pOneArgProt pDynamicOneArgFunc;
     pSevenArgProt pDynamicSevenArgFunc;
 
-    uint32_t vpk_cache_tree = arg0+0x0D8;
+    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000B5460);
+    uint32_t returnVal = pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
 
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000B72B0);
-    pDynamicOneArgFunc(vpk_cache_tree);
+    if(current_vpk_buffer_ref)
+    {
+        uint32_t allocated_vpk_buffer = *(uint32_t*)(current_vpk_buffer_ref+0x10);
 
-    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000B5820);
-    return pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        if(allocated_vpk_buffer && global_vpk_cache_buffer == allocated_vpk_buffer)
+        {
+            //rootconsole->ConsolePrint("Removed global vpk buffer from VPK tree!");
+            *(uint32_t*)(current_vpk_buffer_ref+0x10) = 0;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Failed to remove global vpk buffer!!!");
+            exit(1);
+        }
+
+        current_vpk_buffer_ref = 0;
+    }
+
+    return returnVal;
 }
 
-uint32_t HooksBlackMesa::VpkCacheBufferAllocHook()
+uint32_t HooksBlackMesa::PackedStoreDestructorHook(uint32_t arg0)
 {
-    return global_vpk_cache_buffer;
+    //Remove ref to store only valid objects!
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000B1AE0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    Value* a_leak = *leakedResourcesVpkSystem;
+
+    while(a_leak)
+    {
+        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(a_leak->value);
+        uint32_t packed_object = the_leak->packed_ref;
+
+        if(packed_object == arg0)
+        {
+            ValueList vpk_leak_list = the_leak->leaked_refs;
+            
+            int removed_items = DeleteAllValuesInList(vpk_leak_list, true, NULL);
+
+            rootconsole->ConsolePrint("[VPK Hook] released [%d] memory leaks!", removed_items);
+
+            bool success = RemoveFromValuesList(leakedResourcesVpkSystem, the_leak, NULL);
+
+            free(vpk_leak_list);
+            free(the_leak);
+
+            if(!success)
+            {
+                rootconsole->ConsolePrint("[VPK Hook] Expected to remove leak but failed!");
+                exit(EXIT_FAILURE);
+            }
+
+            return returnVal;
+        }
+
+        a_leak = a_leak->nextVal;
+    }
+
+    return returnVal;
+}
+
+uint32_t HooksBlackMesa::VpkCacheBufferAllocHook(uint32_t arg0)
+{
+    uint32_t ebp = 0;
+    asm volatile ("movl %%ebp, %0" : "=r" (ebp));
+
+    uint32_t arg0_return = *(uint32_t*)(ebp-4);
+    uint32_t packed_store_ref = arg0_return-0x228;
+
+    uint32_t vpk_buffer = *(uint32_t*)(arg0+0x10);
+
+    if(vpk_buffer == 0)
+    {
+        current_vpk_buffer_ref = arg0;
+        return global_vpk_cache_buffer;
+    }
+
+    bool saved_reference = false;
+
+    Value* a_leak = *leakedResourcesVpkSystem;
+
+    while(a_leak)
+    {
+        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(a_leak->value);
+        uint32_t packed_object = the_leak->packed_ref;
+
+        if(packed_object == packed_store_ref)
+        {
+            saved_reference = true;
+
+            ValueList vpk_leak_list = the_leak->leaked_refs;
+
+            Value* new_vpk_leak = CreateNewValue((void*)(vpk_buffer));
+            bool added = InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, true);
+
+            if(added)
+            {
+                rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, vpk_buffer);
+            }
+
+            break;
+        }
+
+        a_leak = a_leak->nextVal;
+    }
+
+    if(!saved_reference)
+    {
+        VpkMemoryLeak* omg_leaks = (VpkMemoryLeak*)(malloc(sizeof(VpkMemoryLeak)));
+        ValueList empty_list = AllocateValuesList();
+
+        Value* original_vpk_buffer = CreateNewValue((void*)vpk_buffer);
+        InsertToValuesList(empty_list, original_vpk_buffer, NULL, false, false);
+
+        omg_leaks->packed_ref = packed_store_ref;
+        omg_leaks->leaked_refs = empty_list;
+
+        Value* leaked_resource = CreateNewValue((void*)omg_leaks);
+        InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
+
+        rootconsole->ConsolePrint("[VPK Hook First] " HOOK_MSG, vpk_buffer);
+    }
+
+    return vpk_buffer;
 }
 
 uint32_t HooksBlackMesa::CollisionRulesChangedHook(uint32_t arg0)
@@ -346,6 +478,8 @@ uint32_t HooksBlackMesa::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint3
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
+    LogVpkMemoryLeaks();
+
     isTicking = false;
     player_spawned = false;
 
@@ -446,11 +580,19 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
+    UpdateCollisionsForMarkedEntities();
+
     HooksBlackMesa::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
+
+    UpdateCollisionsForMarkedEntities();
+
+    HooksBlackMesa::CleanupDeleteListHook(0);
+
+    UpdateAllCollisions();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 

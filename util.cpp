@@ -46,9 +46,44 @@ int hooked_delete_counter;
 int normal_delete_counter;
 uint32_t CGlobalEntityList;
 uint32_t global_vpk_cache_buffer;
+uint32_t current_vpk_buffer_ref;
+
+ValueList leakedResourcesVpkSystem;
 
 pOneArgProt CollisionRulesChanged;
 pThreeArgProt FindEntityByClassname;
+
+void LogVpkMemoryLeaks()
+{
+    Value* firstLeak = *leakedResourcesVpkSystem;
+
+    int running_total_of_leaks = 0;
+
+    while(firstLeak)
+    {
+        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(firstLeak->value);
+
+        ValueList refs = the_leak->leaked_refs;
+        Value* firstLeakedRef = *refs;
+
+        int leaked_vpk_refs = 0;
+
+        while(firstLeakedRef)
+        {
+            leaked_vpk_refs++;
+
+            firstLeakedRef = firstLeakedRef->nextVal;
+        }
+
+        running_total_of_leaks = running_total_of_leaks + leaked_vpk_refs;
+
+        rootconsole->ConsolePrint("Found [%d] leaked refs in object [%p]", leaked_vpk_refs, the_leak->packed_ref);
+
+        firstLeak = firstLeak->nextVal;
+    }
+
+    rootconsole->ConsolePrint("Total VPK leaks [%d]", running_total_of_leaks);
+}
 
 void* copy_val(void* val, size_t copy_size)
 {
@@ -427,8 +462,45 @@ void InsertEntityToCollisionsList(uint32_t ent)
     }
 }
 
+void UpdateCollisionsForMarkedEntities()
+{
+    uint32_t ent = 0;
+
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    {
+        if(!IsEntityValid(ent))
+        {
+            CollisionRulesChanged(ent);
+        }
+    }
+}
+
 void UpdateAllCollisions()
 {
+    uint32_t ent = 0;
+
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    {
+        for(int i = 0; i < 512; i++)
+        {
+            if(collisions_entity_list[i] != 0)
+            {
+                uint32_t object = functions.GetCBaseEntity(collisions_entity_list[i]);
+
+                if(IsEntityValid(object))
+                {
+                    if(object == ent)
+                    {
+                        collisions_entity_list[i] = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+        CollisionRulesChanged(ent);
+    }
+
     for(int i = 0; i < 512; i++)
     {
         if(collisions_entity_list[i] != 0)
@@ -444,7 +516,7 @@ void UpdateAllCollisions()
         }
     }
 
-    uint32_t ent = 0;
+    ent = 0;
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
@@ -454,13 +526,6 @@ void UpdateAllCollisions()
         {
             CollisionRulesChanged(ent);
         }
-    }
-
-    ent = 0;
-
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
-    {
-        CollisionRulesChanged(ent);
     }
 }
 

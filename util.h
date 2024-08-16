@@ -161,6 +161,8 @@ extern int hooked_delete_counter;
 extern int normal_delete_counter;
 extern uint32_t CGlobalEntityList;
 extern uint32_t global_vpk_cache_buffer;
+extern uint32_t current_vpk_buffer_ref;
+extern ValueList leakedResourcesVpkSystem;
 
 extern pOneArgProt CollisionRulesChanged;
 extern pThreeArgProt FindEntityByClassname;
@@ -180,6 +182,8 @@ void UpdateAllCollisions();
 void RemoveBadEnts();
 bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
+void LogVpkMemoryLeaks();
+void UpdateCollisionsForMarkedEntities();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

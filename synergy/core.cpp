@@ -49,7 +49,6 @@ pOneArgProt MakeEntityDormant;
 pSevenArgProt PrintToClient;
 
 ValueList leakedResourcesSaveRestoreSystem;
-ValueList leakedResourcesVpkSystem;
 ValueList leakedResourcesEdtSystem;
 ValueList antiCycleListDoors;
 ValueList entityDeleteList;
@@ -176,38 +175,6 @@ bool IsAllowedToPatchSdkTools(uint32_t lib_base, uint32_t lib_size)
     }
 
     return false;
-}
-
-void LogVpkMemoryLeaks()
-{
-    Value* firstLeak = *leakedResourcesVpkSystem;
-
-    int running_total_of_leaks = 0;
-
-    while(firstLeak)
-    {
-        VpkMemoryLeak* the_leak = (VpkMemoryLeak*)(firstLeak->value);
-
-        ValueList refs = the_leak->leaked_refs;
-        Value* firstLeakedRef = *refs;
-
-        int leaked_vpk_refs = 0;
-
-        while(firstLeakedRef)
-        {
-            leaked_vpk_refs++;
-
-            firstLeakedRef = firstLeakedRef->nextVal;
-        }
-
-        running_total_of_leaks = running_total_of_leaks + leaked_vpk_refs;
-
-        rootconsole->ConsolePrint("Found [%d] leaked refs in object [%p]", leaked_vpk_refs, the_leak->packed_ref);
-
-        firstLeak = firstLeak->nextVal;
-    }
-
-    rootconsole->ConsolePrint("Total VPK leaks [%d]", running_total_of_leaks);
 }
 
 void PopulateHookExclusionListsSynergy()

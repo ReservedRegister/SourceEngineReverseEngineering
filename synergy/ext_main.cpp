@@ -42,6 +42,7 @@ bool InitExtensionSynergy()
     fake_sequence_mem = (uint32_t)malloc(1024);
     player_restore_failed = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
+    current_vpk_buffer_ref = 0;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -314,6 +315,17 @@ void ApplyPatchesSynergy()
     }
 
     uint32_t offset = 0;
+
+    uint32_t patch_stack_vpk_cache_allocation = dedicated_srv + 0x000BE4ED;
+    memset((void*)patch_stack_vpk_cache_allocation, 0x90, 7);
+    *(uint8_t*)(patch_stack_vpk_cache_allocation) = 0x89;
+    *(uint8_t*)(patch_stack_vpk_cache_allocation+1) = 0x34;
+    *(uint8_t*)(patch_stack_vpk_cache_allocation+2) = 0x24;
+
+    uint32_t force_jump_vpk_allocation = dedicated_srv + 0x000BE3D3;
+    memset((void*)force_jump_vpk_allocation, 0x90, 6);
+    *(uint8_t*)(force_jump_vpk_allocation) = 0xE9;
+    *(uint32_t*)(force_jump_vpk_allocation+1) = 0x112;
 
     uint32_t vehicle_spawner_fix = server_srv + 0x00AE9E3B;
     *(uint8_t*)(vehicle_spawner_fix) = 0xEB;
@@ -970,21 +982,22 @@ uint32_t HooksSynergy::RestoreOverride()
 
 uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 {
-    return global_vpk_cache_buffer;
-
-
-
     uint32_t ebp = 0;
     asm volatile ("movl %%ebp, %0" : "=r" (ebp));
 
     uint32_t arg0_return = *(uint32_t*)(ebp-4);
     uint32_t packed_store_ref = arg0_return-0x228;
 
+    uint32_t vpk_buffer = *(uint32_t*)(arg0+0x10);
+
+    if(vpk_buffer == 0)
+    {
+        current_vpk_buffer_ref = arg0;
+        return global_vpk_cache_buffer;
+    }
+
     bool saved_reference = false;
 
-
-    uint32_t ref = (uint32_t)malloc(arg0*3.0);
-    
     Value* a_leak = *leakedResourcesVpkSystem;
 
     while(a_leak)
@@ -997,10 +1010,16 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
             saved_reference = true;
 
             ValueList vpk_leak_list = the_leak->leaked_refs;
-            Value* new_vpk_leak = CreateNewValue((void*)(ref));
-            InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, false);
 
-            rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, ref);
+            Value* new_vpk_leak = CreateNewValue((void*)(vpk_buffer));
+            bool added = InsertToValuesList(vpk_leak_list, new_vpk_leak, NULL, false, true);
+
+            if(added)
+            {
+                rootconsole->ConsolePrint("[VPK Hook] " HOOK_MSG, vpk_buffer);
+            }
+
+            break;
         }
 
         a_leak = a_leak->nextVal;
@@ -1008,46 +1027,22 @@ uint32_t HooksSynergy::DirectMallocHookDedicatedSrv(uint32_t arg0)
 
     if(!saved_reference)
     {
-        rootconsole->ConsolePrint("Failed to allocate leaked resource!");
-        exit(1);
+        VpkMemoryLeak* omg_leaks = (VpkMemoryLeak*)(malloc(sizeof(VpkMemoryLeak)));
+        ValueList empty_list = AllocateValuesList();
+
+        Value* original_vpk_buffer = CreateNewValue((void*)vpk_buffer);
+        InsertToValuesList(empty_list, original_vpk_buffer, NULL, false, false);
+
+        omg_leaks->packed_ref = packed_store_ref;
+        omg_leaks->leaked_refs = empty_list;
+
+        Value* leaked_resource = CreateNewValue((void*)omg_leaks);
+        InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
+
+        rootconsole->ConsolePrint("[VPK Hook First] " HOOK_MSG, vpk_buffer);
     }
 
-    return ref;
-}
-
-uint32_t HooksSynergy::PackedStoreConstructorHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4)
-{
-    //Save ref for leak mapping
-    pFiveArgProt pDynamicFiveArgFunc;
-
-    pDynamicFiveArgFunc = (pFiveArgProt)(dedicated_srv + 0x000BD1B0);
-    uint32_t returnVal = pDynamicFiveArgFunc(arg0, arg1, arg2, arg3, arg4);
-
-    Value* existing_structs = *leakedResourcesVpkSystem;
-
-    while(existing_structs)
-    {
-        VpkMemoryLeak* v_leak = (VpkMemoryLeak*)(existing_structs->value);
-
-        if(v_leak->packed_ref == arg0)
-        {
-            rootconsole->ConsolePrint("[VPK Hook] Object already found");
-            return returnVal;
-        }
-
-        existing_structs = existing_structs->nextVal;
-    }
-
-    VpkMemoryLeak* omg_leaks = (VpkMemoryLeak*)(malloc(sizeof(VpkMemoryLeak)));
-    ValueList empty_list = AllocateValuesList();
-
-    omg_leaks->packed_ref = arg0;
-    omg_leaks->leaked_refs = empty_list;
-
-    Value* leaked_resource = CreateNewValue((void*)omg_leaks);
-    InsertToValuesList(leakedResourcesVpkSystem, leaked_resource, NULL, false, false);
-
-    return returnVal;
+    return vpk_buffer;
 }
 
 uint32_t HooksSynergy::PackedStoreDestructorHook(uint32_t arg0)
@@ -1855,15 +1850,21 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
 
+    UpdateCollisionsForMarkedEntities();
+
     HooksSynergy::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
 
+    UpdateCollisionsForMarkedEntities();
+
     HooksSynergy::CleanupDeleteListHook(0);
 
     SaveGame_Extension();
+
+    UpdateCollisionsForMarkedEntities();
 
     HooksSynergy::CleanupDeleteListHook(0);
 
@@ -2017,13 +2018,28 @@ uint32_t HooksSynergy::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint
     pOneArgProt pDynamicOneArgFunc;
     pSevenArgProt pDynamicSevenArgFunc;
 
-    uint32_t vpk_cache_tree = arg0+0x0D8;
+    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000BE1D0);
+    uint32_t returnVal = pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
 
-    pDynamicOneArgFunc = (pOneArgProt)(dedicated_srv + 0x000C0000);
-    pDynamicOneArgFunc(vpk_cache_tree);
+    if(current_vpk_buffer_ref)
+    {
+        uint32_t allocated_vpk_buffer = *(uint32_t*)(current_vpk_buffer_ref+0x10);
 
-    pDynamicSevenArgFunc = (pSevenArgProt)(dedicated_srv + 0x000BE520);
-    return pDynamicSevenArgFunc(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        if(allocated_vpk_buffer && global_vpk_cache_buffer == allocated_vpk_buffer)
+        {
+            //rootconsole->ConsolePrint("Removed global vpk buffer from VPK tree!");
+            *(uint32_t*)(current_vpk_buffer_ref+0x10) = 0;
+        }
+        else
+        {
+            rootconsole->ConsolePrint("Failed to remove global vpk buffer!!!");
+            exit(1);
+        }
+
+        current_vpk_buffer_ref = 0;
+    }
+
+    return returnVal;
 }
 
 void HookFunctionsSynergy()
@@ -2121,7 +2137,6 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(engine_srv, engine_srv_size, (void*)(engine_srv + 0x001B1800), (void*)HooksSynergy::SV_FrameHook);
     //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0098D1A0), (void*)HooksSynergy::PlayerDeathHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0086A6A0), (void*)HooksSynergy::DropshipSpawnHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BD1B0), (void*)HooksSynergy::PackedStoreConstructorHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BAE80), (void*)HooksSynergy::PackedStoreDestructorHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00654F80), (void*)HooksSynergy::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0065BD80), (void*)HooksSynergy::UpdateOnRemove);
@@ -2131,5 +2146,5 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D9390), (void*)HooksSynergy::SetCollisionGroupHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003F98A0), (void*)HooksSynergy::SetSolidFlagsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x003D8D20), (void*)HooksSynergy::CollisionRulesChangedHook);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE520), (void*)HooksSynergy::CanSatisfyVpkCacheHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000BE1D0), (void*)HooksSynergy::CanSatisfyVpkCacheHook);
 }

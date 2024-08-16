@@ -49,7 +49,6 @@ extern pOneArgProt MakeEntityDormant;
 extern pSevenArgProt PrintToClient;
 
 extern ValueList leakedResourcesSaveRestoreSystem;
-extern ValueList leakedResourcesVpkSystem;
 extern ValueList leakedResourcesEdtSystem;
 extern ValueList antiCycleListDoors;
 extern ValueList entityDeleteList;
@@ -157,7 +156,6 @@ void UpdatePlayersDonor();
 void InitCoreSynergy();
 void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate);
 void InstaKillSynergy(uint32_t entity_object, bool validate);
-void LogVpkMemoryLeaks();
 void AttemptToRestoreGame();
 void ResetView();
 bool IsSynergyMemoryCorrect();
