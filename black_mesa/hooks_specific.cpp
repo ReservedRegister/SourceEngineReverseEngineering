@@ -19,6 +19,21 @@ void HookFunctionsSpecificBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793A60), (void*)NativeHooks::CPropHevCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00793FD0), (void*)NativeHooks::CPropRadiationCharger_ShouldApplyEffect);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A24570), (void*)NativeHooks::ScriptThinkEntCheck);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0069DB20), (void*)NativeHooks::LaunchMortarHook);
+}
+
+uint32_t NativeHooks::LaunchMortarHook(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0069DB20);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Gonarch was invalid!");
+    return 0;
 }
 
 uint32_t NativeHooks::ScriptThinkEntCheck(uint32_t arg0)
