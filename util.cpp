@@ -481,23 +481,6 @@ void UpdateAllCollisions()
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
-        for(int i = 0; i < 512; i++)
-        {
-            if(collisions_entity_list[i] != 0)
-            {
-                uint32_t object = functions.GetCBaseEntity(collisions_entity_list[i]);
-
-                if(IsEntityValid(object))
-                {
-                    if(object == ent)
-                    {
-                        collisions_entity_list[i] = 0;
-                        break;
-                    }
-                }
-            }
-        }
-
         CollisionRulesChanged(ent);
     }
 
