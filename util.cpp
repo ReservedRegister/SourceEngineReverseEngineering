@@ -477,13 +477,6 @@ void UpdateCollisionsForMarkedEntities()
 
 void UpdateAllCollisions()
 {
-    uint32_t ent = 0;
-
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
-    {
-        CollisionRulesChanged(ent);
-    }
-
     for(int i = 0; i < 512; i++)
     {
         if(collisions_entity_list[i] != 0)
@@ -499,7 +492,7 @@ void UpdateAllCollisions()
         }
     }
 
-    ent = 0;
+    uint32_t ent = 0;
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
@@ -509,6 +502,13 @@ void UpdateAllCollisions()
         {
             CollisionRulesChanged(ent);
         }
+    }
+    
+    ent = 0;
+
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    {
+        CollisionRulesChanged(ent);
     }
 }
 

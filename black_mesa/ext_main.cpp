@@ -347,14 +347,6 @@ uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
     }
 
     *(uint32_t*)(arg0+0x1F8) = arg1;
-
-    uint16_t original_flags = *(uint16_t*)(arg0+0x19C);
-
-    //rootconsole->ConsolePrint("Corrected flags %d %d", original_flags, (original_flags & 0xF7FF));
-    SetSolidFlags(arg0+0x160, original_flags & 0xF7FF);
-    //rootconsole->ConsolePrint("Corrected flags %d %d", original_flags, (original_flags | 0x800));
-    SetSolidFlags(arg0+0x160, original_flags | 0x800);
-
     return 0;
 }
 
