@@ -226,11 +226,13 @@ bool InitExtensionSynergy()
     offsets.mnetwork_offset = 0x24;
     offsets.refhandle_offset = 0x350;
     offsets.iserver_offset = 0x18;
+    offsets.collision_property_offset = 0x164;
 
     functions.RemoveEntityNormal = (pTwoArgProt)(RemoveEntityNormalSynergy);
     functions.InstaKill = (pTwoArgProt)(InstaKillSynergy);
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00AC7EF0);
+    functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x003F98A0);
 
     PopulateHookPointers();
     PopulateHookExclusionListsSynergy();
@@ -1857,6 +1859,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //ServiceEventQueue
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
+
+    UpdateDeathCollisionFlags();
 
     UpdateCollisionsForMarkedEntities();
 

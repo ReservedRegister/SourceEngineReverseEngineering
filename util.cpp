@@ -14,6 +14,7 @@ uint32_t memory_prots_save_list[512] = {};
 uint32_t our_libraries[512] = {};
 uint32_t loaded_libraries[512] = {};
 uint32_t collisions_entity_list[512] = {};
+uint32_t players_collisions[512] = {};
 
 uint32_t engine_srv;
 uint32_t datacache_srv;
@@ -509,6 +510,79 @@ void UpdateAllCollisions()
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
         CollisionRulesChanged(ent);
+    }
+}
+
+void UpdateDeathCollisionFlags()
+{
+    ClenupDeathCollisionsList();
+    
+    for(int i = 0; i < 512; i++)
+    {
+        if(players_collisions[i] != 0)
+        {
+            uint32_t refhandle_fromlist = players_collisions[i];
+            uint32_t object = functions.GetCBaseEntity(refhandle_fromlist);
+
+            if(object)
+            {
+                functions.SetSolidFlags(object+offsets.collision_property_offset, 4);
+                //rootconsole->ConsolePrint("updating death collision flags!");
+            }
+        }
+    }
+}
+
+void ClenupDeathCollisionsList()
+{
+    for(int i = 0; i < 512; i++)
+    {
+        if(players_collisions[i] != 0)
+        {
+            uint32_t refhandle_fromlist = players_collisions[i];
+            uint32_t object = functions.GetCBaseEntity(refhandle_fromlist);
+
+            if(object == 0)
+            {
+                players_collisions[i] = 0;
+            }
+        }
+    }
+}
+
+void RemovePlayerFromDeathCollisions(uint32_t player_object)
+{
+    if(player_object == 0) return;
+
+    uint32_t refHandle = *(uint32_t*)(player_object+offsets.refhandle_offset);
+
+    for(int i = 0; i < 512; i++)
+    {
+        if(players_collisions[i] != 0)
+        {
+            uint32_t refhandle_fromlist = players_collisions[i];
+
+            if(refHandle == refhandle_fromlist)
+            {
+                players_collisions[i] = 0;
+            }
+        }
+    }
+}
+
+void InsertPlayerToDeathCollisions(uint32_t player_object)
+{
+    if(player_object == 0) return;
+
+    uint32_t refHandle = *(uint32_t*)(player_object+offsets.refhandle_offset);
+
+    for(int i = 0; i < 512; i++)
+    {
+        if(players_collisions[i] == 0)
+        {
+            players_collisions[i] = refHandle;
+            return;
+        }
     }
 }
 

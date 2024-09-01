@@ -86,11 +86,13 @@ bool InitExtensionBlackMesa()
     offsets.mnetwork_offset = 0x20;
     offsets.refhandle_offset = 0x334;
     offsets.iserver_offset = 0x14;
+    offsets.collision_property_offset = 0x160;
 
     functions.RemoveEntityNormal = (pTwoArgProt)(RemoveEntityNormalBlackMesa);
     functions.InstaKill = (pTwoArgProt)(InstaKillBlackMesa);
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntityBlackMesa);
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00A2B520);
+    functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -186,6 +188,7 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294D00), (void*)HooksBlackMesa::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A02D40), (void*)HooksBlackMesa::ShouldHitEntityHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294C60), (void*)HooksBlackMesa::CollisionRulesChangedHook);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0059A1F0), (void*)HooksBlackMesa::Event_KilledPlayer);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
 }
@@ -522,16 +525,26 @@ uint32_t HooksBlackMesa::CXenShieldController_UpdateOnRemoveHook(uint32_t arg0)
     return returnVal;
 }
 
+uint32_t HooksBlackMesa::Event_KilledPlayer(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    InsertPlayerToDeathCollisions(arg0);
+
+    pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0059A1F0);
+    return pDynamicTwoArgFunc(arg0, arg1);
+}
+
 uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+    RemovePlayerFromDeathCollisions(arg0);
 
     player_spawned = true;
 
-    return returnVal;
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksBlackMesa::ServiceEventQueueHook()
@@ -587,6 +600,8 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
+
+    UpdateDeathCollisionFlags();
 
     UpdateCollisionsForMarkedEntities();
 
