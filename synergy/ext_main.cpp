@@ -1485,6 +1485,9 @@ uint32_t HooksSynergy::PlayerSpawnDirectHook(uint32_t arg0)
     InsertToValuesList(new_player_join_ref, updated_color, NULL, false, false);
 
     firstplayer_hasjoined = true;
+
+    FixWorldspawnCollisions();
+
     return returnVal;
 }
 
@@ -1875,8 +1878,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
-
-    FixWorldspawnCollisions();
 
     HooksSynergy::CleanupDeleteListHook(0);
 

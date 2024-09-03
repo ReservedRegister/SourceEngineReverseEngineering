@@ -538,10 +538,14 @@ uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
 
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
     player_spawned = true;
 
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
-    return pDynamicOneArgFunc(arg0);
+    FixWorldspawnCollisions();
+
+    return returnVal;
 }
 
 uint32_t HooksBlackMesa::ServiceEventQueueHook()
@@ -599,8 +603,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     UpdateCollisionsForMarkedEntities();
-
-    FixWorldspawnCollisions();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
