@@ -233,6 +233,7 @@ bool InitExtensionSynergy()
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntitySynergy);
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00AC7EF0);
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x003F98A0);
+    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00499DB0);
 
     PopulateHookPointers();
     PopulateHookExclusionListsSynergy();
@@ -1860,8 +1861,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
 
-    UpdateDeathCollisionFlags();
-
     UpdateCollisionsForMarkedEntities();
 
     HooksSynergy::CleanupDeleteListHook(0);
@@ -1876,6 +1875,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
+
+    FixWorldspawnCollisions();
 
     HooksSynergy::CleanupDeleteListHook(0);
 

@@ -1468,11 +1468,8 @@ void InstaKillSynergy(uint32_t entity_object, bool validate)
         else
         {
             RemoveEntityNormalSynergy(cbase_chk, validate);
-            return;
         }
     }
-
-    return;
 }
 
 void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
@@ -1537,8 +1534,6 @@ void RemoveEntityNormalSynergy(uint32_t entity_object, bool validate)
         rootconsole->ConsolePrint(EXT_PREFIX "Could not kill entity [Invalid Ehandle]");
         exit(EXIT_FAILURE);
     }
-
-    return;
 }
 
 void RebuildSavedTriggers()

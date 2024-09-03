@@ -167,7 +167,6 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
 
     rootconsole->ConsolePrint("Failed to verify entity object!");
     exit(EXIT_FAILURE);
-    return;
 }
 
 void InstaKillBlackMesa(uint32_t entity_object, bool validate)
@@ -253,9 +252,6 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate)
         else
         {
             RemoveEntityNormalBlackMesa(cbase_chk, validate);
-            return;
         }
     }
-
-    return;
 }

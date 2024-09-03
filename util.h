@@ -47,6 +47,7 @@ typedef struct _game_functions {
     pOneArgProt GetCBaseEntity;
     pOneArgProt IsMarkedForDeletion;
 	pTwoArgProt SetSolidFlags;
+	pTwoArgProt DisableEntityCollisions;
 } game_functions;
 
 typedef struct _Vector {
@@ -131,7 +132,6 @@ extern uint32_t memory_prots_save_list[512];
 extern uint32_t our_libraries[512];
 extern uint32_t loaded_libraries[512];
 extern uint32_t collisions_entity_list[512];
-extern uint32_t players_collisions[512];
 
 extern uint32_t engine_srv;
 extern uint32_t datacache_srv;
@@ -187,10 +187,7 @@ bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
 void LogVpkMemoryLeaks();
 void UpdateCollisionsForMarkedEntities();
-void UpdateDeathCollisionFlags();
-void RemovePlayerFromDeathCollisions(uint32_t player_object);
-void InsertPlayerToDeathCollisions(uint32_t player_object);
-void ClenupDeathCollisionsList();
+void FixWorldspawnCollisions();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

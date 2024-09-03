@@ -93,6 +93,7 @@ bool InitExtensionBlackMesa()
     functions.GetCBaseEntity = (pOneArgProt)(GetCBaseEntityBlackMesa);
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00A2B520);
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
+    functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00379460);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -529,8 +530,6 @@ uint32_t HooksBlackMesa::Event_KilledPlayer(uint32_t arg0, uint32_t arg1)
 {
     pTwoArgProt pDynamicTwoArgFunc;
 
-    InsertPlayerToDeathCollisions(arg0);
-
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x0059A1F0);
     return pDynamicTwoArgFunc(arg0, arg1);
 }
@@ -538,8 +537,6 @@ uint32_t HooksBlackMesa::Event_KilledPlayer(uint32_t arg0, uint32_t arg1)
 uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-
-    RemovePlayerFromDeathCollisions(arg0);
 
     player_spawned = true;
 
@@ -601,9 +598,9 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
 
-    UpdateDeathCollisionFlags();
-
     UpdateCollisionsForMarkedEntities();
+
+    FixWorldspawnCollisions();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
