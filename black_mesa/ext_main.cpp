@@ -76,6 +76,7 @@ bool InitExtensionBlackMesa()
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
+    player_spawn_delay_frames = 201;
 
     leakedResourcesVpkSystem = AllocateValuesList();
 
@@ -94,6 +95,7 @@ bool InitExtensionBlackMesa()
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00A2B520);
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00379460);
+    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x003794D0);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -543,7 +545,8 @@ uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
 
     player_spawned = true;
 
-    FixWorldspawnCollisions();
+    EnablePlayerWorldSpawnCollision(arg0);
+    player_spawn_delay_frames = 0;
 
     return returnVal;
 }
@@ -603,6 +606,8 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc(0);
 
     UpdateCollisionsForMarkedEntities();
+
+    DisablePlayerWorldSpawnCollision();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 

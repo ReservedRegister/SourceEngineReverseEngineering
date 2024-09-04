@@ -48,6 +48,7 @@ typedef struct _game_functions {
     pOneArgProt IsMarkedForDeletion;
 	pTwoArgProt SetSolidFlags;
 	pTwoArgProt DisableEntityCollisions;
+	pTwoArgProt EnableEntityCollisions;
 } game_functions;
 
 typedef struct _Vector {
@@ -160,6 +161,7 @@ extern uint32_t sdktools_size;
 extern bool isTicking;
 extern bool disable_delete_list;
 extern bool server_sleeping;
+extern int player_spawn_delay_frames;
 extern int hooked_delete_counter;
 extern int normal_delete_counter;
 extern uint32_t CGlobalEntityList;
@@ -187,7 +189,9 @@ bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
 void LogVpkMemoryLeaks();
 void UpdateCollisionsForMarkedEntities();
-void FixWorldspawnCollisions();
+void EnablePlayerWorldSpawnCollision(uint32_t player);
+void EnablePlayerWorldSpawnCollision();
+void DisablePlayerWorldSpawnCollision();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);

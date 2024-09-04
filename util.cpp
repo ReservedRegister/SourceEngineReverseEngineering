@@ -42,6 +42,7 @@ uint32_t sdktools_size;
 bool isTicking;
 bool disable_delete_list;
 bool server_sleeping;
+int player_spawn_delay_frames;
 int hooked_delete_counter;
 int normal_delete_counter;
 uint32_t CGlobalEntityList;
@@ -473,8 +474,22 @@ void InsertEntityToCollisionsList(uint32_t ent)
     }
 }
 
-void FixWorldspawnCollisions()
+void EnablePlayerWorldSpawnCollision(uint32_t player)
 {
+    rootconsole->ConsolePrint("Updated player and worldspawn collisions to SOLID!");
+    
+    uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
+
+    if(worldspawn)
+    {
+        functions.EnableEntityCollisions(player, worldspawn);
+    }
+}
+
+void EnablePlayerWorldSpawnCollision()
+{
+    rootconsole->ConsolePrint("Updated player and worldspawn collisions to SOLID!");
+    
     uint32_t player = 0;
 
     while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
@@ -483,7 +498,29 @@ void FixWorldspawnCollisions()
 
         if(worldspawn)
         {
-            functions.DisableEntityCollisions(player, worldspawn);
+            functions.EnableEntityCollisions(player, worldspawn);
+        }
+    }
+}
+
+void DisablePlayerWorldSpawnCollision()
+{
+    player_spawn_delay_frames++;
+    
+    if(player_spawn_delay_frames == 200)
+    {
+        rootconsole->ConsolePrint("Updated player and worldspawn collisions to NON_SOLID!");
+        
+        uint32_t player = 0;
+
+        while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+        {
+            uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
+
+            if(worldspawn)
+            {
+                functions.DisableEntityCollisions(player, worldspawn);
+            }
         }
     }
 }

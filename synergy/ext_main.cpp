@@ -15,38 +15,6 @@ bool InitExtensionSynergy()
     InitCoreSynergy();
     AllowWriteToMappedMemory();
 
-    transition = false;
-    savegame = false;
-    savegame_lock = false;
-    restoring = false;
-    protect_player = false;
-    save_frames = 0;
-    restore_frames = 0;
-    after_restore_frames = 0;
-    game_start_frames = 0;
-    isTicking = false;
-    restore_delay = false;
-    restore_delay_lock = false;
-    disable_delete_list = false;
-    firstplayer_hasjoined = false;
-    hooked_delete_counter = 0;
-    normal_delete_counter = 0;
-    hasSavedOnce = false;
-    reset_viewcontrol = false;
-    saving_game_rightnow = false;
-    weapon_substitute = 0xFFFFFFFF;
-    server_sleeping = false;
-    car_delay_for_save = 15;
-    removing_ents_restore = false;
-    restore_start_delay = 201;
-    fake_sequence_mem = (uint32_t)malloc(1024);
-    player_restore_failed = false;
-    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
-    current_vpk_buffer_ref = 0;
-
-    pthread_mutex_init(&playerDeathQueueLock, NULL);
-    pthread_mutex_init(&collisionListLock, NULL);
-
     char* root_dir = getenv("PWD");
     const size_t max_path_length = 1024;
 
@@ -137,6 +105,39 @@ bool InitExtensionSynergy()
 
     RestoreLinkedLists();
     SaveProcessId();
+
+    transition = false;
+    savegame = false;
+    savegame_lock = false;
+    restoring = false;
+    protect_player = false;
+    save_frames = 0;
+    restore_frames = 0;
+    after_restore_frames = 0;
+    game_start_frames = 0;
+    isTicking = false;
+    restore_delay = false;
+    restore_delay_lock = false;
+    disable_delete_list = false;
+    firstplayer_hasjoined = false;
+    hooked_delete_counter = 0;
+    normal_delete_counter = 0;
+    hasSavedOnce = false;
+    reset_viewcontrol = false;
+    saving_game_rightnow = false;
+    weapon_substitute = 0xFFFFFFFF;
+    server_sleeping = false;
+    car_delay_for_save = 15;
+    removing_ents_restore = false;
+    restore_start_delay = 201;
+    fake_sequence_mem = (uint32_t)malloc(1024);
+    player_restore_failed = false;
+    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
+    current_vpk_buffer_ref = 0;
+    player_spawn_delay_frames = 201;
+
+    pthread_mutex_init(&playerDeathQueueLock, NULL);
+    pthread_mutex_init(&collisionListLock, NULL);
     
     antiCycleListDoors = AllocateValuesList();
     playerSaveList = AllocatePlayerSaveList();
@@ -234,6 +235,7 @@ bool InitExtensionSynergy()
     functions.IsMarkedForDeletion = (pOneArgProt)(server_srv + 0x00AC7EF0);
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x003F98A0);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00499DB0);
+    functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x00499E00);
 
     PopulateHookPointers();
     PopulateHookExclusionListsSynergy();
@@ -257,7 +259,7 @@ bool InitExtensionSynergy()
     HookFunctionsSpecificSynergy();
 
     RestoreMemoryProtections();
-    rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " loaded!" "  ----------------------");
+    rootconsole->ConsolePrint("----------------------  Synergy " SMEXT_CONF_NAME " " SMEXT_CONF_VERSION " loaded  ----------------------");
     loaded_extension = true;
     return true;
 }
@@ -1486,7 +1488,8 @@ uint32_t HooksSynergy::PlayerSpawnDirectHook(uint32_t arg0)
 
     firstplayer_hasjoined = true;
 
-    FixWorldspawnCollisions();
+    EnablePlayerWorldSpawnCollision(arg0);
+    player_spawn_delay_frames = 0;
 
     return returnVal;
 }
@@ -1878,6 +1881,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
+
+    DisablePlayerWorldSpawnCollision();
 
     HooksSynergy::CleanupDeleteListHook(0);
 
