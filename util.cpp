@@ -42,7 +42,6 @@ uint32_t sdktools_size;
 bool isTicking;
 bool disable_delete_list;
 bool server_sleeping;
-int player_spawn_delay_frames;
 int hooked_delete_counter;
 int normal_delete_counter;
 uint32_t CGlobalEntityList;
@@ -450,6 +449,11 @@ void InsertEntityToCollisionsList(uint32_t ent)
 {
     if(IsEntityValid(ent))
     {
+        char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
+
+        if(classname && strcmp(classname, "player") == 0)
+            return;
+
         for(int i = 0; i < 512; i++)
         {
             if(collisions_entity_list[i] != 0)
@@ -470,70 +474,6 @@ void InsertEntityToCollisionsList(uint32_t ent)
 
                 break;
             }
-        }
-    }
-}
-
-void EnablePlayerWorldSpawnCollision(uint32_t player)
-{
-    rootconsole->ConsolePrint("Updated player and worldspawn collisions to SOLID!");
-    
-    uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
-
-    if(worldspawn)
-    {
-        functions.EnableEntityCollisions(player, worldspawn);
-    }
-}
-
-void EnablePlayerWorldSpawnCollision()
-{
-    rootconsole->ConsolePrint("Updated player and worldspawn collisions to SOLID!");
-    
-    uint32_t player = 0;
-
-    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
-    {
-        uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
-
-        if(worldspawn)
-        {
-            functions.EnableEntityCollisions(player, worldspawn);
-        }
-    }
-}
-
-void DisablePlayerWorldSpawnCollision()
-{
-    player_spawn_delay_frames++;
-    
-    if(player_spawn_delay_frames == 200)
-    {
-        rootconsole->ConsolePrint("Updated player and worldspawn collisions to NON_SOLID!");
-        
-        uint32_t player = 0;
-
-        while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
-        {
-            uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
-
-            if(worldspawn)
-            {
-                functions.DisableEntityCollisions(player, worldspawn);
-            }
-        }
-    }
-}
-
-void UpdateCollisionsForMarkedEntities()
-{
-    uint32_t ent = 0;
-
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
-    {
-        if(!IsEntityValid(ent))
-        {
-            CollisionRulesChanged(ent);
         }
     }
 }
@@ -559,11 +499,14 @@ void UpdateAllCollisions()
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
-        uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
-
-        if(!m_Network)
+        if(IsEntityValid(ent))
         {
-            CollisionRulesChanged(ent);
+            uint32_t m_Network = *(uint32_t*)(ent+offsets.mnetwork_offset);
+
+            if(!m_Network)
+            {
+                CollisionRulesChanged(ent);
+            }
         }
     }
     
@@ -571,7 +514,23 @@ void UpdateAllCollisions()
 
     while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
-        CollisionRulesChanged(ent);
+        if(IsEntityValid(ent))
+        {
+            CollisionRulesChanged(ent);
+        }
+    }
+}
+
+void FixPlayerCollisionGroup()
+{
+    uint32_t ent = 0;
+
+    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    {
+        if(IsEntityValid(ent))
+        {
+            *(uint32_t*)(ent+offsets.m_CollisionGroup_offset) = 5;
+        }
     }
 }
 

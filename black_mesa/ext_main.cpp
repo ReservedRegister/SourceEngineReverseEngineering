@@ -76,7 +76,6 @@ bool InitExtensionBlackMesa()
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
-    player_spawn_delay_frames = 201;
 
     leakedResourcesVpkSystem = AllocateValuesList();
 
@@ -88,6 +87,7 @@ bool InitExtensionBlackMesa()
     offsets.refhandle_offset = 0x334;
     offsets.iserver_offset = 0x14;
     offsets.collision_property_offset = 0x160;
+    offsets.m_CollisionGroup_offset = 500;
 
     functions.RemoveEntityNormal = (pTwoArgProt)(RemoveEntityNormalBlackMesa);
     functions.InstaKill = (pTwoArgProt)(InstaKillBlackMesa);
@@ -545,9 +545,6 @@ uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
 
     player_spawned = true;
 
-    EnablePlayerWorldSpawnCollision(arg0);
-    player_spawn_delay_frames = 0;
-
     return returnVal;
 }
 
@@ -597,25 +594,20 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
-    UpdateCollisionsForMarkedEntities();
-
     HooksBlackMesa::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
 
-    UpdateCollisionsForMarkedEntities();
+    HooksBlackMesa::CleanupDeleteListHook(0);
 
-    DisablePlayerWorldSpawnCollision();
+    FixPlayerCollisionGroup();
+    RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
     UpdateAllCollisions();
-
-    HooksBlackMesa::CleanupDeleteListHook(0);
-
-    RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 

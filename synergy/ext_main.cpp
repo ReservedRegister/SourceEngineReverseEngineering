@@ -134,7 +134,6 @@ bool InitExtensionSynergy()
     player_restore_failed = false;
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
-    player_spawn_delay_frames = 201;
 
     pthread_mutex_init(&playerDeathQueueLock, NULL);
     pthread_mutex_init(&collisionListLock, NULL);
@@ -228,6 +227,7 @@ bool InitExtensionSynergy()
     offsets.refhandle_offset = 0x350;
     offsets.iserver_offset = 0x18;
     offsets.collision_property_offset = 0x164;
+    offsets.m_CollisionGroup_offset = 504;
 
     functions.RemoveEntityNormal = (pTwoArgProt)(RemoveEntityNormalSynergy);
     functions.InstaKill = (pTwoArgProt)(InstaKillSynergy);
@@ -1488,9 +1488,6 @@ uint32_t HooksSynergy::PlayerSpawnDirectHook(uint32_t arg0)
 
     firstplayer_hasjoined = true;
 
-    EnablePlayerWorldSpawnCollision(arg0);
-    player_spawn_delay_frames = 0;
-
     return returnVal;
 }
 
@@ -1824,6 +1821,7 @@ uint32_t HooksSynergy::ServiceEventQueueHook()
 uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 {
     isTicking = true;
+
     pZeroArgProt pDynamicZeroArgFunc;
     pOneArgProt pDynamicOneArgFunc;
 
@@ -1859,21 +1857,11 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00A316A0);
     pDynamicOneArgFunc(simulating);
 
-    UpdateCollisionsForMarkedEntities();
-
     HooksSynergy::CleanupDeleteListHook(0);
 
     //ServiceEventQueue
     pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
     pDynamicZeroArgFunc();
-
-    UpdateCollisionsForMarkedEntities();
-
-    HooksSynergy::CleanupDeleteListHook(0);
-
-    SaveGame_Extension();
-
-    UpdateCollisionsForMarkedEntities();
 
     HooksSynergy::CleanupDeleteListHook(0);
 
@@ -1881,8 +1869,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
-
-    DisablePlayerWorldSpawnCollision();
+    FixPlayerCollisionGroup();
+    RemoveBadEnts();
 
     HooksSynergy::CleanupDeleteListHook(0);
 
@@ -1890,13 +1878,13 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     HooksSynergy::CleanupDeleteListHook(0);
 
-    RemoveBadEnts();
-
-    HooksSynergy::CleanupDeleteListHook(0);
-
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
+
+    HooksSynergy::CleanupDeleteListHook(0);
+
+    SaveGame_Extension();
 
     HooksSynergy::CleanupDeleteListHook(0);
 

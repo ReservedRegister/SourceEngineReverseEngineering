@@ -39,6 +39,7 @@ typedef struct _game_offsets {
     uint32_t iserver_offset;
     uint32_t mnetwork_offset;
 	uint32_t collision_property_offset;
+	uint32_t m_CollisionGroup_offset;
 } game_offsets;
 
 typedef struct _game_functions {
@@ -161,7 +162,6 @@ extern uint32_t sdktools_size;
 extern bool isTicking;
 extern bool disable_delete_list;
 extern bool server_sleeping;
-extern int player_spawn_delay_frames;
 extern int hooked_delete_counter;
 extern int normal_delete_counter;
 extern uint32_t CGlobalEntityList;
@@ -188,10 +188,7 @@ void RemoveBadEnts();
 bool IsEntityPositionReasonable(uint32_t v);
 uint32_t IsEntityValid(uint32_t entity);
 void LogVpkMemoryLeaks();
-void UpdateCollisionsForMarkedEntities();
-void EnablePlayerWorldSpawnCollision(uint32_t player);
-void EnablePlayerWorldSpawnCollision();
-void DisablePlayerWorldSpawnCollision();
+void FixPlayerCollisionGroup();
 
 ValueList AllocateValuesList();
 Value* CreateNewValue(void* valueInput);
