@@ -143,6 +143,14 @@ void ApplyPatchesBlackMesa()
     uint32_t fix_vphysics_pair_crash = server_srv + 0x00378906;
     *(uint8_t*)(fix_vphysics_pair_crash) = 0xEB;
 
+    uint32_t fix_localplayer_crash = server_srv + 0x0042C421;
+    memset((void*)fix_localplayer_crash, 0x90, 6);
+    *(uint8_t*)(fix_localplayer_crash) = 0xE9;
+    *(uint32_t*)(fix_localplayer_crash+1) = 0x2844;
+
+    uint32_t fix_vphysics_destructor = vphysics_srv + 0x0002B035;
+    *(uint8_t*)(fix_vphysics_destructor) = 0xEB;
+
     uint32_t remove_post_systems = server_srv + 0x008404F8;
     memset((void*)remove_post_systems, 0x90, 5);
 
@@ -384,7 +392,17 @@ uint32_t HooksBlackMesa::ShouldHitEntityHook(uint32_t arg0, uint32_t arg1, uint3
 
 uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
 {
-    return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    pZeroArgProt pDynamicZeroArgProt;
+
+    pDynamicZeroArgProt = (pZeroArgProt)(server_srv + 0x00A92540);
+    uint32_t returnVal = pDynamicZeroArgProt();
+
+    if(!returnVal)
+    {
+        return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    }
+
+    return returnVal;
 }
 
 uint32_t HooksBlackMesa::UTIL_PrecacheOther_Hook(uint32_t arg0, uint32_t arg1)

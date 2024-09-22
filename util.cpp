@@ -529,7 +529,12 @@ void FixPlayerCollisionGroup()
     {
         if(IsEntityValid(ent))
         {
-            *(uint32_t*)(ent+offsets.m_CollisionGroup_offset) = 5;
+            uint32_t collision_flags = *(uint32_t*)(ent+offsets.m_CollisionGroup_offset);
+
+            if (!(collision_flags & 4))
+            {
+                *(uint32_t*)(ent+offsets.m_CollisionGroup_offset) += 4;
+            }
         }
     }
 }
