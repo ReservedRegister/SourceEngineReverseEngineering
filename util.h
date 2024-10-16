@@ -206,5 +206,6 @@ PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input);
 void InsertFieldToFieldList(FieldList list, Field* head);
 void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head);
 void InsertEntityToCollisionsList(uint32_t ent);
+void DisablePlayerCollisions();
 
 #endif

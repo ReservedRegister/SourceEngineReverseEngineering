@@ -539,6 +539,28 @@ void FixPlayerCollisionGroup()
     }
 }
 
+void DisablePlayerCollisions()
+{
+    uint32_t current_player = 0;
+
+    while((current_player = FindEntityByClassname(CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
+    {
+        if(IsEntityValid(current_player))
+        {
+            uint32_t other_players = 0;
+
+            while((other_players = FindEntityByClassname(CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
+            {
+                if(IsEntityValid(other_players) && other_players != current_player)
+                {
+                    //rootconsole->ConsolePrint("Disable player collisions!");
+                    functions.DisableEntityCollisions(current_player, other_players);
+                }
+            }
+        }
+    }
+}
+
 void RemoveBadEnts()
 {
     uint32_t ent = 0;

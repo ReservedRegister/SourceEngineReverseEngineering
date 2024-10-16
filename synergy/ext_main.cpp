@@ -1859,12 +1859,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
 
     HooksSynergy::CleanupDeleteListHook(0);
 
-    //ServiceEventQueue
-    pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
-    pDynamicZeroArgFunc();
-
-    HooksSynergy::CleanupDeleteListHook(0);
-
     FlushPlayerDeaths();
     ResetView();
     UpdatePlayersDonor();
@@ -1881,6 +1875,12 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00471320);
     pDynamicOneArgFunc(0);
+
+    HooksSynergy::CleanupDeleteListHook(0);
+
+    //ServiceEventQueue
+    pDynamicZeroArgFunc = (pZeroArgProt)(server_srv + 0x00687440);
+    pDynamicZeroArgFunc();
 
     HooksSynergy::CleanupDeleteListHook(0);
 

@@ -137,6 +137,7 @@ void HookFunctionsSpecificSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0050D010), (void*)NativeHooks::NpcSpawnFix);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0053B1E0), (void*)NativeHooks::FixAnotherAiCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D210), (void*)NativeHooks::FixCombineGoalCrash);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00830A40), (void*)NativeHooks::EntVerifyFixThink);
 }
 
 uint32_t NativeHooks::FixCombineGoalCrash(uint32_t arg0)
@@ -569,6 +570,22 @@ uint32_t NativeHooks::ManhackSpriteEntVerify(uint32_t arg0, uint32_t arg1)
 
     pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x008B10D0);
     return pDynamicTwoArgFunc(arg0, arg1);
+}
+
+uint32_t NativeHooks::EntVerifyFixThink(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t cbase_object = *(uint32_t*)(arg0+0x0F8C);
+
+    if(IsEntityValid(cbase_object) == 0)
+    {
+        rootconsole->ConsolePrint("Manual correction: 0x0F8C");
+        *(uint32_t*)(arg0+0x0F8C) = 0;
+    }
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00830A40);
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t NativeHooks::FixExplodeInputCrash(uint32_t arg0)

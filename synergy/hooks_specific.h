@@ -56,6 +56,7 @@ public:
 	static uint32_t NpcSpawnFix(uint32_t arg0);
 	static uint32_t FixAnotherAiCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3);
 	static uint32_t FixCombineGoalCrash(uint32_t arg0);
+	static uint32_t EntVerifyFixThink(uint32_t arg0);
 };
 
 #endif

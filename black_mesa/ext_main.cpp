@@ -604,23 +604,14 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
-    //CheckForLocation();
-
-    HooksBlackMesa::CleanupDeleteListHook(0);
-
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x00991F80);
     pDynamicOneArgFunc(arg0);
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
-    //ServiceEventQueue
-    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
-    pDynamicOneArgFunc(0);
-
-    HooksBlackMesa::CleanupDeleteListHook(0);
-
     FixPlayerCollisionGroup();
+    DisablePlayerCollisions();
     RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
@@ -631,6 +622,12 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     //PostSystems
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0035C740);
+    pDynamicOneArgFunc(0);
+
+    HooksBlackMesa::CleanupDeleteListHook(0);
+
+    //ServiceEventQueue
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007B92B0);
     pDynamicOneArgFunc(0);
 
     HooksBlackMesa::CleanupDeleteListHook(0);
