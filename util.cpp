@@ -7,6 +7,7 @@ game_offsets offsets;
 game_functions functions;
 
 bool loaded_extension;
+bool player_collision_rules_changed;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -452,7 +453,10 @@ void InsertEntityToCollisionsList(uint32_t ent)
         char* classname = (char*)(*(uint32_t*)(ent+offsets.classname_offset));
 
         if(classname && strcmp(classname, "player") == 0)
+        {
+            player_collision_rules_changed = true;
             return;
+        }
 
         for(int i = 0; i < 512; i++)
         {
@@ -534,6 +538,41 @@ void FixPlayerCollisionGroup()
             if (!(collision_flags & 4))
             {
                 *(uint32_t*)(ent+offsets.m_CollisionGroup_offset) += 4;
+            }
+        }
+    }
+}
+
+void DisablePlayerWorldSpawnCollision()
+{
+    uint32_t player = 0;
+
+    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    {
+        uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
+
+        if(worldspawn)
+        {
+            uint32_t player_collision_flags = *(uint32_t*)(player+offsets.m_CollisionGroup_offset);
+
+            if(player_collision_rules_changed)
+            {
+                if(!(player_collision_flags & 4))
+                {
+                    *(uint32_t*)(player+offsets.m_CollisionGroup_offset) += 4;
+                }
+
+                //functions.EnableEntityCollisions(player, worldspawn);
+                player_collision_rules_changed = false;
+            }
+            else
+            {
+                if(player_collision_flags & 4)
+                {
+                    *(uint32_t*)(player+offsets.m_CollisionGroup_offset) -= 4;
+                }
+
+                functions.DisableEntityCollisions(player, worldspawn);
             }
         }
     }

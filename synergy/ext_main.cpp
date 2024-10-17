@@ -1863,7 +1863,8 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     ResetView();
     UpdatePlayersDonor();
     AttemptToRestoreGame();
-    FixPlayerCollisionGroup();
+    
+    DisablePlayerWorldSpawnCollision();
     RemoveBadEnts();
 
     HooksSynergy::CleanupDeleteListHook(0);

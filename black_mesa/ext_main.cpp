@@ -610,8 +610,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
-    FixPlayerCollisionGroup();
-    DisablePlayerCollisions();
+    DisablePlayerWorldSpawnCollision();
     RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);

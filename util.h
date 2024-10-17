@@ -207,5 +207,6 @@ void InsertFieldToFieldList(FieldList list, Field* head);
 void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head);
 void InsertEntityToCollisionsList(uint32_t ent);
 void DisablePlayerCollisions();
+void DisablePlayerWorldSpawnCollision();
 
 #endif
