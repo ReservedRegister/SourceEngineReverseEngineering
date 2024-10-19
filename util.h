@@ -34,6 +34,7 @@ typedef struct _game_offsets {
     uint32_t classname_offset;
     uint32_t abs_origin_offset;
     uint32_t abs_angles_offset;
+	uint32_t abs_velocity_offset;
     uint32_t origin_offset;
     uint32_t refhandle_offset;
     uint32_t iserver_offset;

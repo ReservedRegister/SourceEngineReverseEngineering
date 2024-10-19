@@ -549,23 +549,24 @@ void DisablePlayerWorldSpawnCollision()
 
     while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
-        uint32_t player_collision_flags = *(uint32_t*)(player+offsets.m_CollisionGroup_offset);
+        uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
 
-        if(player_collision_rules_changed)
+        if(worldspawn)
         {
-            if(!(player_collision_flags & 4))
+            float vel_x = *(float*)(player+offsets.abs_velocity_offset);
+            float vel_y = *(float*)(player+offsets.abs_velocity_offset+4);
+            float vel_z = *(float*)(player+offsets.abs_velocity_offset+8);
+
+            if(vel_x != 0 || vel_y != 0)
             {
-                *(uint32_t*)(player+offsets.m_CollisionGroup_offset) += 4;
+                functions.DisableEntityCollisions(player, worldspawn);
+            }
+            else
+            {
+                functions.EnableEntityCollisions(player, worldspawn);
             }
 
-            player_collision_rules_changed = false;
-        }
-        else
-        {
-            if(player_collision_flags & 4)
-            {
-                *(uint32_t*)(player+offsets.m_CollisionGroup_offset) -= 4;
-            }
+            //rootconsole->ConsolePrint("%f %f %f", vel_x, vel_y, vel_z);
         }
     }
 }
