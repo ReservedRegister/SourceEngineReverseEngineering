@@ -4,9 +4,6 @@
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 #define EXT_PREFIX "[BlackMesaUtils] "
 
-extern pTwoArgProt SetSolidFlags;
-extern bool player_spawned;
-
 void InitCoreBlackMesa();
 void PopulateHookExclusionListsBlackMesa();
 uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle);

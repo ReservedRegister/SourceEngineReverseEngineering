@@ -70,7 +70,6 @@ bool protect_player;
 bool restore_delay;
 bool restore_delay_lock;
 bool hasSavedOnce;
-bool firstplayer_hasjoined;
 bool reset_viewcontrol;
 bool sdktools_passed;
 bool saving_game_rightnow;

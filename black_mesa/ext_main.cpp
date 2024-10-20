@@ -65,11 +65,9 @@ bool InitExtensionBlackMesa()
 
     CollisionRulesChanged = (pOneArgProt)(server_srv + 0x00294C60);
     FindEntityByClassname = (pThreeArgProt)(server_srv + 0x007E7030);
-    SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
 
     disable_delete_list = false;
     isTicking = false;
-    player_spawned = false;
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
     CGlobalEntityList = server_srv + 0x017B6BE0;
@@ -506,7 +504,7 @@ uint32_t HooksBlackMesa::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint3
     LogVpkMemoryLeaks();
 
     isTicking = false;
-    player_spawned = false;
+    firstplayer_hasjoined = false;
 
     pDynamicThreeArgFunc = (pThreeArgProt)(engine_srv + 0x000E6D70);
     return pDynamicThreeArgFunc(arg0, arg1, arg2);
@@ -562,7 +560,8 @@ uint32_t HooksBlackMesa::PlayerSpawnHook(uint32_t arg0)
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x005983C0);
     uint32_t returnVal = pDynamicOneArgFunc(arg0);
 
-    player_spawned = true;
+    firstplayer_hasjoined = true;
+    player_worldspawn_collision_disabled = false;
 
     return returnVal;
 }
@@ -611,6 +610,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
+    FixPlayerCollisionGroup();
     DisablePlayerWorldSpawnCollision();
     RemoveBadEnts();
 

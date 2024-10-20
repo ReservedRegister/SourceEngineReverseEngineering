@@ -138,6 +138,7 @@ void HookFunctionsSpecificSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0053B1E0), (void*)NativeHooks::FixAnotherAiCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D210), (void*)NativeHooks::FixCombineGoalCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00830A40), (void*)NativeHooks::EntVerifyFixThink);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075B850), (void*)NativeHooks::PatchNpcCrashTrainstation02);
 }
 
 uint32_t NativeHooks::FixCombineGoalCrash(uint32_t arg0)
@@ -694,6 +695,23 @@ uint32_t NativeHooks::Outland_08_Patch(uint32_t arg0, uint32_t arg1)
     }
 
     rootconsole->ConsolePrint("Missing Entity! - Three");
+    return 0;
+}
+
+uint32_t NativeHooks::PatchNpcCrashTrainstation02(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    uint32_t refHandle = *(uint32_t*)(arg0+0x28);
+    uint32_t object = GetCBaseEntitySynergy(refHandle);
+
+    if(IsEntityValid(object))
+    {
+        pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x0075B850);
+        return pDynamicOneArgFunc(arg0);
+    }
+
+    rootconsole->ConsolePrint("Failed to service NPC call with offset 0x28");
     return 0;
 }
 

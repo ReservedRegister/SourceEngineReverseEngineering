@@ -70,7 +70,6 @@ extern bool protect_player;
 extern bool restore_delay;
 extern bool restore_delay_lock;
 extern bool hasSavedOnce;
-extern bool firstplayer_hasjoined;
 extern bool reset_viewcontrol;
 extern bool sdktools_passed;
 extern bool saving_game_rightnow;

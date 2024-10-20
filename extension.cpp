@@ -3,14 +3,14 @@
 extern void InitExtensionBlackMesa();
 extern void InitExtensionSynergy();
 
-extern bool loaded_extension;
+extern void InitUtil();
 
 SynergyUtils g_SynUtils;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_SynUtils);
 
 void SynergyUtils::SDK_OnAllLoaded()
 {
-    loaded_extension = false;
+    InitUtil();
     
     InitExtensionBlackMesa();
     InitExtensionSynergy();

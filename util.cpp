@@ -7,7 +7,9 @@ game_offsets offsets;
 game_functions functions;
 
 bool loaded_extension;
+bool firstplayer_hasjoined;
 bool player_collision_rules_changed;
+bool player_worldspawn_collision_disabled;
 
 uint32_t hook_exclude_list_offset[512] = {};
 uint32_t hook_exclude_list_base[512] = {};
@@ -53,6 +55,14 @@ ValueList leakedResourcesVpkSystem;
 
 pOneArgProt CollisionRulesChanged;
 pThreeArgProt FindEntityByClassname;
+
+void InitUtil()
+{
+    loaded_extension = false;
+    firstplayer_hasjoined = false;
+    player_collision_rules_changed = false;
+    player_worldspawn_collision_disabled = false;
+}
 
 void LogVpkMemoryLeaks()
 {
@@ -527,17 +537,22 @@ void UpdateAllCollisions()
 
 void FixPlayerCollisionGroup()
 {
-    uint32_t ent = 0;
+    uint32_t player = 0;
 
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
-        if(IsEntityValid(ent))
+        if(IsEntityValid(player))
         {
-            uint32_t collision_flags = *(uint32_t*)(ent+offsets.m_CollisionGroup_offset);
+            uint32_t collision_flags = *(uint32_t*)(player+offsets.m_CollisionGroup_offset);
 
-            if (!(collision_flags & 4))
+            if(collision_flags & 4)
             {
-                *(uint32_t*)(ent+offsets.m_CollisionGroup_offset) += 4;
+                *(uint32_t*)(player+offsets.m_CollisionGroup_offset) -= 4;
+            }
+
+            if(!(collision_flags & 2))
+            {
+                *(uint32_t*)(player+offsets.m_CollisionGroup_offset) += 2;
             }
         }
     }

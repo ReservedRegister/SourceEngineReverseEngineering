@@ -2,10 +2,6 @@
 #include "util.h"
 #include "core.h"
 
-pTwoArgProt SetSolidFlags;
-
-bool player_spawned;
-
 void InitCoreBlackMesa()
 {
     //Populate our libraries
@@ -88,7 +84,7 @@ void CheckForLocation()
                     uint32_t collision_property = player+0x160;
                     uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
 
-                    SetSolidFlags(collision_property, 4);
+                    functions.SetSolidFlags(collision_property, 4);
                     //rootconsole->ConsolePrint("bad area!");
                     in_area = true;
                 }
@@ -100,7 +96,7 @@ void CheckForLocation()
             uint32_t collision_property = player+0x160;
             uint16_t current_flags = *(uint16_t*)(collision_property+0x3C);
 
-            SetSolidFlags(collision_property, 16);
+            functions.SetSolidFlags(collision_property, 16);
         }
 
         free(trigger_vecMinsAbs);

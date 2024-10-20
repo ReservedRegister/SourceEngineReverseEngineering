@@ -129,6 +129,10 @@ extern game_functions functions;
 
 extern bool loaded_extension;
 
+extern bool firstplayer_hasjoined;
+extern bool player_collision_rules_changed;
+extern bool player_worldspawn_collision_disabled;
+
 extern uint32_t hook_exclude_list_offset[512];
 extern uint32_t hook_exclude_list_base[512];
 extern uint32_t memory_prots_save_list[512];

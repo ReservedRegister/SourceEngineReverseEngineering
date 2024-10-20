@@ -119,7 +119,6 @@ bool InitExtensionSynergy()
     restore_delay = false;
     restore_delay_lock = false;
     disable_delete_list = false;
-    firstplayer_hasjoined = false;
     hooked_delete_counter = 0;
     normal_delete_counter = 0;
     hasSavedOnce = false;
@@ -1488,6 +1487,7 @@ uint32_t HooksSynergy::PlayerSpawnDirectHook(uint32_t arg0)
     InsertToValuesList(new_player_join_ref, updated_color, NULL, false, false);
 
     firstplayer_hasjoined = true;
+    player_worldspawn_collision_disabled = false;
 
     return returnVal;
 }
@@ -1865,6 +1865,7 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     UpdatePlayersDonor();
     AttemptToRestoreGame();
     
+    FixPlayerCollisionGroup();
     DisablePlayerWorldSpawnCollision();
     RemoveBadEnts();
 
