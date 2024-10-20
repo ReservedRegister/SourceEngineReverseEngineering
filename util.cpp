@@ -533,6 +533,8 @@ void UpdateAllCollisions()
             CollisionRulesChanged(ent);
         }
     }
+
+    RemoveBadEnts();
 }
 
 void FixPlayerCollisionGroup()
