@@ -63,9 +63,6 @@ bool InitExtensionBlackMesa()
     dedicated_srv_size = dedicated_srv_lib->library_size;
     datacache_srv_size = datacache_srv_lib->library_size;
 
-    CollisionRulesChanged = (pOneArgProt)(server_srv + 0x00294C60);
-    FindEntityByClassname = (pThreeArgProt)(server_srv + 0x007E7030);
-
     disable_delete_list = false;
     isTicking = false;
     hooked_delete_counter = 0;
@@ -95,6 +92,8 @@ bool InitExtensionBlackMesa()
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x00336C60);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00379460);
     functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x003794D0);
+    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x00294C60);
+    functions.FindEntityByClassname = (pThreeArgProt)(server_srv + 0x007E7030);
 
     PopulateHookExclusionListsBlackMesa();
 
@@ -398,7 +397,7 @@ uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
 
     if(!returnVal)
     {
-        return FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+        return functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
     }
 
     return returnVal;
@@ -591,7 +590,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    uint32_t firstPlayer = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    uint32_t firstPlayer = functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
 
     if(!firstPlayer)
     {

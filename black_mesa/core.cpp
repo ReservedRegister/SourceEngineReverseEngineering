@@ -59,7 +59,7 @@ void CheckForLocation()
 
     uint32_t player = 0;
 
-    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         bool in_area = false;
         uint32_t player_abs = player+0x294;

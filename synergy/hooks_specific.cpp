@@ -7,6 +7,12 @@ void ApplyPatchesSpecificSynergy()
 {
     uint32_t offset = 0;
 
+    uint32_t fix_ai = server_srv + 0x005703B2;
+    *(uint8_t*)(fix_ai) = 0xB8;
+    *(uint8_t*)(fix_ai+1) = 0xFF;
+    *(uint8_t*)(fix_ai+2) = 0xFF;
+    *(uint8_t*)(fix_ai+3) = 0xFF;
+
     uint32_t weapon_hook_one = server_srv + 0x0055CC3B;
     offset = (uint32_t)NativeHooks::WeaponGetHook - weapon_hook_one - 5;
     *(uint32_t*)(weapon_hook_one+1) = offset;
@@ -99,7 +105,6 @@ void HookFunctionsSpecificSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058FBD0), (void*)NativeHooks::PatchAnotherPlayerAccessCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0057D930), (void*)NativeHooks::BarneyThinkHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0064DD80), (void*)NativeHooks::ChkHandle);
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00806800), (void*)NativeHooks::FixBaseEntityNullCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0058BC50), (void*)NativeHooks::Outland_07_Patch);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D4040), (void*)NativeHooks::Outland_07_Patch_Two);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x006D6C90), (void*)NativeHooks::Outland_08_Patch);
@@ -904,66 +909,6 @@ uint32_t NativeHooks::FixAnotherAiCrash(uint32_t arg0, uint32_t arg1, uint32_t a
 
     pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0053B1E0);
     return pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
-}
-
-uint32_t NativeHooks::FixBaseEntityNullCrash(uint32_t arg0, uint32_t arg1, uint32_t arg2)
-{
-    pThreeArgProt pDynamicThreeArgFunc;
-    pFourArgProt pDynamicFourArgFunc;
-
-    short sVar1;
-    uint32_t uVar2;
-    int iVar3;
-    uint32_t piVar4;
-
-    if(*(uint32_t*)(arg0 + 0x24) == 0 )
-    {
-        uVar2 = 1;
-        iVar3 = 0;
-    }
-    else
-    {
-        sVar1 = *(short*)( *(uint32_t*)(arg0 + 0x24) + 6);
-        uVar2 = 1 << ((uint8_t)sVar1 & 0x1F);
-        iVar3 = ((uint32_t)(int)sVar1 >> 5) << 2;
-    }
-
-    if( ( *(uint32_t*) (*(uint32_t*)(arg1 + 0x2008) + iVar3) & uVar2  ) == 0  )
-    {
-        arg2 = arg2 & 0xFF;
-
-        pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x0076B680);
-        pDynamicFourArgFunc(arg0, arg1, arg2, arg2);
-
-        if(0 < *(int*)(arg0 + 0x10C0))
-        {
-            iVar3 = 0;
-            
-            do
-            {
-                uVar2 = *(uint32_t*)(arg0 + 0x10AC + iVar3 * 4);
-                piVar4 = GetCBaseEntitySynergy(uVar2);
-
-                iVar3 = iVar3 + 1;
-
-                if(IsEntityValid(piVar4))
-                {
-                    pDynamicThreeArgFunc = (pThreeArgProt)(*(uint32_t*)((*(uint32_t*)(piVar4))+0x54));
-                    pDynamicThreeArgFunc(piVar4, arg1, arg2);
-
-                    //rootconsole->ConsolePrint("NEW FUNC HOOK WORKED!");
-                }
-                else
-                {
-                    rootconsole->ConsolePrint(EXT_PREFIX "BaseEntity null crash fixed!");
-                }
-
-            }
-            while(iVar3 < *(int*)(arg0 + 0x10C0));
-        }
-    }
-
-    return 0;
 }
 
 uint32_t NativeHooks::ChkHandle(uint32_t arg0, uint32_t arg1)

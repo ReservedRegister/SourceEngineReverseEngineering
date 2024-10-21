@@ -53,9 +53,6 @@ uint32_t current_vpk_buffer_ref;
 
 ValueList leakedResourcesVpkSystem;
 
-pOneArgProt CollisionRulesChanged;
-pThreeArgProt FindEntityByClassname;
-
 void InitUtil()
 {
     loaded_extension = false;
@@ -502,7 +499,7 @@ void UpdateAllCollisions()
 
             if(IsEntityValid(object))
             {
-                CollisionRulesChanged(object);
+                functions.CollisionRulesChanged(object);
             }
 
             collisions_entity_list[i] = 0;
@@ -511,7 +508,7 @@ void UpdateAllCollisions()
 
     uint32_t ent = 0;
 
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -519,18 +516,18 @@ void UpdateAllCollisions()
 
             if(!m_Network)
             {
-                CollisionRulesChanged(ent);
+                functions.CollisionRulesChanged(ent);
             }
         }
     }
     
     ent = 0;
 
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(ent))
         {
-            CollisionRulesChanged(ent);
+            functions.CollisionRulesChanged(ent);
         }
     }
 
@@ -541,7 +538,7 @@ void FixPlayerCollisionGroup()
 {
     uint32_t player = 0;
 
-    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(player))
         {
@@ -564,41 +561,33 @@ void DisablePlayerWorldSpawnCollision()
 {
     uint32_t player = 0;
 
-    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
-        uint32_t worldspawn = FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
+        uint32_t worldspawn = functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
 
         if(worldspawn)
         {
-            float vel_x = *(float*)(player+offsets.abs_velocity_offset);
-            float vel_y = *(float*)(player+offsets.abs_velocity_offset+4);
-            float vel_z = *(float*)(player+offsets.abs_velocity_offset+8);
-
-            if(vel_x != 0 || vel_y != 0)
+            if(!player_worldspawn_collision_disabled)
             {
                 functions.DisableEntityCollisions(player, worldspawn);
             }
-            else
-            {
-                functions.EnableEntityCollisions(player, worldspawn);
-            }
-
-            //rootconsole->ConsolePrint("%f %f %f", vel_x, vel_y, vel_z);
         }
     }
+
+    player_worldspawn_collision_disabled = true;
 }
 
 void DisablePlayerCollisions()
 {
     uint32_t current_player = 0;
 
-    while((current_player = FindEntityByClassname(CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
+    while((current_player = functions.FindEntityByClassname(CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(current_player))
         {
             uint32_t other_players = 0;
 
-            while((other_players = FindEntityByClassname(CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
+            while((other_players = functions.FindEntityByClassname(CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
             {
                 if(IsEntityValid(other_players) && other_players != current_player)
                 {
@@ -614,7 +603,7 @@ void RemoveBadEnts()
 {
     uint32_t ent = 0;
 
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         uint32_t abs_origin = ent+offsets.abs_origin_offset;
         uint32_t abs_angles = ent+offsets.abs_angles_offset;

@@ -716,7 +716,7 @@ void DisableViewControls()
 {
     uint32_t viewControl = 0;
 
-    while((viewControl = FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
+    while((viewControl = functions.FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
     {
         uint32_t m_refHandle = *(uint32_t*)(viewControl+0x350);
         
@@ -824,7 +824,7 @@ void SaveTriggersDatamaps()
     pOneArgProt pDynamicOneArgFunc;
     uint32_t ent = 0;
 
-    while((ent = FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         char* clsname = (char*)(*(uint32_t*)(ent+0x68));
         char* targetname_current = (char*)  *(uint32_t*)(ent+0x124);
@@ -1429,7 +1429,7 @@ void InstaKillSynergy(uint32_t entity_object, bool validate)
 
         uint32_t player = 0;
 
-        while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+        while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
         {
             PrintToClient(player, 2, (uint32_t)printMsg, 0, 0, 0, 0);
         }
@@ -1663,7 +1663,7 @@ void SavePlayers()
     uint32_t firstEnt = 0;
 
     // Save players
-    while((firstEnt = FindEntityByClassname(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
+    while((firstEnt = functions.FindEntityByClassname(CGlobalEntityList, firstEnt, (uint32_t)"player")) != 0)
     {
         SavedEntity* saved_player = SaveEntity(firstEnt);
 
@@ -1814,7 +1814,7 @@ void InsertViewcontrolsToResetList()
 {
     uint32_t viewControl = 0;
 
-    while((viewControl = FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
+    while((viewControl = functions.FindEntityByClassname(CGlobalEntityList, viewControl, (uint32_t)"point_viewcontrol")) != 0)
     {
         uint32_t m_refHandle = *(uint32_t*)(viewControl+0x350);
         
@@ -1869,7 +1869,7 @@ void GivePlayerWeapons(uint32_t player_object, bool force_give)
 {
     uint32_t equip_coop = 0;
 
-    while((equip_coop = FindEntityByClassname(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
+    while((equip_coop = functions.FindEntityByClassname(CGlobalEntityList, equip_coop, (uint32_t)"info_player_equip")) != 0)
     {
         pOneArgProt pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)equip_coop)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(equip_coop);
@@ -1887,7 +1887,7 @@ void FixModelnameSlashes()
 {
     uint32_t mainEnt = 0;
 
-    while((mainEnt = FindEntityByClassname(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
+    while((mainEnt = functions.FindEntityByClassname(CGlobalEntityList, mainEnt, (uint32_t)"*")) != 0)
     {
         char* classname = (char*) ( *(uint32_t*)(mainEnt+0x68) );
         
@@ -1982,7 +1982,7 @@ void TriggerMovedFailsafe()
     
     uint32_t trigger_ent = 0;
 
-    while((trigger_ent = FindEntityByClassname(CGlobalEntityList, trigger_ent, (uint32_t)"trigger_multiple")) != 0)
+    while((trigger_ent = functions.FindEntityByClassname(CGlobalEntityList, trigger_ent, (uint32_t)"trigger_multiple")) != 0)
     {
         pTwoArgProt pDynamicTwoArgFunc;
         char* targetname = (char*)  *(uint32_t*)(trigger_ent+0x124);
@@ -2148,7 +2148,7 @@ void TriggerMovedExtension(uint32_t pTrigger)
     char* targetname = (char*)  *(uint32_t*)(pTrigger+0x124);
     uint32_t player = 0;
 
-    while((player = FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         pDynamicOneArgFunc = (pOneArgProt)(*(uint32_t*)((*(uint32_t*)pTrigger)+0x30));
         uint32_t dmap = pDynamicOneArgFunc(pTrigger);
@@ -2285,7 +2285,7 @@ void RestorePlayers()
     rootconsole->ConsolePrint("Restoring players...");
     
     uint32_t playerEnt = 0;
-    while((playerEnt = FindEntityByClassname(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
+    while((playerEnt = functions.FindEntityByClassname(CGlobalEntityList, playerEnt, (uint32_t)"player")) != 0)
     {
         uint32_t m_Network = *(uint32_t*)(playerEnt+0x24);
         uint16_t playerIndex = *(uint16_t*)(m_Network+0x6);

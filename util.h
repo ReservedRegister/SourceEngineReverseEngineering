@@ -51,6 +51,8 @@ typedef struct _game_functions {
 	pTwoArgProt SetSolidFlags;
 	pTwoArgProt DisableEntityCollisions;
 	pTwoArgProt EnableEntityCollisions;
+	pOneArgProt CollisionRulesChanged;
+	pThreeArgProt FindEntityByClassname;
 } game_functions;
 
 typedef struct _Vector {
@@ -173,9 +175,6 @@ extern uint32_t CGlobalEntityList;
 extern uint32_t global_vpk_cache_buffer;
 extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
-
-extern pOneArgProt CollisionRulesChanged;
-extern pThreeArgProt FindEntityByClassname;
 
 void* copy_val(void* val, size_t copy_size);
 bool IsAddressExcluded(uint32_t base_address, uint32_t search_address);

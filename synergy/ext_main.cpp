@@ -182,7 +182,6 @@ bool InitExtensionSynergy()
     ReconnectClientsAddr = engine_srv + 0x000D5E50;
     PrintToClientAddr = server_srv + 0x00B66880;
 
-    CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
     pEdtLoadFunc = (pTwoArgProt)EdtLoadFuncAddr;
     pHostChangelevelFunc = (pThreeArgProt)HostChangelevel;
     pFlushFunc = (pThreeArgProt)Flush;
@@ -236,6 +235,8 @@ bool InitExtensionSynergy()
     functions.SetSolidFlags = (pTwoArgProt)(server_srv + 0x003F98A0);
     functions.DisableEntityCollisions = (pTwoArgProt)(server_srv + 0x00499DB0);
     functions.EnableEntityCollisions = (pTwoArgProt)(server_srv + 0x00499E00);
+    functions.CollisionRulesChanged = (pOneArgProt)(server_srv + 0x003D8D20);
+    functions.FindEntityByClassname = (pThreeArgProt)((uint32_t)HooksSynergy::FindEntityByClassnameHook);
 
     PopulateHookPointers();
     PopulateHookExclusionListsSynergy();
@@ -267,7 +268,6 @@ bool InitExtensionSynergy()
 void PopulateHookPointers()
 {
     UTIL_Remove__External = (pOneArgProt)((uint32_t)HooksSynergy::HookEntityDelete);
-    FindEntityByClassname = (pThreeArgProt)((uint32_t)HooksSynergy::FindEntityByClassnameHook);
     CreateEntityByNameHook__External = (pTwoArgProt)((uint32_t)HooksSynergy::CreateEntityByNameHook);
     CleanupDeleteListHook__External = (pOneArgProt)((uint32_t)HooksSynergy::CleanupDeleteListHook);
     PlayerSpawnHook__External = (pThreeArgProt)((uint32_t)HooksSynergy::PlayerSpawnHook);
@@ -302,6 +302,7 @@ void ApplyPatchesSynergy()
         //CleanupDeleteList calls
         /*0x00739AF1,5,0x00A316F0,5,0x00739B48,5*/
 
+        //vehicle spawner fix - linked with another patch named like that
         0x00AE9E34,7
     };
 
@@ -338,12 +339,6 @@ void ApplyPatchesSynergy()
     uint32_t remove_stdcall = server_srv + 0x008BFA8E;
     memset((void*)remove_stdcall, 0x90, 3);
     *(uint8_t*)(remove_stdcall) = 0xC3;
-
-    uint32_t fix_ai = server_srv + 0x005703B2;
-    *(uint8_t*)(fix_ai) = 0xB8;
-    *(uint8_t*)(fix_ai+1) = 0xFF;
-    *(uint8_t*)(fix_ai+2) = 0xFF;
-    *(uint8_t*)(fix_ai+3) = 0xFF;
 
     uint32_t save_fix = server_srv + 0x004AF323;
     offset = (uint32_t)HooksSynergy::MainSaveEntitiesFunc - save_fix - 5;
@@ -1866,7 +1861,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     AttemptToRestoreGame();
     
     FixPlayerCollisionGroup();
-    DisablePlayerWorldSpawnCollision();
     RemoveBadEnts();
 
     HooksSynergy::CleanupDeleteListHook(0);
