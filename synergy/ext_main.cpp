@@ -1860,7 +1860,6 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     UpdatePlayersDonor();
     AttemptToRestoreGame();
     
-    FixPlayerCollisionGroup();
     RemoveBadEnts();
 
     HooksSynergy::CleanupDeleteListHook(0);
