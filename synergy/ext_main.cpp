@@ -1918,15 +1918,22 @@ uint32_t HooksSynergy::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    uint32_t vphysics_object = *(uint32_t*)(arg0+0x1FC);
-
-    if(vphysics_object)
+    if(IsEntityValid(arg0))
     {
-        rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+        uint32_t vphysics_object = *(uint32_t*)(arg0+0x1FC);
+
+        if(vphysics_object)
+        {
+            rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+            return 0;
+        }
+
+        *(uint32_t*)(arg0+0x1FC) = arg1;
+
         return 0;
     }
 
-    *(uint32_t*)(arg0+0x1FC) = arg1;
+    rootconsole->ConsolePrint("Entity was invalid failed to set vphysics object!");
     return 0;
 }
 

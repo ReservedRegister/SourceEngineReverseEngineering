@@ -185,7 +185,7 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92260), (void*)HooksBlackMesa::HookInstaKill);
 
     //RagdollBreakingDisable
-    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0078FC70), (void*)HooksBlackMesa::EmptyCall);
+    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0078FC70), (void*)HooksBlackMesa::EmptyCall);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F5B50), (void*)HooksBlackMesa::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004FD670), (void*)HooksBlackMesa::UpdateOnRemove);
@@ -350,15 +350,22 @@ uint32_t HooksBlackMesa::VPhysicsSetObjectHook(uint32_t arg0, uint32_t arg1)
     pOneArgProt pDynamicOneArgFunc;
     pTwoArgProt pDynamicTwoArgFunc;
 
-    uint32_t vphysics_object = *(uint32_t*)(arg0+0x1F8);
-
-    if(vphysics_object)
+    if(IsEntityValid(arg0))
     {
-        rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+        uint32_t vphysics_object = *(uint32_t*)(arg0+0x1F8);
+
+        if(vphysics_object)
+        {
+            rootconsole->ConsolePrint("Attempting override existing vphysics object!!!!");
+            return 0;
+        }
+
+        *(uint32_t*)(arg0+0x1F8) = arg1;
+
         return 0;
     }
 
-    *(uint32_t*)(arg0+0x1F8) = arg1;
+    rootconsole->ConsolePrint("Entity was invalid failed to set vphysics object!");
     return 0;
 }
 

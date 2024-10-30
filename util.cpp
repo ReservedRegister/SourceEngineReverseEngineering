@@ -565,7 +565,7 @@ void DisablePlayerWorldSpawnCollision()
     {
         uint32_t worldspawn = functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
 
-        if(worldspawn)
+        if(IsEntityValid(worldspawn) && IsEntityValid(player))
         {
             if(!player_worldspawn_collision_disabled)
             {
@@ -605,14 +605,16 @@ void RemoveBadEnts()
 
     while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
-        uint32_t abs_origin = ent+offsets.abs_origin_offset;
-        uint32_t abs_angles = ent+offsets.abs_angles_offset;
-        uint32_t origin = ent+offsets.origin_offset;
-
-        if(!IsEntityPositionReasonable(abs_origin) || !IsEntityPositionReasonable(abs_angles) || !IsEntityPositionReasonable(origin))
+        if(IsEntityValid(ent))
         {
-            rootconsole->ConsolePrint("Removed bad ent!");
-            functions.RemoveEntityNormal(ent, true);
+            uint32_t abs_origin = ent+offsets.abs_origin_offset;
+            uint32_t origin = ent+offsets.origin_offset;
+
+            if(!IsEntityPositionReasonable(abs_origin) || !IsEntityPositionReasonable(origin))
+            {
+                rootconsole->ConsolePrint("Removed bad ent!");
+                functions.RemoveEntityNormal(ent, true);
+            }
         }
     }
 }
