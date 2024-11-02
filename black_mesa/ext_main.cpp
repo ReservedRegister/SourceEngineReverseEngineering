@@ -71,8 +71,10 @@ bool InitExtensionBlackMesa()
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
+    ragdoll_delete_frame_counter = 0;
 
     leakedResourcesVpkSystem = AllocateValuesList();
+    ragdoll_entity_list = AllocateValuesList();
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
@@ -113,6 +115,10 @@ bool InitExtensionBlackMesa()
 void ApplyPatchesBlackMesa()
 {
     uint32_t offset = 0;
+
+    uint32_t patch_ragdoll_break_remove = server_srv + 0x009FDC1D;
+    offset = (uint32_t)HooksBlackMesa::RagdollBreakUtilRemoveHook - patch_ragdoll_break_remove - 5;
+    *(uint32_t*)(patch_ragdoll_break_remove+1) = offset;
 
     uint32_t patch_vpk_cache_buffer = dedicated_srv + 0x000B57D2;
     memset((void*)patch_vpk_cache_buffer, 0x90, 0x17);
@@ -184,8 +190,7 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x009919D0), (void*)HooksBlackMesa::PhysSimEnt);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A92260), (void*)HooksBlackMesa::HookInstaKill);
 
-    //RagdollBreakingDisable
-    //HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0078FC70), (void*)HooksBlackMesa::EmptyCall);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0078FC70), (void*)HooksBlackMesa::RagdollBreakHook);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004F5B50), (void*)HooksBlackMesa::AcceptInputHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004FD670), (void*)HooksBlackMesa::UpdateOnRemove);
@@ -200,6 +205,60 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0059A1F0), (void*)HooksBlackMesa::Event_KilledPlayer);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)HooksBlackMesa::DispatchAnimEventsHook);
+}
+
+uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0078FC70);
+        pDynamicThreeArgFunc(arg0, arg1, arg2);
+
+        if(IsEntityValid(arg0) == 0)
+        {
+            rootconsole->ConsolePrint("Runtime error - failed to maintain entity integrity! (Ragdoll breaking)");
+            exit(EXIT_FAILURE);
+            return 0;
+        }
+    }
+
+    rootconsole->ConsolePrint("Failed to ragdoll break!");
+    return 0;
+}
+
+uint32_t HooksBlackMesa::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg1))
+    {
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x004CE5F0);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Failed to service DispatchAnimEvents");
+    return 0;
+}
+
+uint32_t HooksBlackMesa::RagdollBreakUtilRemoveHook(uint32_t arg0)
+{
+    if(IsEntityValid(arg0))
+    {
+        uint32_t refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
+
+        Value* new_refhandle = CreateNewValue((void*)refHandle);
+        InsertToValuesList(ragdoll_entity_list, new_refhandle, NULL, true, false);
+
+        rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
+        return 0;
+    }
+
+    rootconsole->ConsolePrint("Failed to add entity to ragdoll break list!");
+    return 0;
 }
 
 uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
@@ -582,7 +641,9 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
+
     isTicking = true;
+    ragdoll_delete_frame_counter++;
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
@@ -618,6 +679,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     FixPlayerCollisionGroup();
     DisablePlayerWorldSpawnCollision();
+    RemoveRagdollBreakEntities();
     RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);

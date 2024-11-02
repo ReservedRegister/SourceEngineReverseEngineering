@@ -4,6 +4,9 @@
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 #define EXT_PREFIX "[BlackMesaUtils] "
 
+extern ValueList ragdoll_entity_list;
+extern int ragdoll_delete_frame_counter;
+
 void InitCoreBlackMesa();
 void PopulateHookExclusionListsBlackMesa();
 uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle);
@@ -11,5 +14,6 @@ void InstaKillBlackMesa(uint32_t entity_object, bool validate);
 void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate);
 
 void CheckForLocation();
+void RemoveRagdollBreakEntities();
 
 #endif

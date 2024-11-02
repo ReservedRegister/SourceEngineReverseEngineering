@@ -609,8 +609,21 @@ void RemoveBadEnts()
         {
             uint32_t abs_origin = ent+offsets.abs_origin_offset;
             uint32_t origin = ent+offsets.origin_offset;
+            uint32_t abs_angles = ent+offsets.abs_angles_offset;
+            uint32_t abs_velocity = ent+offsets.abs_velocity_offset;
 
-            if(!IsEntityPositionReasonable(abs_origin) || !IsEntityPositionReasonable(origin))
+            if
+            (
+            
+            !IsEntityPositionReasonable(abs_origin)
+            || 
+            !IsEntityPositionReasonable(origin)
+            || 
+            !IsEntityPositionReasonable(abs_angles)
+            ||
+            !IsEntityPositionReasonable(abs_velocity)
+            
+            )
             {
                 rootconsole->ConsolePrint("Removed bad ent!");
                 functions.RemoveEntityNormal(ent, true);

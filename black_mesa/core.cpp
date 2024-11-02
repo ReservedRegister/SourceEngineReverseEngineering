@@ -2,6 +2,9 @@
 #include "util.h"
 #include "core.h"
 
+ValueList ragdoll_entity_list;
+int ragdoll_delete_frame_counter;
+
 void InitCoreBlackMesa()
 {
     //Populate our libraries
@@ -44,6 +47,32 @@ uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
 void PopulateHookExclusionListsBlackMesa()
 {
 
+}
+
+void RemoveRagdollBreakEntities()
+{
+    if(ragdoll_delete_frame_counter > 80)
+    {
+        Value* firstEnt = *ragdoll_entity_list;
+
+        if(firstEnt)
+        {
+            uint32_t refHandle = (uint32_t)firstEnt->value;
+            uint32_t object = functions.GetCBaseEntity(refHandle);
+
+            if(IsEntityValid(object))
+            {
+                functions.RemoveEntityNormal(object, true);
+            }
+
+            Value* nextEnt = firstEnt->nextVal;
+            *ragdoll_entity_list = nextEnt;
+
+            free(firstEnt);
+        }
+
+        ragdoll_delete_frame_counter = 0;
+    }
 }
 
 void CheckForLocation()

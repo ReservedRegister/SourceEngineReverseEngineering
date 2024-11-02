@@ -144,6 +144,7 @@ void HookFunctionsSpecificSynergy()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075D210), (void*)NativeHooks::FixCombineGoalCrash);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00830A40), (void*)NativeHooks::EntVerifyFixThink);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0075B850), (void*)NativeHooks::PatchNpcCrashTrainstation02);
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A28DE0), (void*)NativeHooks::MissingVphysicsObjectCrashIdk);
 }
 
 uint32_t NativeHooks::FixCombineGoalCrash(uint32_t arg0)
@@ -1040,5 +1041,24 @@ uint32_t NativeHooks::BarneyThinkHook(uint32_t arg0, uint32_t arg1, uint32_t arg
     }
 
     rootconsole->ConsolePrint("Failed to obtain object!");
+    return 0;
+}
+
+uint32_t NativeHooks::MissingVphysicsObjectCrashIdk(uint32_t arg0, uint32_t arg1, uint32_t arg2)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        uint32_t vphysics_object = *(uint32_t*)(arg0+0x1FC);
+
+        if(vphysics_object)
+        {
+            pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x00A28DE0);
+            pDynamicThreeArgFunc(arg0, arg1, arg2);
+        }
+    }
+
+    rootconsole->ConsolePrint("Missing vphysics object - Nov 2024");
     return 0;
 }

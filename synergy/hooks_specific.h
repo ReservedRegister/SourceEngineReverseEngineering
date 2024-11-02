@@ -57,6 +57,7 @@ public:
 	static uint32_t FixCombineGoalCrash(uint32_t arg0);
 	static uint32_t EntVerifyFixThink(uint32_t arg0);
 	static uint32_t PatchNpcCrashTrainstation02(uint32_t arg0);
+	static uint32_t MissingVphysicsObjectCrashIdk(uint32_t arg0, uint32_t arg1, uint32_t arg2);
 };
 
 #endif
