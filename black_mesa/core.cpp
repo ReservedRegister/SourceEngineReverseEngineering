@@ -2,6 +2,7 @@
 #include "util.h"
 #include "core.h"
 
+ValueList ragdoll_entity_list_created;
 ValueList ragdoll_entity_list;
 int ragdoll_delete_frame_counter;
 
@@ -49,9 +50,113 @@ void PopulateHookExclusionListsBlackMesa()
 
 }
 
+void CorrectVphysicsEntity(uint32_t ent)
+{
+    pThreeArgProt pDynamicThreeArgFunc;
+    pFourArgProt pDynamicFourArgFunc;
+
+    if(IsEntityValid(ent))
+    {
+        uint32_t vphysics_object = *(uint32_t*)(ent+0x1F8);
+
+        if(vphysics_object)
+        {
+            Vector current_origin;
+            Vector current_angles;
+            Vector empty_vector;
+
+            //GetPosition
+            pDynamicThreeArgFunc = (pThreeArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xC0)  );
+            pDynamicThreeArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&current_angles);
+
+            //rootconsole->ConsolePrint("%f %f %f", current_angles.x, current_angles.y, current_angles.z);
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_origin) && !IsEntityPositionReasonable((uint32_t)&current_angles))
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&empty_vector, 1);
+
+                rootconsole->ConsolePrint("Corrected vphysics origin & angles!");
+
+                return;
+            }
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_origin))
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&empty_vector, (uint32_t)&current_angles, 1);
+
+                rootconsole->ConsolePrint("Corrected vphysics origin!");
+            }
+
+            if(!IsEntityPositionReasonable((uint32_t)&current_angles))
+            {
+                //SetPosition
+                pDynamicFourArgFunc = (pFourArgProt)(  *(uint32_t*)((*(uint32_t*)(vphysics_object))+0xB8)  );
+                pDynamicFourArgFunc(vphysics_object, (uint32_t)&current_origin, (uint32_t)&empty_vector, 1);
+
+                rootconsole->ConsolePrint("Corrected vphysics angles!");
+            }
+        }
+    }
+}
+
+bool AddEntityToRagdollRemoveList(uint32_t object)
+{
+    if(IsEntityValid(object))
+    {
+        uint32_t refHandle = *(uint32_t*)(object+offsets.refhandle_offset);
+
+        Value* new_refhandle = CreateNewValue((void*)refHandle);
+        InsertToValuesList(ragdoll_entity_list, new_refhandle, NULL, true, false);
+
+        ragdoll_delete_frame_counter = 0;
+
+        rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
+        return true;
+    }
+
+    rootconsole->ConsolePrint("Failed to add entity to ragdoll break list!");
+    return false;
+}
+
+bool RemoveRagdollBreakingEntity(uint32_t ent)
+{
+    if(IsEntityValid(ent))
+    {
+        uint32_t refHandleFromRemovedEnt = *(uint32_t*)(ent+offsets.refhandle_offset);
+        Value* firstEnt = *ragdoll_entity_list_created;
+
+        while(firstEnt)
+        {
+            uint32_t refHandle = (uint32_t)firstEnt->value;
+
+            if(refHandle == refHandleFromRemovedEnt)
+            {
+                bool success = RemoveFromValuesList(ragdoll_entity_list_created, (void*)refHandle, NULL);
+
+                if(!success)
+                {
+                    rootconsole->ConsolePrint("Failed to manage ragdoll break lists!");
+                    exit(EXIT_FAILURE);
+                }
+
+                AddEntityToRagdollRemoveList(ent);
+                return true;
+            }
+
+            firstEnt = firstEnt->nextVal;
+        }
+    }
+
+    return false;
+}
+
 void RemoveRagdollBreakEntities()
 {
-    if(ragdoll_delete_frame_counter > 80)
+    if(ragdoll_delete_frame_counter > 60)
     {
         Value* firstEnt = *ragdoll_entity_list;
 
@@ -169,6 +274,11 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
         if(isMarked)
         {
             //rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
+            return;
+        }
+
+        if(RemoveRagdollBreakingEntity(object_verify))
+        {
             return;
         }
 

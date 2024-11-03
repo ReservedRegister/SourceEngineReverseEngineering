@@ -75,6 +75,7 @@ bool InitExtensionBlackMesa()
 
     leakedResourcesVpkSystem = AllocateValuesList();
     ragdoll_entity_list = AllocateValuesList();
+    ragdoll_entity_list_created = AllocateValuesList();
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
@@ -115,6 +116,10 @@ bool InitExtensionBlackMesa()
 void ApplyPatchesBlackMesa()
 {
     uint32_t offset = 0;
+
+    uint32_t patch_ragdoll_break_create = server_srv + 0x009FD863;
+    offset = (uint32_t)HooksBlackMesa::CreateNoSpawnHookRagdollBreaking - patch_ragdoll_break_create - 5;
+    *(uint32_t*)(patch_ragdoll_break_create+1) = offset;
 
     uint32_t patch_ragdoll_break_remove = server_srv + 0x009FDC1D;
     offset = (uint32_t)HooksBlackMesa::RagdollBreakUtilRemoveHook - patch_ragdoll_break_remove - 5;
@@ -207,6 +212,8 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)HooksBlackMesa::DispatchAnimEventsHook);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00295760), (void*)HooksBlackMesa::VPhysicsUpdateHook);
 }
 
 uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -244,20 +251,47 @@ uint32_t HooksBlackMesa::DispatchAnimEventsHook(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t HooksBlackMesa::RagdollBreakUtilRemoveHook(uint32_t arg0)
+uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
-    if(IsEntityValid(arg0))
+    pFourArgProt pDynamicFourArgFunc;
+
+    pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x004FA240);
+    uint32_t new_object = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
+
+    if(IsEntityValid(new_object))
     {
-        uint32_t refHandle = *(uint32_t*)(arg0+offsets.refhandle_offset);
+        uint32_t refHandle = *(uint32_t*)(new_object+offsets.refhandle_offset);
 
         Value* new_refhandle = CreateNewValue((void*)refHandle);
-        InsertToValuesList(ragdoll_entity_list, new_refhandle, NULL, true, false);
+        InsertToValuesList(ragdoll_entity_list_created, new_refhandle, NULL, false, false);
 
-        rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
-        return 0;
+        rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
+        return new_object;
     }
 
-    rootconsole->ConsolePrint("Failed to add entity to ragdoll break list!");
+    rootconsole->ConsolePrint("Failed to add entity to ragdoll created break list!");
+    return new_object;
+}
+
+uint32_t HooksBlackMesa::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
+{
+    pTwoArgProt pDynamicTwoArgFunc;
+
+    if(IsEntityValid(arg0))
+    {
+        CorrectVphysicsEntity(arg0);
+
+        pDynamicTwoArgFunc = (pTwoArgProt)(server_srv + 0x00295760);
+        return pDynamicTwoArgFunc(arg0, arg1);
+    }
+
+    rootconsole->ConsolePrint("Entity was invalid in vphysics update!");
+    return 0;
+}
+
+uint32_t HooksBlackMesa::RagdollBreakUtilRemoveHook(uint32_t arg0)
+{
+    AddEntityToRagdollRemoveList(arg0);
     return 0;
 }
 

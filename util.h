@@ -56,9 +56,9 @@ typedef struct _game_functions {
 } game_functions;
 
 typedef struct _Vector {
-	float x;
-	float y;
-	float z;
+	float x = 0;
+	float y = 0;
+	float z = 0;
 } Vector;
 
 typedef struct _Library {
