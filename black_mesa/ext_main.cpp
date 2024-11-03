@@ -121,10 +121,6 @@ void ApplyPatchesBlackMesa()
     offset = (uint32_t)HooksBlackMesa::CreateNoSpawnHookRagdollBreaking - patch_ragdoll_break_create - 5;
     *(uint32_t*)(patch_ragdoll_break_create+1) = offset;
 
-    uint32_t patch_ragdoll_break_remove = server_srv + 0x009FDC1D;
-    offset = (uint32_t)HooksBlackMesa::RagdollBreakUtilRemoveHook - patch_ragdoll_break_remove - 5;
-    *(uint32_t*)(patch_ragdoll_break_remove+1) = offset;
-
     uint32_t patch_vpk_cache_buffer = dedicated_srv + 0x000B57D2;
     memset((void*)patch_vpk_cache_buffer, 0x90, 0x17);
     *(uint8_t*)(patch_vpk_cache_buffer) = 0x89;
@@ -286,12 +282,6 @@ uint32_t HooksBlackMesa::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
     }
 
     rootconsole->ConsolePrint("Entity was invalid in vphysics update!");
-    return 0;
-}
-
-uint32_t HooksBlackMesa::RagdollBreakUtilRemoveHook(uint32_t arg0)
-{
-    AddEntityToRagdollRemoveList(arg0);
     return 0;
 }
 

@@ -156,7 +156,7 @@ bool RemoveRagdollBreakingEntity(uint32_t ent)
 
 void RemoveRagdollBreakEntities()
 {
-    if(ragdoll_delete_frame_counter > 60)
+    if(ragdoll_delete_frame_counter > 20)
     {
         Value* firstEnt = *ragdoll_entity_list;
 
