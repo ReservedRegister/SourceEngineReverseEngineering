@@ -210,6 +210,8 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)HooksBlackMesa::DispatchAnimEventsHook);
 
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00295760), (void*)HooksBlackMesa::VPhysicsUpdateHook);
+
+    HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007E9040), (void*)HooksBlackMesa::GlobalEntityListClear);
 }
 
 uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t arg2)
@@ -261,7 +263,7 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
         Value* new_refhandle = CreateNewValue((void*)refHandle);
         InsertToValuesList(ragdoll_entity_list_created, new_refhandle, NULL, false, false);
 
-        rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
+        //rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
         return new_object;
     }
 
@@ -703,7 +705,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     FixPlayerCollisionGroup();
     DisablePlayerWorldSpawnCollision();
-    RemoveRagdollBreakEntities();
+    RemoveRagdollBreakEntities(false);
     RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
@@ -725,6 +727,22 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     HooksBlackMesa::CleanupDeleteListHook(0);
 
     return 0;
+}
+
+uint32_t HooksBlackMesa::GlobalEntityListClear(uint32_t arg0)
+{
+    pOneArgProt pDynamicOneArgFunc;
+
+    pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007E9040);
+    uint32_t returnVal = pDynamicOneArgFunc(arg0);
+
+    // Clears entire entity list from map
+
+    // Then clear our lists that store the ragdoll breaking entities!
+
+    FlushRagdollBreakingEntities();
+    HooksBlackMesa::CleanupDeleteListHook(0);
+    return returnVal;
 }
 
 uint32_t HooksBlackMesa::HookInstaKill(uint32_t arg0)

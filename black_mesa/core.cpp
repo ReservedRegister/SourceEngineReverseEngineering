@@ -114,7 +114,7 @@ bool AddEntityToRagdollRemoveList(uint32_t object)
 
         ragdoll_delete_frame_counter = 0;
 
-        rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
+        //rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
         return true;
     }
 
@@ -154,9 +154,30 @@ bool RemoveRagdollBreakingEntity(uint32_t ent)
     return false;
 }
 
-void RemoveRagdollBreakEntities()
+//Warning dangerous function
+
+void FlushRagdollBreakingEntities()
 {
-    if(ragdoll_delete_frame_counter > 20)
+    // Make sure that ragdoll_entity_list_created is empty because all the entities should have been removed from that list before using this function
+
+    if(*ragdoll_entity_list_created != NULL)
+    {
+        rootconsole->ConsolePrint("Failed to flush ragdoll entities!");
+        exit(EXIT_FAILURE);
+    }
+
+    while(true)
+    {
+        RemoveRagdollBreakEntities(true);
+
+        if(*ragdoll_entity_list == NULL)
+            break;
+    }
+}
+
+void RemoveRagdollBreakEntities(bool bypass)
+{
+    if(ragdoll_delete_frame_counter > 15 || bypass)
     {
         Value* firstEnt = *ragdoll_entity_list;
 
@@ -167,6 +188,11 @@ void RemoveRagdollBreakEntities()
 
             if(IsEntityValid(object))
             {
+                if(bypass)
+                {
+                    rootconsole->ConsolePrint("Flushing ragdoll breaking entity!");
+                }
+
                 functions.RemoveEntityNormal(object, true);
             }
 

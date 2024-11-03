@@ -16,8 +16,9 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate);
 
 void CheckForLocation();
 bool RemoveRagdollBreakingEntity(uint32_t ent);
-void RemoveRagdollBreakEntities();
+void RemoveRagdollBreakEntities(bool bypass);
 bool AddEntityToRagdollRemoveList(uint32_t object);
 void CorrectVphysicsEntity(uint32_t ent);
+void FlushRagdollBreakingEntities();
 
 #endif
