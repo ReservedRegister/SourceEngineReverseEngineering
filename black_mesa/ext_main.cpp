@@ -72,6 +72,7 @@ bool InitExtensionBlackMesa()
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
     ragdoll_delete_frame_counter = 0;
+    ragdoll_delete_entities_total = 0;
 
     leakedResourcesVpkSystem = AllocateValuesList();
     ragdoll_entity_list = AllocateValuesList();

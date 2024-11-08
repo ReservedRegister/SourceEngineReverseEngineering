@@ -5,6 +5,7 @@
 ValueList ragdoll_entity_list_created;
 ValueList ragdoll_entity_list;
 int ragdoll_delete_frame_counter;
+int ragdoll_delete_entities_total;
 
 void InitCoreBlackMesa()
 {
@@ -113,6 +114,7 @@ bool AddEntityToRagdollRemoveList(uint32_t object)
         InsertToValuesList(ragdoll_entity_list, new_refhandle, NULL, true, false);
 
         ragdoll_delete_frame_counter = 0;
+        ragdoll_delete_entities_total++;
 
         //rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
         return true;
@@ -177,11 +179,11 @@ void FlushRagdollBreakingEntities()
 
 void RemoveRagdollBreakEntities(bool bypass)
 {
-    if(ragdoll_delete_frame_counter > 15 || bypass)
+    if(ragdoll_delete_frame_counter > 5 || bypass)
     {
         Value* firstEnt = *ragdoll_entity_list;
 
-        if(firstEnt)
+        if((firstEnt && ragdoll_delete_entities_total > 60) || (firstEnt && bypass))
         {
             uint32_t refHandle = (uint32_t)firstEnt->value;
             uint32_t object = functions.GetCBaseEntity(refHandle);
@@ -192,9 +194,15 @@ void RemoveRagdollBreakEntities(bool bypass)
                 {
                     rootconsole->ConsolePrint("Flushing ragdoll breaking entity!");
                 }
+                else
+                {
+                    rootconsole->ConsolePrint("Removing ragdoll entity gib!");
+                }
 
                 functions.RemoveEntityNormal(object, true);
             }
+
+            ragdoll_delete_entities_total--;
 
             Value* nextEnt = firstEnt->nextVal;
             *ragdoll_entity_list = nextEnt;
