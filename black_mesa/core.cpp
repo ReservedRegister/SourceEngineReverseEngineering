@@ -4,8 +4,11 @@
 
 ValueList ragdoll_entity_list_created;
 ValueList ragdoll_entity_list;
+uint32_t first_ragdoll_gib;
 int ragdoll_delete_frame_counter;
 int ragdoll_delete_entities_total;
+int ragdoll_breaking_gib_counter;
+bool is_currently_ragdoll_breaking;
 
 void InitCoreBlackMesa()
 {

@@ -71,8 +71,11 @@ bool InitExtensionBlackMesa()
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
+    first_ragdoll_gib = 0;
     ragdoll_delete_frame_counter = 0;
     ragdoll_delete_entities_total = 0;
+    ragdoll_breaking_gib_counter = 0;
+    is_currently_ragdoll_breaking = false;
 
     leakedResourcesVpkSystem = AllocateValuesList();
     ragdoll_entity_list = AllocateValuesList();
@@ -221,8 +224,13 @@ uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t
 
     if(IsEntityValid(arg0))
     {
+        ragdoll_breaking_gib_counter = 0;
+        is_currently_ragdoll_breaking = true;
+
         pDynamicThreeArgFunc = (pThreeArgProt)(server_srv + 0x0078FC70);
         pDynamicThreeArgFunc(arg0, arg1, arg2);
+
+        is_currently_ragdoll_breaking = false;
 
         if(IsEntityValid(arg0) == 0)
         {
@@ -254,22 +262,47 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
 {
     pFourArgProt pDynamicFourArgFunc;
 
+    if(is_currently_ragdoll_breaking && ragdoll_breaking_gib_counter > 4)
+    {
+        rootconsole->ConsolePrint("Ignored gib from ragdoll breaker!");
+
+        if(IsEntityValid(first_ragdoll_gib))
+        {
+            return first_ragdoll_gib;
+        }
+
+        rootconsole->ConsolePrint("First gib was removed!!! - Critical Error");
+        exit(EXIT_FAILURE);
+        return 0;
+    }
+
     pDynamicFourArgFunc = (pFourArgProt)(server_srv + 0x004FA240);
     uint32_t new_object = pDynamicFourArgFunc(arg0, arg1, arg2, arg3);
 
     if(IsEntityValid(new_object))
     {
-        uint32_t refHandle = *(uint32_t*)(new_object+offsets.refhandle_offset);
+        if(is_currently_ragdoll_breaking)
+        {
+            if(ragdoll_breaking_gib_counter == 0)
+            {
+                first_ragdoll_gib = new_object;
+            }
 
-        Value* new_refhandle = CreateNewValue((void*)refHandle);
-        InsertToValuesList(ragdoll_entity_list_created, new_refhandle, NULL, false, false);
+            uint32_t refHandle = *(uint32_t*)(new_object+offsets.refhandle_offset);
 
-        //rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
+            Value* new_refhandle = CreateNewValue((void*)refHandle);
+            InsertToValuesList(ragdoll_entity_list_created, new_refhandle, NULL, false, false);
+
+            //rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
+            ragdoll_breaking_gib_counter++;
+        }
+
         return new_object;
     }
 
     rootconsole->ConsolePrint("Failed to add entity to ragdoll created break list!");
-    return new_object;
+    exit(EXIT_FAILURE);
+    return 0;
 }
 
 uint32_t HooksBlackMesa::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)

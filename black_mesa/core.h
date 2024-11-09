@@ -6,8 +6,11 @@
 
 extern ValueList ragdoll_entity_list_created;
 extern ValueList ragdoll_entity_list;
+extern uint32_t first_ragdoll_gib;
 extern int ragdoll_delete_frame_counter;
 extern int ragdoll_delete_entities_total;
+extern int ragdoll_breaking_gib_counter;
+extern bool is_currently_ragdoll_breaking;
 
 void InitCoreBlackMesa();
 void PopulateHookExclusionListsBlackMesa();

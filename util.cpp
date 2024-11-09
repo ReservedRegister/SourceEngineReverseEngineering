@@ -567,10 +567,25 @@ void DisablePlayerWorldSpawnCollision()
 
         if(IsEntityValid(worldspawn) && IsEntityValid(player))
         {
-            if(!player_worldspawn_collision_disabled)
+            float player_velocity_x = *(uint32_t*)(player+offsets.abs_velocity_offset);
+            float player_velocity_y = *(uint32_t*)(player+offsets.abs_velocity_offset+4);
+            float player_velocity_z = *(uint32_t*)(player+offsets.abs_velocity_offset+8);
+
+            if(player_velocity_x > 3270000000.0 || player_velocity_y > 3270000000.0)
             {
                 functions.DisableEntityCollisions(player, worldspawn);
             }
+            else
+            {
+                functions.EnableEntityCollisions(player, worldspawn);
+            }
+
+            //rootconsole->ConsolePrint("%f %f %f", player_velocity_x, player_velocity_y, player_velocity_z);
+
+            //if(!player_worldspawn_collision_disabled)
+            //{
+            //    functions.DisableEntityCollisions(player, worldspawn);
+            //}
         }
     }
 
