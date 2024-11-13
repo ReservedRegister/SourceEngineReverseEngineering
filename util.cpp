@@ -571,7 +571,7 @@ void DisablePlayerWorldSpawnCollision()
             float player_velocity_y = *(uint32_t*)(player+offsets.abs_velocity_offset+4);
             float player_velocity_z = *(uint32_t*)(player+offsets.abs_velocity_offset+8);
 
-            if(player_velocity_x > 3270000000.0 || player_velocity_y > 3270000000.0)
+            if(player_velocity_x > 3260000000.0 || player_velocity_y > 3260000000.0)
             {
                 functions.DisableEntityCollisions(player, worldspawn);
             }

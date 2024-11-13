@@ -2,11 +2,7 @@
 #include "util.h"
 #include "core.h"
 
-ValueList ragdoll_entity_list_created;
-ValueList ragdoll_entity_list;
 uint32_t first_ragdoll_gib;
-int ragdoll_delete_frame_counter;
-int ragdoll_delete_entities_total;
 int ragdoll_breaking_gib_counter;
 bool is_currently_ragdoll_breaking;
 
@@ -107,116 +103,6 @@ void CorrectVphysicsEntity(uint32_t ent)
     }
 }
 
-bool AddEntityToRagdollRemoveList(uint32_t object)
-{
-    if(IsEntityValid(object))
-    {
-        uint32_t refHandle = *(uint32_t*)(object+offsets.refhandle_offset);
-
-        Value* new_refhandle = CreateNewValue((void*)refHandle);
-        InsertToValuesList(ragdoll_entity_list, new_refhandle, NULL, true, false);
-
-        ragdoll_delete_frame_counter = 0;
-        ragdoll_delete_entities_total++;
-
-        //rootconsole->ConsolePrint("Added entity to ragdoll break list! [%d]", ValueListItems(ragdoll_entity_list, NULL));
-        return true;
-    }
-
-    rootconsole->ConsolePrint("Failed to add entity to ragdoll break list!");
-    return false;
-}
-
-bool RemoveRagdollBreakingEntity(uint32_t ent)
-{
-    if(IsEntityValid(ent))
-    {
-        uint32_t refHandleFromRemovedEnt = *(uint32_t*)(ent+offsets.refhandle_offset);
-        Value* firstEnt = *ragdoll_entity_list_created;
-
-        while(firstEnt)
-        {
-            uint32_t refHandle = (uint32_t)firstEnt->value;
-
-            if(refHandle == refHandleFromRemovedEnt)
-            {
-                bool success = RemoveFromValuesList(ragdoll_entity_list_created, (void*)refHandle, NULL);
-
-                if(!success)
-                {
-                    rootconsole->ConsolePrint("Failed to manage ragdoll break lists!");
-                    exit(EXIT_FAILURE);
-                }
-
-                AddEntityToRagdollRemoveList(ent);
-                return true;
-            }
-
-            firstEnt = firstEnt->nextVal;
-        }
-    }
-
-    return false;
-}
-
-//Warning dangerous function
-
-void FlushRagdollBreakingEntities()
-{
-    // Make sure that ragdoll_entity_list_created is empty because all the entities should have been removed from that list before using this function
-
-    if(*ragdoll_entity_list_created != NULL)
-    {
-        rootconsole->ConsolePrint("Failed to flush ragdoll entities!");
-        exit(EXIT_FAILURE);
-    }
-
-    while(true)
-    {
-        RemoveRagdollBreakEntities(true);
-
-        if(*ragdoll_entity_list == NULL)
-            break;
-    }
-}
-
-void RemoveRagdollBreakEntities(bool bypass)
-{
-    if(ragdoll_delete_frame_counter > 5 || bypass)
-    {
-        Value* firstEnt = *ragdoll_entity_list;
-
-        if((firstEnt && ragdoll_delete_entities_total > 60) || (firstEnt && bypass))
-        {
-            uint32_t refHandle = (uint32_t)firstEnt->value;
-            uint32_t object = functions.GetCBaseEntity(refHandle);
-
-            if(IsEntityValid(object))
-            {
-                if(bypass)
-                {
-                    rootconsole->ConsolePrint("Flushing ragdoll breaking entity!");
-                }
-                else
-                {
-                    rootconsole->ConsolePrint("Removing ragdoll entity gib!");
-                }
-
-                functions.RemoveEntityNormal(object, true);
-            }
-
-            ragdoll_delete_entities_total--;
-
-            Value* nextEnt = firstEnt->nextVal;
-            *ragdoll_entity_list = nextEnt;
-
-            free(firstEnt);
-        }
-
-        ragdoll_delete_frame_counter = 0;
-    }
-}
-
 void CheckForLocation()
 {
     uint32_t sv = engine_srv + 0x00315E80;
@@ -311,11 +197,6 @@ void RemoveEntityNormalBlackMesa(uint32_t entity_object, bool validate)
         if(isMarked)
         {
             //rootconsole->ConsolePrint("Attempted to kill a marked entity in UTIL_Remove(IServerNetworkable*)");
-            return;
-        }
-
-        if(RemoveRagdollBreakingEntity(object_verify))
-        {
             return;
         }
 

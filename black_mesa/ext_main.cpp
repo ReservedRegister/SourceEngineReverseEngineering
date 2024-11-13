@@ -72,14 +72,10 @@ bool InitExtensionBlackMesa()
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
     first_ragdoll_gib = 0;
-    ragdoll_delete_frame_counter = 0;
-    ragdoll_delete_entities_total = 0;
     ragdoll_breaking_gib_counter = 0;
     is_currently_ragdoll_breaking = false;
 
     leakedResourcesVpkSystem = AllocateValuesList();
-    ragdoll_entity_list = AllocateValuesList();
-    ragdoll_entity_list_created = AllocateValuesList();
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
@@ -210,11 +206,8 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0059A1F0), (void*)HooksBlackMesa::Event_KilledPlayer);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)HooksBlackMesa::DispatchAnimEventsHook);
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00295760), (void*)HooksBlackMesa::VPhysicsUpdateHook);
-
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x007E9040), (void*)HooksBlackMesa::GlobalEntityListClear);
 }
 
@@ -288,12 +281,6 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
                 first_ragdoll_gib = new_object;
             }
 
-            uint32_t refHandle = *(uint32_t*)(new_object+offsets.refhandle_offset);
-
-            Value* new_refhandle = CreateNewValue((void*)refHandle);
-            InsertToValuesList(ragdoll_entity_list_created, new_refhandle, NULL, false, false);
-
-            //rootconsole->ConsolePrint("Added entity to ragdoll created break list! [%d]", ValueListItems(ragdoll_entity_list_created, NULL));
             ragdoll_breaking_gib_counter++;
         }
 
@@ -626,7 +613,7 @@ uint32_t HooksBlackMesa::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint3
     pTwoArgProt pDynamicTwoArgFunc;
     pThreeArgProt pDynamicThreeArgFunc;
 
-    LogVpkMemoryLeaks();
+    //LogVpkMemoryLeaks();
 
     isTicking = false;
     firstplayer_hasjoined = false;
@@ -703,7 +690,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
     pThreeArgProt pDynamicThreeArgFunc;
 
     isTicking = true;
-    ragdoll_delete_frame_counter++;
 
     HooksBlackMesa::CleanupDeleteListHook(0);
 
@@ -739,7 +725,6 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
 
     FixPlayerCollisionGroup();
     DisablePlayerWorldSpawnCollision();
-    RemoveRagdollBreakEntities(false);
     RemoveBadEnts();
 
     HooksBlackMesa::CleanupDeleteListHook(0);
@@ -768,15 +753,7 @@ uint32_t HooksBlackMesa::GlobalEntityListClear(uint32_t arg0)
     pOneArgProt pDynamicOneArgFunc;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007E9040);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-
-    // Clears entire entity list from map
-
-    // Then clear our lists that store the ragdoll breaking entities!
-
-    FlushRagdollBreakingEntities();
-    HooksBlackMesa::CleanupDeleteListHook(0);
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksBlackMesa::HookInstaKill(uint32_t arg0)
