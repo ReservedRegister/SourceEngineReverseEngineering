@@ -2,7 +2,7 @@
 #include "util.h"
 #include "core.h"
 
-uint32_t first_ragdoll_gib;
+uint32_t last_ragdoll_gib;
 int ragdoll_breaking_gib_counter;
 bool is_currently_ragdoll_breaking;
 

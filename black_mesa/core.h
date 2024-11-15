@@ -4,7 +4,7 @@
 #define HOOK_MSG "Saved memory reference to leaked resources list: [%X]"
 #define EXT_PREFIX "[BlackMesaUtils] "
 
-extern uint32_t first_ragdoll_gib;
+extern uint32_t last_ragdoll_gib;
 extern int ragdoll_breaking_gib_counter;
 extern bool is_currently_ragdoll_breaking;
 

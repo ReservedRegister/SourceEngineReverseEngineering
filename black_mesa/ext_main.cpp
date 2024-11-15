@@ -71,7 +71,7 @@ bool InitExtensionBlackMesa()
     global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
     current_vpk_buffer_ref = 0;
     server_sleeping = false;
-    first_ragdoll_gib = 0;
+    last_ragdoll_gib = 0;
     ragdoll_breaking_gib_counter = 0;
     is_currently_ragdoll_breaking = false;
 
@@ -224,6 +224,8 @@ uint32_t HooksBlackMesa::RagdollBreakHook(uint32_t arg0, uint32_t arg1, uint32_t
         pDynamicThreeArgFunc(arg0, arg1, arg2);
 
         is_currently_ragdoll_breaking = false;
+        functions.RemoveEntityNormal(last_ragdoll_gib, true);
+        last_ragdoll_gib = 0;
 
         if(IsEntityValid(arg0) == 0)
         {
@@ -255,13 +257,13 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
 {
     pFourArgProt pDynamicFourArgFunc;
 
-    if(is_currently_ragdoll_breaking && ragdoll_breaking_gib_counter > 4)
+    if(is_currently_ragdoll_breaking && ragdoll_breaking_gib_counter > 8)
     {
         rootconsole->ConsolePrint("Ignored gib from ragdoll breaker!");
 
-        if(IsEntityValid(first_ragdoll_gib))
+        if(IsEntityValid(last_ragdoll_gib))
         {
-            return first_ragdoll_gib;
+            return last_ragdoll_gib;
         }
 
         rootconsole->ConsolePrint("First gib was removed!!! - Critical Error");
@@ -276,9 +278,9 @@ uint32_t HooksBlackMesa::CreateNoSpawnHookRagdollBreaking(uint32_t arg0, uint32_
     {
         if(is_currently_ragdoll_breaking)
         {
-            if(ragdoll_breaking_gib_counter == 0)
+            if(ragdoll_breaking_gib_counter == 8)
             {
-                first_ragdoll_gib = new_object;
+                last_ragdoll_gib = new_object;
             }
 
             ragdoll_breaking_gib_counter++;
