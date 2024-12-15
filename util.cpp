@@ -1,8 +1,10 @@
 #include "extension.h"
 #include "util.h"
 
+#include <link.h>
 #include <sys/mman.h>
 
+game_fields fields;
 game_offsets offsets;
 game_functions functions;
 
@@ -19,35 +21,23 @@ uint32_t loaded_libraries[512] = {};
 uint32_t collisions_entity_list[512] = {};
 
 uint32_t engine_srv;
-uint32_t datacache_srv;
 uint32_t dedicated_srv;
-uint32_t materialsystem_srv;
 uint32_t vphysics_srv;
-uint32_t scenefilecache;
-uint32_t soundemittersystem;
-uint32_t soundemittersystem_srv;
-uint32_t studiorender_srv;
 uint32_t server_srv;
+uint32_t server;
 uint32_t sdktools;
 
 uint32_t engine_srv_size;
-uint32_t datacache_srv_size;
 uint32_t dedicated_srv_size;
-uint32_t materialsystem_srv_size;
 uint32_t vphysics_srv_size;
-uint32_t scenefilecache_size;
-uint32_t soundemittersystem_size;
-uint32_t soundemittersystem_srv_size;
-uint32_t studiorender_srv_size;
 uint32_t server_srv_size;
+uint32_t server_size;
 uint32_t sdktools_size;
 
 bool isTicking;
-bool disable_delete_list;
 bool server_sleeping;
 int hooked_delete_counter;
 int normal_delete_counter;
-uint32_t CGlobalEntityList;
 uint32_t global_vpk_cache_buffer;
 uint32_t current_vpk_buffer_ref;
 
@@ -59,6 +49,12 @@ void InitUtil()
     firstplayer_hasjoined = false;
     player_collision_rules_changed = false;
     player_worldspawn_collision_disabled = false;
+    isTicking = false;
+    hooked_delete_counter = 0;
+    normal_delete_counter = 0;
+    server_sleeping = false;
+    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
+    current_vpk_buffer_ref = 0;
 }
 
 void LogVpkMemoryLeaks()
@@ -241,7 +237,7 @@ Library* LoadLibrary(char* library_full_path)
                 if(loaded_libraries[i] == 0)
                 {
                     Library* new_lib = (Library*)(malloc(sizeof(Library)));
-                    new_lib->library_linkmap = library_lm;
+                    new_lib->library_linkmap = (void*)library_lm;
                     new_lib->library_signature = (char*)copy_val(library_full_path, strlen(library_full_path)+1);
                     new_lib->library_base_address = library_lm->l_addr;
                     new_lib->library_size = 0;
@@ -508,7 +504,7 @@ void UpdateAllCollisions()
 
     uint32_t ent = 0;
 
-    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -523,7 +519,7 @@ void UpdateAllCollisions()
     
     ent = 0;
 
-    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"player")) != 0)
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -538,7 +534,7 @@ void FixPlayerCollisionGroup()
 {
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(player))
         {
@@ -561,9 +557,9 @@ void DisablePlayerWorldSpawnCollision()
 {
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
-        uint32_t worldspawn = functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"worldspawn");
+        uint32_t worldspawn = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"worldspawn");
 
         if(IsEntityValid(worldspawn) && IsEntityValid(player))
         {
@@ -596,13 +592,13 @@ void DisablePlayerCollisions()
 {
     uint32_t current_player = 0;
 
-    while((current_player = functions.FindEntityByClassname(CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
+    while((current_player = functions.FindEntityByClassname(fields.CGlobalEntityList, current_player, (uint32_t)"player")) != 0)
     {
         if(IsEntityValid(current_player))
         {
             uint32_t other_players = 0;
 
-            while((other_players = functions.FindEntityByClassname(CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
+            while((other_players = functions.FindEntityByClassname(fields.CGlobalEntityList, other_players, (uint32_t)"player")) != 0)
             {
                 if(IsEntityValid(other_players) && other_players != current_player)
                 {
@@ -618,7 +614,7 @@ void RemoveBadEnts()
 {
     uint32_t ent = 0;
 
-    while((ent = functions.FindEntityByClassname(CGlobalEntityList, ent, (uint32_t)"*")) != 0)
+    while((ent = functions.FindEntityByClassname(fields.CGlobalEntityList, ent, (uint32_t)"*")) != 0)
     {
         if(IsEntityValid(ent))
         {
@@ -906,45 +902,6 @@ bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput,
     return true;
 }
 
-FieldList AllocateFieldList()
-{
-    FieldList list = (FieldList) malloc(sizeof(FieldList));
-  	*list = NULL;
-  	return list;
-}
-
-PlayerSaveList AllocatePlayerSaveList()
-{
-    PlayerSaveList list = (PlayerSaveList) malloc(sizeof(PlayerSaveList));
-    *list = NULL;
-    return list;
-}
-
-SavedEntity* CreateNewSavedEntity(void* entRefHandleInput, void* classnameInput, FieldList fieldListInput)
-{
-    SavedEntity* savedEnt = (SavedEntity*) malloc(sizeof(SavedEntity));
-
-    savedEnt->refHandle = entRefHandleInput;
-    savedEnt->clsname = classnameInput;
-    savedEnt->fieldData = fieldListInput;
-    savedEnt->nextEnt = NULL;
-    return savedEnt;
-}
-
-Field* CreateNewField(void* labelInput, void* keyInput, void* typeInput, void* flagsInput, void* offsetInput, ValueList valuesInput)
-{
-    Field* field = (Field*) malloc(sizeof(Field));
-
-    field->label = labelInput;
-    field->key = keyInput;
-    field->type = typeInput;
-    field->flags = flagsInput;
-    field->offset = offsetInput;
-    field->fieldVals = valuesInput;
-    field->nextField = NULL;
-    return field;
-}
-
 EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn)
 {
     EntityKV* kv = (EntityKV*) malloc(sizeof(EntityKV));
@@ -954,25 +911,4 @@ EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn
     kv->value = valueIn;
 
     return kv;
-}
-
-PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input)
-{
-    PlayerSave* player_save = (PlayerSave*) malloc(sizeof(PlayerSave));
-
-    player_save->saved_player = player_save_input;
-    player_save->nextPlayer = NULL;
-    return player_save;
-}
-
-void InsertFieldToFieldList(FieldList list, Field* head)
-{
-    head->nextField = *list;
-    *list = head;
-}
-
-void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head)
-{
-    head->nextPlayer = *list;
-    *list = head;
 }

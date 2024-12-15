@@ -22,26 +22,20 @@ bool InitExtensionBlackMesa()
 
     char server_srv_fullpath[max_path_length];
     char engine_srv_fullpath[max_path_length];
-    char materialsystem_srv_fullpath[max_path_length];
     char vphysics_srv_fullpath[max_path_length];
     char dedicated_srv_fullpath[max_path_length];
-    char datacache_srv_fullpath[max_path_length];
 
     snprintf(server_srv_fullpath, max_path_length, "/bms/bin/server_srv.so");
     snprintf(engine_srv_fullpath, max_path_length, "/bin/engine_srv.so");
-    snprintf(materialsystem_srv_fullpath, max_path_length, "/bin/materialsystem_srv.so");
     snprintf(vphysics_srv_fullpath, max_path_length, "/bin/vphysics_srv.so");
     snprintf(dedicated_srv_fullpath, max_path_length, "/bin/dedicated_srv.so");
-    snprintf(datacache_srv_fullpath, max_path_length, "/bin/datacache_srv.so");
 
     Library* engine_srv_lib = FindLibrary(engine_srv_fullpath, true);
     Library* server_srv_lib = FindLibrary(server_srv_fullpath, true);
-    Library* materialsystem_srv_lib = FindLibrary(materialsystem_srv_fullpath, true);
     Library* vphysics_srv_lib = FindLibrary(vphysics_srv_fullpath, true);
     Library* dedicated_srv_lib = FindLibrary(dedicated_srv_fullpath, true);
-    Library* datacache_srv_lib = FindLibrary(datacache_srv_fullpath, true);
 
-    if(!(engine_srv_lib && server_srv_lib && materialsystem_srv_lib && vphysics_srv_lib && dedicated_srv_lib && datacache_srv_lib))
+    if(!(engine_srv_lib && server_srv_lib && vphysics_srv_lib && dedicated_srv_lib))
     {
         ClearLoadedLibraries();
         RestoreMemoryProtections();
@@ -51,31 +45,22 @@ bool InitExtensionBlackMesa()
 
     engine_srv = engine_srv_lib->library_base_address;
     server_srv = server_srv_lib->library_base_address;
-    materialsystem_srv = materialsystem_srv_lib->library_base_address;
     vphysics_srv = vphysics_srv_lib->library_base_address;
     dedicated_srv = dedicated_srv_lib->library_base_address;
-    datacache_srv = datacache_srv_lib->library_base_address;
 
     engine_srv_size = engine_srv_lib->library_size;
     server_srv_size = server_srv_lib->library_size;
-    materialsystem_srv_size = materialsystem_srv_lib->library_size;
     vphysics_srv_size = vphysics_srv_lib->library_size;
     dedicated_srv_size = dedicated_srv_lib->library_size;
-    datacache_srv_size = datacache_srv_lib->library_size;
 
-    disable_delete_list = false;
-    isTicking = false;
-    hooked_delete_counter = 0;
-    normal_delete_counter = 0;
-    CGlobalEntityList = server_srv + 0x017B6BE0;
-    global_vpk_cache_buffer = (uint32_t)malloc(0x00100000);
-    current_vpk_buffer_ref = 0;
-    server_sleeping = false;
     last_ragdoll_gib = 0;
     ragdoll_breaking_gib_counter = 0;
     is_currently_ragdoll_breaking = false;
 
     leakedResourcesVpkSystem = AllocateValuesList();
+
+    fields.CGlobalEntityList = server_srv + 0x017B6BE0;
+    fields.sv = engine_srv + 0x00315E80;
 
     offsets.classname_offset = 0x64;
     offsets.abs_origin_offset = 0x294;
@@ -204,7 +189,7 @@ void HookFunctionsBlackMesa()
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00A02D40), (void*)HooksBlackMesa::ShouldHitEntityHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00294C60), (void*)HooksBlackMesa::CollisionRulesChangedHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x0059A1F0), (void*)HooksBlackMesa::Event_KilledPlayer);
-    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheHook);
+    HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B5460), (void*)HooksBlackMesa::CanSatisfyVpkCacheInternalHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000B1AE0), (void*)HooksBlackMesa::PackedStoreDestructorHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x004CE5F0), (void*)HooksBlackMesa::DispatchAnimEventsHook);
     HookFunctionInSharedObject(server_srv, server_srv_size, (void*)(server_srv + 0x00295760), (void*)HooksBlackMesa::VPhysicsUpdateHook);
@@ -310,7 +295,7 @@ uint32_t HooksBlackMesa::VPhysicsUpdateHook(uint32_t arg0, uint32_t arg1)
     return 0;
 }
 
-uint32_t HooksBlackMesa::CanSatisfyVpkCacheHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
+uint32_t HooksBlackMesa::CanSatisfyVpkCacheInternalHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
 {
     pOneArgProt pDynamicOneArgFunc;
     pSevenArgProt pDynamicSevenArgFunc;
@@ -512,7 +497,7 @@ uint32_t HooksBlackMesa::UTIL_GetLocalPlayerHook()
 
     if(!returnVal)
     {
-        return functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+        return functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
     }
 
     return returnVal;
@@ -627,7 +612,6 @@ uint32_t HooksBlackMesa::HostChangelevelHook(uint32_t arg0, uint32_t arg1, uint3
 uint32_t HooksBlackMesa::CleanupDeleteListHook(uint32_t arg0)
 {
     pOneArgProt pDynamicOneArgFunc;
-    if(disable_delete_list) return 0;
 
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x007E6D20);
     return pDynamicOneArgFunc(0);
@@ -706,7 +690,7 @@ uint32_t HooksBlackMesa::SimulateEntitiesHook(uint32_t arg0)
         exit(EXIT_FAILURE);
     }
 
-    uint32_t firstPlayer = functions.FindEntityByClassname(CGlobalEntityList, 0, (uint32_t)"player");
+    uint32_t firstPlayer = functions.FindEntityByClassname(fields.CGlobalEntityList, 0, (uint32_t)"player");
 
     if(!firstPlayer)
     {
@@ -806,11 +790,8 @@ uint32_t HooksBlackMesa::PhysSimEnt(uint32_t arg0)
         return 0;
     }
 
-    disable_delete_list = true;
     pDynamicOneArgFunc = (pOneArgProt)(server_srv + 0x009919D0);
-    uint32_t returnVal = pDynamicOneArgFunc(arg0);
-    disable_delete_list = false;
-    return returnVal;
+    return pDynamicOneArgFunc(arg0);
 }
 
 uint32_t HooksBlackMesa::AcceptInputHook(uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5)

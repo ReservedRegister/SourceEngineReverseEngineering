@@ -17,16 +17,10 @@ void InitCoreBlackMesa()
     snprintf((char*)our_libraries[1], 1024, "%s", "/bin/engine_srv.so");
 
     our_libraries[2] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[2], 1024, "%s", "/bin/materialsystem_srv.so");
+    snprintf((char*)our_libraries[2], 1024, "%s", "/bin/vphysics_srv.so");
 
     our_libraries[3] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[3], 1024, "%s", "/bin/vphysics_srv.so");
-
-    our_libraries[4] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[4], 1024, "%s", "/bin/dedicated_srv.so");
-
-    our_libraries[5] = (uint32_t)malloc(1024);
-    snprintf((char*)our_libraries[5], 1024, "%s", "/bin/datacache_srv.so");
+    snprintf((char*)our_libraries[3], 1024, "%s", "/bin/dedicated_srv.so");
 }
 
 uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
@@ -34,7 +28,7 @@ uint32_t GetCBaseEntityBlackMesa(uint32_t EHandle)
     uint32_t shift_right = EHandle >> 0x0D;
     uint32_t disassembly = EHandle & 0x1FFF;
     disassembly = disassembly << 0x4;
-    disassembly = CGlobalEntityList + disassembly;
+    disassembly = fields.CGlobalEntityList + disassembly;
 
     if( ((*(uint32_t*)(disassembly+0x08))) == shift_right)
     {
@@ -105,8 +99,7 @@ void CorrectVphysicsEntity(uint32_t ent)
 
 void CheckForLocation()
 {
-    uint32_t sv = engine_srv + 0x00315E80;
-    uint32_t current_map = sv+0x11;
+    uint32_t current_map = fields.sv+0x11;
 
     if(strcmp((char*)current_map, "bm_c2a3a") != 0)
     {
@@ -116,7 +109,7 @@ void CheckForLocation()
 
     uint32_t player = 0;
 
-    while((player = functions.FindEntityByClassname(CGlobalEntityList, player, (uint32_t)"player")) != 0)
+    while((player = functions.FindEntityByClassname(fields.CGlobalEntityList, player, (uint32_t)"player")) != 0)
     {
         bool in_area = false;
         uint32_t player_abs = player+0x294;

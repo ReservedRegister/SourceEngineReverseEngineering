@@ -37,6 +37,7 @@ jobs:
           echo "$new_version" > VERSION
 
           # Commit and tag the new version
+          git checkout synergy_latest
           git add VERSION
           git commit -m "Bump version to $new_version"
           git tag "v$new_version"

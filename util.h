@@ -1,8 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <link.h>
-
 typedef uint32_t (*pZeroArgProt)();
 typedef uint32_t (*pOneArgProt)(uint32_t);
 typedef uint32_t (*pTwoArgProt)(uint32_t, uint32_t);
@@ -16,19 +14,10 @@ typedef uint32_t (*pElevenArgProt)(uint32_t, uint32_t, uint32_t, uint32_t, uint3
 
 typedef uint32_t (__attribute__((regparm(2))) *pTwoArgProtOptLink)(uint32_t, uint32_t);
 
-enum MDLCacheFlush_t
-{
-	MDLCACHE_FLUSH_STUDIOHDR		= 0x01,
-	MDLCACHE_FLUSH_STUDIOHWDATA		= 0x02,
-	MDLCACHE_FLUSH_VCOLLIDE			= 0x04,
-	MDLCACHE_FLUSH_ANIMBLOCK		= 0x08,
-	MDLCACHE_FLUSH_VIRTUALMODEL		= 0x10,
-	MDLCACHE_FLUSH_AUTOPLAY         = 0x20,
-	MDLCACHE_FLUSH_VERTEXES         = 0x40,
-
-	MDLCACHE_FLUSH_IGNORELOCK       = 0x80000000,
-	MDLCACHE_FLUSH_ALL              = 0xFFFFFFFF
-};
+typedef struct _game_fields {
+	uint32_t CGlobalEntityList;
+	uint32_t sv;
+} game_fields;
 
 typedef struct _game_offsets {
     uint32_t classname_offset;
@@ -62,7 +51,7 @@ typedef struct _Vector {
 } Vector;
 
 typedef struct _Library {
-	struct link_map* library_linkmap;
+	void* library_linkmap;
 	char* library_signature;
 	uint32_t library_base_address;
 	uint32_t library_size;
@@ -81,34 +70,6 @@ typedef struct _EntityKV {
 	uint32_t value;
 } EntityKV;
 
-typedef struct _Field {
-	void* label;
-	void* key;
-	void* type;
-	void* flags;
-	void* offset;
-	ValueList fieldVals;
-	struct _Field* nextField;
-} Field;
-
-typedef Field** FieldList;
-
-typedef struct _SavedEntity {
-	void* refHandle;
-	void* clsname;
-	FieldList fieldData;
-	struct _SavedEntity* nextEnt;
-} SavedEntity;
-
-typedef SavedEntity** SaveData;
-
-typedef struct _PlayerSave {
-	SavedEntity* saved_player;
-	struct _PlayerSave* nextPlayer;
-} PlayerSave;
-
-typedef PlayerSave** PlayerSaveList;
-
 typedef struct _VpkMemoryLeak {
 	uint32_t packed_ref;
 	ValueList leaked_refs;
@@ -126,6 +87,7 @@ typedef struct _EntityOrigin {
 	float z;
 } EntityOrigin;
 
+extern game_fields fields;
 extern game_offsets offsets;
 extern game_functions functions;
 
@@ -143,35 +105,23 @@ extern uint32_t loaded_libraries[512];
 extern uint32_t collisions_entity_list[512];
 
 extern uint32_t engine_srv;
-extern uint32_t datacache_srv;
 extern uint32_t dedicated_srv;
-extern uint32_t materialsystem_srv;
 extern uint32_t vphysics_srv;
-extern uint32_t scenefilecache;
-extern uint32_t soundemittersystem;
-extern uint32_t soundemittersystem_srv;
-extern uint32_t studiorender_srv;
 extern uint32_t server_srv;
+extern uint32_t server;
 extern uint32_t sdktools;
 
 extern uint32_t engine_srv_size;
-extern uint32_t datacache_srv_size;
 extern uint32_t dedicated_srv_size;
-extern uint32_t materialsystem_srv_size;
 extern uint32_t vphysics_srv_size;
-extern uint32_t scenefilecache_size;
-extern uint32_t soundemittersystem_size;
-extern uint32_t soundemittersystem_srv_size;
-extern uint32_t studiorender_srv_size;
+extern uint32_t server_size;
 extern uint32_t server_srv_size;
 extern uint32_t sdktools_size;
 
 extern bool isTicking;
-extern bool disable_delete_list;
 extern bool server_sleeping;
 extern int hooked_delete_counter;
 extern int normal_delete_counter;
-extern uint32_t CGlobalEntityList;
 extern uint32_t global_vpk_cache_buffer;
 extern uint32_t current_vpk_buffer_ref;
 extern ValueList leakedResourcesVpkSystem;
@@ -201,14 +151,7 @@ bool IsInValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput)
 bool RemoveFromValuesList(ValueList list, void* searchVal, pthread_mutex_t* lockInput);
 int ValueListItems(ValueList list, pthread_mutex_t* lockInput);
 bool InsertToValuesList(ValueList list, Value* head, pthread_mutex_t* lockInput, bool tail, bool duplicate_chk);
-FieldList AllocateFieldList();
-PlayerSaveList AllocatePlayerSaveList();
-SavedEntity* CreateNewSavedEntity(void* entRefHandleInput, void* classnameInput, FieldList fieldListInput);
-Field* CreateNewField(void* labelInput, void* keyInput, void* typeInput, void* flagsInput, void* offsetInput, ValueList valuesInput);
 EntityKV* CreateNewEntityKV(uint32_t refHandle, uint32_t keyIn, uint32_t valueIn);
-PlayerSave* CreateNewPlayerSave(SavedEntity* player_save_input);
-void InsertFieldToFieldList(FieldList list, Field* head);
-void InsertToPlayerSaveList(PlayerSaveList list, PlayerSave* head);
 void InsertEntityToCollisionsList(uint32_t ent);
 void DisablePlayerCollisions();
 void DisablePlayerWorldSpawnCollision();
