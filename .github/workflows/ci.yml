@@ -41,7 +41,7 @@ jobs:
           git add VERSION
           git commit -m "Bump version to $new_version"
           git tag "v$new_version"
-          git push origin master --tags
+          git push origin synergy_latest --tags
 
           # Output the new tag for the release step
           echo "new_tag=v$new_version" >> $GITHUB_ENV
