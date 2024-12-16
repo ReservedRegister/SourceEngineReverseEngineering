@@ -451,6 +451,10 @@ uint32_t HooksSynergy::SimulateEntitiesHook(uint8_t simulating)
     }
 
     HooksSynergy::CleanupDeleteListHook(0);
+    
+    RemoveBadEnts();
+
+    HooksSynergy::CleanupDeleteListHook(0);
 
     //SimulateEntities
     pDynamicOneArgFunc = (pOneArgProt)(server + 0x0074D2A0);
@@ -576,5 +580,5 @@ void HookFunctionsSynergy()
 
     //TEMP FIXES
     HookFunctionInSharedObject(server, server_size, (void*)(server + 0x00C296A0), (void*)HooksSynergy::EmptyCallStdCall);
-    HookFunctionInSharedObject(server, server_size, (void*)(server + 0x00BE4410), (void*)HooksSynergy::EmptyCall);
+    HookFunctionInSharedObject(server, server_size, (void*)(server + 0x00BE1DF0), (void*)HooksSynergy::EmptyCall);
 }
