@@ -144,11 +144,20 @@ void ApplyPatchesSynergy()
     offset = (uint32_t)HooksSynergy::ServiceEventQueueHook - hook_service_event_queue - 5;
     *(uint32_t*)(hook_service_event_queue+1) = offset;
 
+
+    // TEMP FIX
+    // -----------------------------
     uint32_t remove_broken_call_player_spawn = server + 0x00C2A57F;
     memset((void*)remove_broken_call_player_spawn, 0x90, 5);
 
     *(uint8_t*)(remove_broken_call_player_spawn) = 0x31;
     *(uint8_t*)(remove_broken_call_player_spawn+1) = 0xC0;
+    //------------------------------
+
+
+    //CMessageEntity
+    uint32_t remove_extra_call = server + 0x00705D5B;
+    memset((void*)remove_extra_call, 0x90, 5);
 }
 
 uint32_t HooksSynergy::EmptyCall()
@@ -563,5 +572,9 @@ void HookFunctionsSynergy()
     HookFunctionInSharedObject(server, server_size, (void*)(server + 0x005CFE00), (void*)HooksSynergy::VPhysicsSetObjectHook);
     HookFunctionInSharedObject(server, server_size, (void*)(server + 0x005CFE60), (void*)HooksSynergy::CollisionRulesChangedHook);
     HookFunctionInSharedObject(dedicated_srv, dedicated_srv_size, (void*)(dedicated_srv + 0x000C7EB0), (void*)HooksSynergy::CanSatisfyVpkCacheInternalHook);
+
+
+    //TEMP FIXES
     HookFunctionInSharedObject(server, server_size, (void*)(server + 0x00C296A0), (void*)HooksSynergy::EmptyCallStdCall);
+    HookFunctionInSharedObject(server, server_size, (void*)(server + 0x00BE4410), (void*)HooksSynergy::EmptyCall);
 }
